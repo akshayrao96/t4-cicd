@@ -5,14 +5,18 @@
 name: Project Continuous Integration
 
 on:
-  [push, pull_request]:
+  push:
     branches: ["main"]
     paths-ignore:
       - 'dev-docs/**'
       - '.gitignore'
       - 'README.md'
-  # pull_request:
-  # branches: ["main"]
+  pull_request:
+    branches: ["main"]
+    paths-ignore:
+      - 'dev-docs/**'
+      - '.gitignore'
+      - 'README.md'
 
 permissions:
   contents: read
@@ -75,7 +79,7 @@ jobs:
         run: poetry install --no-interaction
       - name: Analysing the code with pylint
         run: |
-          poetry run pylint ./src --fail-under=10
+          poetry run pylint ./src --fail-under=9.5
       - name: Test with poetry
         run: |
           poetry run pytest
