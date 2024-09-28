@@ -72,3 +72,11 @@ poetry remove <dependency/lib/package>
 # Remove dependencies from development environment
 poetry remove <dependency/lib/package> --group dev
 ```
+
+## Development - Using Logging
+
+Steps:
+
+- Get logger from util.common_utils get_logger() function
+- supplied arguments if required
+- By Default a debug.log file will be created at project root directory, you can change its location.
