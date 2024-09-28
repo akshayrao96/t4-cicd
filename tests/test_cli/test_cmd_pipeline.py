@@ -3,6 +3,7 @@
 from click.testing import CliRunner
 from cli import (__main__, cmd_pipeline)
 
+
 def test_cid():
     """ Test the main cid command just by calling it with --help option
     """
@@ -11,6 +12,7 @@ def test_cid():
     # 0 exit code mean successful
     assert result.exit_code == 0
 
+
 def test_pipeline():
     """ Test the main pipeline command just by calling it with --help option
     """
@@ -18,13 +20,14 @@ def test_pipeline():
     result = runner.invoke(cmd_pipeline.pipeline, '--help')
     # 0 exit code mean successful
     assert result.exit_code == 0
-    
+
+
 def test_pipeline_greet():
     """ Test the greet function
     """
     runner = CliRunner()
     result = runner.invoke(cmd_pipeline.greet)
-    
+
     assert result.exit_code == 0
     # result.output will have newline ending, need to strip it
     # we didnt pass any argument, so the output should use default value
