@@ -58,6 +58,8 @@ poetry run pytest
 
 Remember to check the pyproject.toml file to ensure the dependency is added/removed
 
+<img src="./dev-docs/images/pyproject_toml_dependencies.JPG" alt="sample_pyproject.toml" width="300" height="200">
+
 ```shell
 # Adding new dependency for general
 poetry add <dependency/lib/package>
