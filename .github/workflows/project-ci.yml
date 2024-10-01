@@ -7,16 +7,16 @@ name: Project Continuous Integration
 on:
   push:
     branches: ["main"]
-    paths-ignore:
-      - "dev-docs/**"
-      - ".gitignore"
-      - "README.md"
+    #paths-ignore:
+    #  - "dev-docs/**"
+    #  - ".gitignore"
+    #  - "README.md"
   pull_request:
     branches: ["main"]
-    paths-ignore:
-      - "dev-docs/**"
-      - ".gitignore"
-      - "README.md"
+    #paths-ignore:
+    #  - "dev-docs/**"
+    #  - ".gitignore"
+    #  - "README.md"
 
 permissions:
   contents: read
