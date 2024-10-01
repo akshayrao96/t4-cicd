@@ -35,8 +35,12 @@ python -m venv myenv
 
 # Activate your virtual environment. For bash terminal
 source <your_venv_dir>/Scripts/activate
+
 # Example when you name venv as myenv
+# for Windows
 source myenv/Scripts/activate
+# for Mac / Unix 
+source myenv/bin/activate 
 ```
 
 ## Installation, Lint & Test
@@ -50,6 +54,9 @@ poetry run pylint ./src --fail-under=10
 
 # Run pytest with coverage, note current passing coverage score is set at 50%
 poetry run pytest
+
+# to test if you can run the command
+poetry run cid pipeline
 ```
 
 ## Development - Managing Dependencies
