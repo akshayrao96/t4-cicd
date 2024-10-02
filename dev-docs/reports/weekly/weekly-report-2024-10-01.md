@@ -41,11 +41,13 @@ Next week meeting chairperson - Akshay
 
 # What worked this week?
 
-We leverage some of the team member (Chin / Jason) experiences in setting up the Python Project and also GitHub Project tracker.
+- We leverage some of the team member (Chin / Jason) experiences in setting up the Python Project and also GitHub Project tracker.
+- We have defined the communication channel and location (days/hours) to meet for standup and weekly meeting, which gives us time to share our progress and keep us accountable.
 
 # What did not work this week?
 
-We had new team member this week and spent some time in helping new member up to speed with what we previously discussed before.
+- We had new team member this week and spent some time in helping new member up to speed with what we previously discussed before.
+- The ignore file path for build_test to main doesn't work. It's not currently needed for now as we haven't develop any code, but we want to fix this for the next weekly
 
 # Design updates
 
