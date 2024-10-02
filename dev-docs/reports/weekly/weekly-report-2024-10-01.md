@@ -47,7 +47,7 @@ Next week meeting chairperson - Akshay
 # What did not work this week?
 
 - We had new team member this week and spent some time in helping new member up to speed with what we previously discussed before.
-- The ignore file path for build_test to main doesn't work. It's not currently needed for now as we haven't develop any code, but we want to fix this for the next weekly
+- The ignore file path for build_test to main doesn't work. It's not currently needed for now as we haven't develop any code, but we will implement it in the future.
 
 # Design updates
 
