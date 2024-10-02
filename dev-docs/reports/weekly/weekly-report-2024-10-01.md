@@ -26,10 +26,11 @@ Next week meeting chairperson - Akshay
 | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ | -------- |
 | #4 Update High Level System Design & Tech Stack Selection                                                                                                        | S - 1 days   | Akshay   |
 | #6 Define CLI commands/args available for client to use                                                                                                          | S - 1 days   | Jason    |
-| Design the first controller class and add initial set of commands to trigger the first workflow                                                                  | M - 2/3 days | Jason    |
+| #6 Design the first controller class and add initial set of commands to trigger the first workflow                                                                  | M - 2/3 days | Jason    |
 | Create functions with associated class to read the files in the given Github repository, locate the target yml file and extract its content ready for parsing    | M - 2/3 days | Peihsuan |
-| Create functions with associated class to run a predefined docker container with preset scripts, and capture the output from the docker container run            | M - 2/3 days | Akshay   |
-| Create two functions with associated class to create and read data into MySQL server (for blob object storage) and MongoDB server (for other documents and logs) | M - 2/3 days | Chin     |
+| #10 Create functions with associated classes to run a predefined docker container with preset scripts, and capture the output from the docker container run            | M - 2/3 days | Akshay   |
+| #8 Create two functions with associated classes to create and read data into MySQL server (for blob object storage) and MongoDB server (for other documents and logs) | M - 2/3 days | Chin     |
+| #9 Create two functions with associated classes to create and read data into the MongoDB server (for other documents and logs) | M - 2/3 days | Chin     |
 | Initial design for Data Storage Schemes                                                                                                                          | S - 1 days   | Chin     |
 
 # New tasks
@@ -40,11 +41,13 @@ Next week meeting chairperson - Akshay
 
 # What worked this week?
 
-We leverage some of the team member (Chin / Jason) experiences in setting up the Python Project and also GitHub Project tracker.
+- We leverage some of the team member (Chin / Jason) experiences in setting up the Python Project and also GitHub Project tracker.
+- We have defined the communication channel and location (days/hours) to meet for standup and weekly meeting, which gives us time to share our progress and keep us accountable.
 
 # What did not work this week?
 
-We had new team member this week and spent some time in helping new member up to speed with what we previously discussed before.
+- We had new team member this week and spent some time in helping new member up to speed with what we previously discussed before.
+- The ignore file path for build_test to main doesn't work. It's not currently needed for now as we haven't develop any code, but we will implement it in the future.
 
 # Design updates
 
