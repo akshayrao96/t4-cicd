@@ -28,8 +28,9 @@ Next week meeting chairperson - Akshay
 | #6 Define CLI commands/args available for client to use                                                                                                          | S - 1 days   | Jason    |
 | Design the first controller class and add initial set of commands to trigger the first workflow                                                                  | M - 2/3 days | Jason    |
 | Create functions with associated class to read the files in the given Github repository, locate the target yml file and extract its content ready for parsing    | M - 2/3 days | Peihsuan |
-| Create functions with associated class to run a predefined docker container with preset scripts, and capture the output from the docker container run            | M - 2/3 days | Akshay   |
-| Create two functions with associated class to create and read data into MySQL server (for blob object storage) and MongoDB server (for other documents and logs) | M - 2/3 days | Chin     |
+| Create functions with associated classes to run a predefined docker container with preset scripts, and capture the output from the docker container run            | M - 2/3 days | Akshay   |
+| #8 Create two functions with associated classes to create and read data into MySQL server (for blob object storage) and MongoDB server (for other documents and logs) | M - 2/3 days | Chin     |
+| #9 Create two functions with associated classes to create and read data into the MongoDB server (for other documents and logs) | M - 2/3 days | Chin     |
 | Initial design for Data Storage Schemes                                                                                                                          | S - 1 days   | Chin     |
 
 # New tasks
