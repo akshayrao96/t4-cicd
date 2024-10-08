@@ -13,7 +13,7 @@ Meeting on 1st and 4th October to monitor and tackle issues. Following are notes
 
 This week meeting chairperson & report writer - Akshay
 
-Next week meeting chairperson - 
+Next week meeting chairperson - Peihsuan Lin
 
 # Completed tasks
 
@@ -21,17 +21,17 @@ Next week meeting chairperson -
 | ------------------------ | ---------- | -------- |
 | #2 Initial Project Setup | S - 1 days | Chin     |
 | #25 Add sample interaction CRUD functions with MongoDB | M - 2/3 days | Chin     |
+| #24 Create Barebone CLI Interface Structure | S - 1 days | Jason | 
 
 # Carry over tasks
 
 | Task                                                                                                                                                                  | Weight       | Assignee |
 | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ | -------- |
 | #4 Update High Level System Design & Tech Stack Selection                                                                                                             | S - 1 days   | Akshay   |
-| #6 Define CLI commands/args available for client to use                                                                                                               | S - 1 days   | Jason    |
 | #6 Design the first controller class and add initial set of commands to trigger the first workflow                                                                    | M - 2/3 days | Jason    |
 | Create functions with associated class to read the files in the given Github repository, locate the target yml file and extract its content ready for parsing         | M - 2/3 days | Peihsuan |
 | #10 Create functions with associated classes to run a predefined docker container with preset scripts, and capture the output from the docker container run           | M - 2/3 days | Akshay   |
-| #27 Add sample interaction CRUD functions with MySQL                                      | M - 2/3 days | Chin     |
+| #27 Add sample interaction CRUD functions with MySQL                                                                                                                  | M - 2/3 days | Chin     |
 | Initial design for Data Storage Schemes                                                                                                                               | S - 1 days   | Chin     |
 
 # New tasks
@@ -50,6 +50,7 @@ Next week meeting chairperson -
 - Akshay : Issues I created were too vague. Moving forward, I'll have smaller issues stemming from current issues
 - Akshay : Focused too much on the underlying architecture rather than implementing
 - Akshay : Time management
+- Jason : The task that I define for CLI [#6](https://github.com/orgs/CS6510-SEA-F24/projects/8/views/1?pane=issue&itemId=81403046&issue=CS6510-SEA-F24%7Ct4-cicd%7C6) is too big. It took a while to break it into steps and finally start working on the implementation.
 
 # Design updates
 
