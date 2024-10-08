@@ -1,20 +1,18 @@
 # Week 4 (Oct 1 - Oct 8)
 
-# PLACEHOLDERS ARE BELOW, WILL UPDATE ACCORDINGLY:
-
 ## Summary
 
-We had a meeting on Sept 27 to go through and aligned on the
+Meeting on 1 October to monitor and tackle issues. Following are notes from meeting:
 
-- expected final product,
-- project set up tools to used,
-- common working practise (like coding style, PR practise, Lint & Test check etc),
-- High Level System Design
-- A mininum viable product (MVP) which contains the barebone of the simple basic function we tried to achieve by next week based on the workflow
-- Initial distribution of tasks
+- Clarified direction for the CLI with proper naming conventions. Focused on making sure we can read different pipelines and repositories.
+- Ensured that the Click API triggers function calls directly, not YAML.
+- Brainstormed a high level **Controller class** and how it interfaces with the different components.
+- Discussed the data store architecture and how the controller interfaces with **MongoDB** and **MySQL**.
+- Breaking down issues into smaaller,specific and deliverable tasks. We previously had tasks that were too generic and vague.
+- Team specific practice of having a development branch before pushing to main
 
-This week meeting chairperson & report writer - Chin
-Next week meeting chairperson - Akshay
+This week meeting chairperson & report writer - Akshay
+Next week meeting chairperson - 
 
 # Completed tasks
 
@@ -43,24 +41,13 @@ Next week meeting chairperson - Akshay
 
 # What worked this week?
 
-- We leverage some of the team member (Chin / Jason) experiences in setting up the Python Project and also GitHub Project tracker.
-- We have defined the communication channel and location (days/hours) to meet for standup and weekly meeting, which gives us time to share our progress and keep us accountable.
+- Akshay : Team meetings tend to clarify a lot of confusion surrounding the design.
 
 # What did not work this week?
 
-- We had new team member this week and spent some time in helping new member up to speed with what we previously discussed before.
-- The ignore file path for build_test to main doesn't work. It's not currently needed for now as we haven't develop any code, but we will implement it in the future.
+- Akshay : Issues I created were too vague. Moving forward, I'll have smaller issues stemming from current issues
+- Akshay : Focused too much on the underlying architecture rather than implenting
+- Akshay : Time management
 
 # Design updates
 
-High Level System Design
-
-<img src="../../images/week3/high-level-system-design.JPG" alt="High Level System Design" width="600" height="400">
-
-Workflow for a very simple product we want to achieve before end of next week
-
-<img src="../../images/week3/mvp-work-flow.JPG" alt="Work flow for MVP this week" width="600" height="400">
-
-Initial Distribution of tasks
-
-<img src="../../images/week3/task_distribution.JPG" alt="Task Distribution this week" width="600" height="400">
