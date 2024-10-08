@@ -31,7 +31,7 @@ Next week meeting chairperson -
 | #6 Design the first controller class and add initial set of commands to trigger the first workflow                                                                    | M - 2/3 days | Jason    |
 | Create functions with associated class to read the files in the given Github repository, locate the target yml file and extract its content ready for parsing         | M - 2/3 days | Peihsuan |
 | #10 Create functions with associated classes to run a predefined docker container with preset scripts, and capture the output from the docker container run           | M - 2/3 days | Akshay   |
-| #27 Add sample interaction CRUD functions with MongoDB                                      | M - 2/3 days | Chin     |
+| #27 Add sample interaction CRUD functions with MySQL                                      | M - 2/3 days | Chin     |
 | Initial design for Data Storage Schemes                                                                                                                               | S - 1 days   | Chin     |
 
 # New tasks
