@@ -21,7 +21,8 @@ Next week meeting chairperson - Peihsuan Lin
 | ------------------------ | ---------- | -------- |
 | #2 Initial Project Setup | S - 1 days | Chin     |
 | #25 Add sample interaction CRUD functions with MongoDB | M - 2/3 days | Chin     |
-| #24 Create Barebone CLI Interface Structure | S - 1 days | Jason | 
+| #24 Create Barebone CLI Interface Structure | S - 1 days | Jason |
+| #29 Creating Docker Runner with Python API call | XS - 2-3 hours | Akshay | 
 
 # Carry over tasks
 
@@ -34,7 +35,7 @@ Next week meeting chairperson - Peihsuan Lin
 | #27 Add sample interaction CRUD functions with MySQL                                                                                                                  | M - 2/3 days | Chin     |
 | Initial design for Data Storage Schemes                                                                                                                               | S - 1 days   | Chin     |
 
-# New tasks
+# New tasks / Backlog
 
 | Task | Weight | Assignee |
 | ---- | ------ | -------- |
