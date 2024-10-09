@@ -23,6 +23,7 @@ Next week meeting chairperson - Peihsuan Lin
 | #25 Add sample interaction CRUD functions with MongoDB | M - 2/3 days | Chin     |
 | #24 Create Barebone CLI Interface Structure | S - 1 days | Jason |
 | #29 Creating Docker Runner with Python API call | XS - 2-3 hours | Akshay | 
+| #20 Create functions with associated class to read the files in the given Github repository, locate the target yml file and extract its content ready for parsing | M - 2/3 days | Peihsuan |
 
 # Carry over tasks
 
@@ -30,7 +31,6 @@ Next week meeting chairperson - Peihsuan Lin
 | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ | -------- |
 | #4 Update High Level System Design & Tech Stack Selection                                                                                                             | S - 1 days   | Akshay   |
 | #6 Design the first controller class and add initial set of commands to trigger the first workflow                                                                    | M - 2/3 days | Jason    |
-| Create functions with associated class to read the files in the given Github repository, locate the target yml file and extract its content ready for parsing         | M - 2/3 days | Peihsuan |
 | #10 Create functions with associated classes to run a predefined docker container with preset scripts, and capture the output from the docker container run           | M - 2/3 days | Akshay   |
 | #27 Add sample interaction CRUD functions with MySQL                                                                                                                  | M - 2/3 days | Chin     |
 | Initial design for Data Storage Schemes                                                                                                                               | S - 1 days   | Chin     |
@@ -45,6 +45,7 @@ Next week meeting chairperson - Peihsuan Lin
 
 - Akshay : Team meetings tend to clarify a lot of confusion surrounding the design.
 - Chin : Narrowed down the scope of tasks when realized the assigned task is too big for one week.
+- Peihsuan: Implement basic functionality for cloning repositories and finding and parsing YAML files.
   
 # What did not work this week?
 
