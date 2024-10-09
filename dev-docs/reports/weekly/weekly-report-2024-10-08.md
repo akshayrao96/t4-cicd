@@ -4,6 +4,7 @@
 
 Meeting on 1st and 4th October to monitor and tackle issues. Following are notes from meeting:
 
+- The team is using development branch to merge codes from individual branches, to resolve potential conflict and bugs before pushing into the Main branch. 
 - Clarified direction for the CLI with proper naming conventions. Focused on making sure we can read different pipelines and repositories.
 - Ensured that the Click API triggers function calls directly, not YAML.
 - Brainstormed a high-level **Controller class** and how it interfaces with the different components.
