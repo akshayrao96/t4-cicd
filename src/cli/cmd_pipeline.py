@@ -32,8 +32,8 @@ def greet(name: str):
     logger.debug(f'Hello {name}')
 
 @pipeline.command()
-@click.option('--config-file', help='configuration file name', default='pipeline.yml')
-@click.option('-r', '--repo-url', 'repo_url', help='repository url', default='local')
+@click.option('--config-file', default='pipeline.yml', help='configuration file name')
+@click.option('-r', '--repo-url', 'repo_url', default='local', help='repository url')
 @click.option('--dry-run', 'dry_run', help='dry-run options to simulate pipeline\
 process via output message', default=False, show_default=True)
 
@@ -52,8 +52,8 @@ to true (--dry-run={dry_run})")
     #call run_pipeline
     click.echo(f'Run config file called {config_file} at repo {repo_url}')
 
-    pipeline_details = control.run_pipeline(config_file=config_file, 
+    pipeline_details = control.run_pipeline(config_file=config_file,
                                             repo_url=repo_url, dry_run=dry_run)
-    
+
     logger.debug(f"pipeline run response: {pipeline_details}")
     click.echo(f"pipeline run response: {pipeline_details}")

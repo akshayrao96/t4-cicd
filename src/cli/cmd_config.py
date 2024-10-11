@@ -19,5 +19,9 @@ def config(ctx):
     # pass
 
 @config.command()
-def show():
-    """ show configuration of the  """
+@click.option('--repo-location', default='local', help="repository url for remote repository \
+or directory path for local repository")
+def list(repo_location:str):
+    """ list all configuration of the repository"""
+    click.echo(f"list config files at: {repo_location}")
+    logger.debug("list config files at: %s", repo_location)
