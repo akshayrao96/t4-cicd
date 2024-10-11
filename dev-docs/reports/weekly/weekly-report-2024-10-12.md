@@ -2,8 +2,7 @@
 
 ## Summary
 
-Meeting on 8th and 11th October to monitor and tackle issues. Following are notes from meeting:
-- 
+Meeting on 8th and 11th October to monitor and tackle issues. Following are notes from meeting: 
 
 
 This week meeting chairperson & report writer - Peihsuan
