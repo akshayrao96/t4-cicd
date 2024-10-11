@@ -2,6 +2,7 @@
 Provide the common utility functions used by all other modules
 """
 import logging
+from dotenv import dotenv_values
 
 
 def get_logger(logger_name='', log_level=logging.DEBUG, log_file='debug.log') -> logging.Logger:
@@ -39,3 +40,13 @@ def get_logger(logger_name='', log_level=logging.DEBUG, log_file='debug.log') ->
     logger.addHandler(file_handler)
 
     return logger
+
+
+def get_env() -> dict:
+    """ Retrieve the env variables from the environment. Perform further processing if necessary
+
+    Returns:
+        dict: dictionary of env values in key=value pairs
+    """
+    config = dotenv_values(".env")
+    return config
