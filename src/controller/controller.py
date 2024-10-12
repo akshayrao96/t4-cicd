@@ -41,8 +41,8 @@ class Controller:
         message = "Pipeline runs successfully"
         pipeline_id = "pid_unique_string"
 
-        # remote_repo = self.repo_manager.is_remote_repo()
-        # self.logger.debug("is_remote_repo: %s", remote_repo)
+        remote_repo = self.repo_manager.is_remote_repo()
+        self.logger.debug("is_remote_repo: %s", remote_repo)
 
         return tuple([status,message,pipeline_id])
 
@@ -71,4 +71,8 @@ class Controller:
         pass
 
     def display_or_edit_config(self):
+        pass
+    
+    def list_configuration(self):
+        
         pass
