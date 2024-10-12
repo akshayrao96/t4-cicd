@@ -164,7 +164,7 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
-# Macbook default config file
+# Apple default config file
 .DS_Store
 
 # VSCode
