@@ -2,7 +2,7 @@
 """
 
 from util.common_utils import (get_logger)
-from controller.repo_manager import (RepoManager)
+from util.repo_manager import (RepoManager)
 
 SET_LOCAL_PATH = '/Users/jason.gautama/Documents/code/GitHub/CS6510-SEA-F24/t4-cicd'
 
@@ -41,8 +41,9 @@ class Controller:
         message = "Pipeline runs successfully"
         pipeline_id = "pid_unique_string"
 
-        remote_repo = self.repo_manager.is_remote_repo()
-        self.logger.debug("is_remote_repo: %s", remote_repo)
+        ## This is example how to call RepoManager util class from controller
+        #self.repo_manager.setup_repo()
+        #self.logger.debug("is_remote_repo: %s", remote_repo)
 
         return tuple([status,message,pipeline_id])
 
@@ -56,13 +57,12 @@ class Controller:
         Returns:
             bool: true if repoisotry initialization successful
         """
-        pass
+
 
     def setup_pipeline(self):
         """
         setup pipeline when `cid pipeline setup` is called for the first time.
         """
-        pass
 
     def start_job(self):
         pass
@@ -72,7 +72,6 @@ class Controller:
 
     def display_or_edit_config(self):
         pass
-    
+
     def list_configuration(self):
-        
         pass
