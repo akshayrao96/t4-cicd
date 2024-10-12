@@ -3,7 +3,13 @@
 ## Summary
 
 Meeting on 8th and 11th October to monitor and tackle issues. Following are notes from meeting: 
+- Shifted focus from building the MVP to preparing for the demo next week.
+- Discussed and divided the tasks related to additional files and methods needed for [Requirement 2](https://neu-seattle.gitlab.io/asd/cs6510f24/CS6510-F24/main/project/requirements.html#_requirements_iteration_2).
+- Clarified the workflow from the CLI Controller to handling repository and configuration file checks.
+- Aligned on the API for Controller and ConfigChecker.
+- Clarified the differences in the CLI for Base Command, Config Management, and Pipeline Management.
 
+We decided to do a team code walk on 14th on our development branch to make sure the uses case will be well presenting on class.
 
 This week meeting chairperson & report writer - Peihsuan
 
@@ -38,3 +44,7 @@ Next week meeting chairperson - Jason
 
 
 # Design updates
+System Integration Diagram by Chin
+![Iteration2_byChin](https://github.com/user-attachments/assets/7bbe96e1-33c2-4922-8fef-fd749414f463)
+
+
