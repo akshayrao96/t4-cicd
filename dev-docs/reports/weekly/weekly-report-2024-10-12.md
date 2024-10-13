@@ -25,6 +25,8 @@ Next week meeting chairperson - Jason
 | [#34](https://github.com/CS6510-SEA-F24/t4-cicd/issues/34) [CLI] Implement Test cases for Barebone CLI | S - 1 days | Jason     |
 | [#43](https://github.com/CS6510-SEA-F24/t4-cicd/issues/43) [CLI] Draft Sequence Diagram for CLI subcommand to get the flow to Controller | XS - 0.5 days | Jason |
 | [#24](https://github.com/CS6510-SEA-F24/t4-cicd/issues/24)[CLI] Create Barebone CLI Interface Structure | XS - 0.5 days | Jason
+| [#39](https://github.com/CS6510-SEA-F24/t4-cicd/issues/39) [RepoManager] Improve YAML Parsing and Repo Setup                                  | M - 3 days | Peihsuan |
+
 
 
 # Carry over tasks
@@ -44,12 +46,14 @@ Next week meeting chairperson - Jason
 | ---- | ------ | -------- |
 | [Controller] Define / Implement a Base Controller #15 | M | Jason |
 | [CLI] implement validation (try/catch) for user input | XS | Jason |
+| [SystemDesign] Standardize and document the error handling and logging behaviour #41 |  M   |          |
 
 # What worked this week?
 
 - Chin : interaction diagram and design doc to align everyone's understanding on the same page.
 - Jason: the diagram that Chin created really helped me and the team to align what to deliver on Tuesday. 
 - Jason: Breaking down the task and communicate my struggle to the team seem to do help me move forward and deliver the code,test,design (sequence diagram) for this sprint.
+- Peihsuan: Aligned with the interactions of the components and added functionality and flexibility to RepoManager accordingly.
 
 # What did not work this week?
 
