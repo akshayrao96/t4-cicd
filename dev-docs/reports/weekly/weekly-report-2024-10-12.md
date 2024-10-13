@@ -26,6 +26,7 @@ Next week meeting chairperson - Jason
 | [#43](https://github.com/CS6510-SEA-F24/t4-cicd/issues/43) [CLI] Draft Sequence Diagram for CLI subcommand to get the flow to Controller | XS - 0.5 days | Jason |
 | [#24](https://github.com/CS6510-SEA-F24/t4-cicd/issues/24)[CLI] Create Barebone CLI Interface Structure | XS - 0.5 days | Jason
 | [#39](https://github.com/CS6510-SEA-F24/t4-cicd/issues/39) [RepoManager] Improve YAML Parsing and Repo Setup                                  | M - 3 days | Peihsuan |
+| [#35](https://github.com/CS6510-SEA-F24/t4-cicd/issues/35) [CLI] define/implement cid config command                                  | S - 1 days | Akshay |
 
 
 
@@ -54,6 +55,7 @@ Next week meeting chairperson - Jason
 - Jason: the diagram that Chin created really helped me and the team to align what to deliver on Tuesday. 
 - Jason: Breaking down the task and communicate my struggle to the team seem to do help me move forward and deliver the code,test,design (sequence diagram) for this sprint.
 - Peihsuan: Aligned with the interactions of the components and added functionality and flexibility to RepoManager accordingly.
+- Akshay: Team meetings, clarifications on components (CLI, RepoManager, YAML Configurations Checker)
 
 # What did not work this week?
 
