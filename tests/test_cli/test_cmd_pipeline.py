@@ -65,3 +65,16 @@ def test_pipeline_greet():
     # result.output will have newline ending, need to strip it
     # we didnt pass any argument, so the output should use default value
     assert result.output.rstrip() == 'Hello Team 4'
+
+def test_pipeline_log():
+    """ Test the `cid pipeline log` command.
+    """
+    runner = CliRunner()
+    result = runner.invoke(cmd_pipeline.pipeline, ['log', '--tail', '5'])
+
+    assert result.exit_code == 0
+
+    output = result.output.splitlines()
+
+    # Check hashcode is shown
+    assert output[1].startswith("Pipeline Hash: ")

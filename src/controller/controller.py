@@ -57,6 +57,7 @@ class Controller:
         Returns:
             bool: true if repoisotry initialization successful
         """
+        return true
 
 
     def setup_pipeline(self):
