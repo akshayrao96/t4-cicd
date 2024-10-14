@@ -19,9 +19,9 @@ def get_logger(logger_name='', log_level=logging.DEBUG, log_file='debug.log') ->
     # Retrieve logger and set log level
     logger = logging.getLogger(logger_name)
     logger.setLevel(log_level)
-    # create console handler and set level to debug
+    # create console handler and set level to info
     ch = logging.StreamHandler()
-    ch.setLevel(logging.DEBUG)
+    ch.setLevel(logging.INFO)
 
     # create formatter
     formatter = logging.Formatter(
