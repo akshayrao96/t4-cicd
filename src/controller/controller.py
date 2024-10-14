@@ -4,6 +4,7 @@
 """
 
 # import os
+import click
 from util.common_utils import (get_logger)
 from util.repo_manager import (RepoManager)
 from util.db_mongo import (MongoAdapter)
@@ -14,7 +15,7 @@ from util.config_tools import (ConfigChecker)
 REPO_SOURCE = ""
 REPO_TARGET_PATH = ""
 REPO_BRANCH_NAME = "main"
-
+# pylint: disable=fixme
 
 class Controller:
     """Controller class that integrates the CLI with the other class components"""
@@ -35,7 +36,7 @@ class Controller:
 
         # init Docker
         # init RepoManager
-        self.repo_manager = RepoManager(REPO_SOURCE, REPO_TARGET_PATH, REPO_BRANCH_NAME)
+        self.repo_manager = RepoManager(REPO_SOURCE)
         self.mongo_ds = MongoAdapter() # init DataStore (MongoDB, Postgres)
         self.config_checker = ConfigChecker() #init Configuration Checker
         # ..and many more
@@ -52,6 +53,11 @@ class Controller:
         Returns:
             tuple[bool, str]: true if repository initialization successful and the message output
         """
+        self.repo = repo_source
+        self.repo_manager = RepoManager(self.repo)
+        click.echo(self.repo)
+        
+        # Try extract all yaml files and validate it
 
     def _is_valid_repo(self, repo_source:str) -> bool:
         """private function to check if the repository path specified is a valid repository
@@ -63,12 +69,14 @@ class Controller:
             bool: _description_
         """
 
-    def read_repo(self) -> bool:
+    def get_repo(self) -> str:
         """_summary_
 
         Returns:
             bool: _description_ #check if bool is the right type to return
         """
+        print(self.repo)
+        return self.repo
 
     def get_controller_history(self) -> dict:
         """Retrieve pipeline history from Mongo DB
@@ -101,6 +109,7 @@ class Controller:
         #parse the config yaml file given the file_name that the user specified, or
         #by default "pipelines.yml". Next, call the Repo Manager function that will
         #return the configuration in dictionary form (parsed with key-value pair structure)
+        # assuming it is inside the .cicd-pipelines folder
         pipeline_config = self.repo_manager.parse_yaml(file_name)
 
         #get the pipeline_name for ConfigChecker
@@ -159,13 +168,21 @@ class Controller:
         return tuple([status,message,pipeline_id])
 
     def _start_job(self):
-        pass
+        """_summary_
+        """
+
 
     def stop_job(self):
-        pass
+        """_summary_
+        """
+
 
     def display_or_edit_config(self):
-        pass
+        """_summary_
+        """
+
 
     def list_configuration(self):
-        pass
+        """_summary_
+        """
+

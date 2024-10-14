@@ -78,7 +78,8 @@ class RepoManager:
         logger.debug("Target directory %s is valid. Proceeding...", self.target_path)
 
     def _get_unique_path(self, path: str) -> Path:
-        """Helper method to generates a unique path by appending _1, _2, _3, etc., if the path exists.
+        """Helper method to generates a unique path by appending _1, _2, _3, etc., 
+        if the path exists.
 
         Args:
             path (str): The original file or directory path.

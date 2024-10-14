@@ -9,7 +9,6 @@ from controller.controller import (Controller)
 DEFAULT_CONFIG_FILE_PATH = ".cicd-pipelines/pipeline.yml"
 
 logger = get_logger('cli.cmd_pipeline')
-control = Controller()
 
 @click.group(invoke_without_command=True)
 @click.pass_context
@@ -37,7 +36,7 @@ to true (--dry-run={dry_run})")
 
     #call run_pipeline
     click.echo(f'Run config file called {config_file} at repo {repo_url}')
-
+    control = Controller()
     pipeline_details = control.run_pipeline(config_file=config_file,
                                             repo_url=repo_url, dry_run=dry_run)
 

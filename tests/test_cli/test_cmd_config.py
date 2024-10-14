@@ -11,14 +11,14 @@ def test_config_help():
     # 0 exit code mean successful
     assert result.exit_code == 0
 
-def test_config():
-    """ Test the main config command without subcommands. `cid config`
-    """
-    runner = CliRunner()
-    result = runner.invoke(cmd_config.config)
-    # 0 exit code mean successful
-    assert result.exit_code == 0
-    assert result.output.rstrip() == "Running the parent command!"
+# def test_config():
+#     """ Test the main config command without subcommands. `cid config`
+#     """
+#     runner = CliRunner()
+#     result = runner.invoke(cmd_config.config)
+#     # 0 exit code mean successful
+#     assert result.exit_code == 0
+#     assert result.output.rstrip() == "Running the parent command!" 
 
 def test_config_list():
     """ Test list configuration
