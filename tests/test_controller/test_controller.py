@@ -12,6 +12,8 @@ def test_validate_config():
     expected_passed = True
     expected_error_msg = ""
 
+    #Note: in order for this to work, currently need to create .cicd-pipelines/
+    #in this t4-cicd project.
     result = controller.validate_config("pipelines.yml")
     passed, error_msg, config_dict = result[0], result[1], result[2]
 
