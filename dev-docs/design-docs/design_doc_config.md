@@ -211,8 +211,8 @@ The ConfigChecker validation method will return a dictionary with the following 
     'stage2':{
         # ....
     }
-
 ])
+
 
 ```
 
