@@ -200,7 +200,8 @@ def test_check_stages_jobs_relationship_fails():
         },
     }
     expected_stages = OrderedDict()
-    expected_error_msg = f"No stage key defined for job compile\nNo job defined for stage build\n"
+    expected_error_msg = "Error in section:jobs job:compile No stage key defined\n"
+    expected_error_msg += "Error in section:stages stage:build No job defined for this stage\n"
     passed, error_msg, actual_stages = checker._check_stages_jobs_relationship(stage_list, jobs_dict)
     assert not passed
     assert error_msg == expected_error_msg
@@ -219,7 +220,7 @@ def test_check_stages_jobs_relationship_fails():
         },
     }
     expected_stages = OrderedDict()
-    expected_error_msg = f"stage value testing defined for job pytest does not exist in stages list\n"
+    expected_error_msg = "Error in section:jobs job:pytest stage value testing defined does not exist in stages list\n"
     passed, error_msg, actual_stages = checker._check_stages_jobs_relationship(stage_list, jobs_dict)
     assert not passed
     assert error_msg == expected_error_msg
@@ -229,6 +230,7 @@ def test_check_jobs_dependencies():
     """ Test the _check_jobs_dependencies() method for individual stages 
     """
     checker = config.ConfigChecker()
+    stage_name = 'test'
     job_list = ['compile', 'pytest']
     jobs_dict = {
         'compile':{
@@ -255,7 +257,7 @@ def test_check_jobs_dependencies():
             'compile', 'pytest'
         ]]
     }
-    passed, actual_error_msg, actual_result = checker._check_jobs_dependencies(job_list, jobs_dict)
+    passed, actual_error_msg, actual_result = checker._check_jobs_dependencies(stage_name, job_list, jobs_dict)
     assert passed
     assert actual_error_msg == expected_error_msg
     assert actual_result == expected_result_dict
@@ -264,6 +266,7 @@ def test_topo_sort():
     """ test the topo_sort() function 
     """
     checker = config.ConfigChecker()
+    stage_name = 'test'
     adjacency_list = {
         'job1':[],
         # job2 is required by job1
@@ -271,7 +274,7 @@ def test_topo_sort():
     }
     expected_order = ['job2', 'job1']
     expected_error_msg = ""
-    passed, actual_error_msg, actual_order = checker._topo_sort(adjacency_list)
+    passed, actual_error_msg, actual_order = checker._topo_sort(stage_name, adjacency_list)
     assert passed
     assert actual_error_msg == expected_error_msg
     assert actual_order == expected_order
@@ -312,6 +315,12 @@ def test_check_jobs_section():
         }
     }
     expected_dict = {
+        config.SECT_KEY_GLOBAL: {
+            config.SUBSECT_KEY_PIPE_NAME: 'test_pipeline',
+            config.SUBSECT_KEY_DOCKER_REG: 'docker',
+            config.SUBSECT_KEY_DOCKER_IMG: 'ubuntu:latest',
+            config.SUBSECT_KEY_ARTIFACT_PATH: 'Github.com'
+        }, 
         config.SECT_KEY_JOBS: {
             # First job with every things defined
             'compile':{
@@ -340,7 +349,14 @@ def test_check_jobs_section():
         }
     }
     expected_error_msg = ""
-    actual_dict = {}
+    actual_dict = {
+        config.SECT_KEY_GLOBAL: {
+            config.SUBSECT_KEY_PIPE_NAME: 'test_pipeline',
+            config.SUBSECT_KEY_DOCKER_REG: 'docker',
+            config.SUBSECT_KEY_DOCKER_IMG: 'ubuntu:latest',
+            config.SUBSECT_KEY_ARTIFACT_PATH: 'Github.com'
+        }, 
+    }
     passed, error_msg = checker._check_jobs_section(input_dict, actual_dict)
     assert passed
     assert error_msg == expected_error_msg

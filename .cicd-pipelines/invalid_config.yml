@@ -1,0 +1,61 @@
+# Invalid config shows as much as possible the error that can be caught by our config checker
+global:
+  pipeline_name: valid_pipeline
+  # No docker_registry, docker_image and artifact_upload_path defined
+
+# No stages is defined, should use default stages: [build, test, doc, deploy]
+# stages: ['build', 'test']
+
+jobs:
+    nostage:
+        # This job is missing stage info, should throw error
+        scripts: ['git clone']
+        docker_image: 'ubuntu:latest'
+
+    wrongstage:
+        # This job is refer to stage not defined, should throw error
+        stage: ['wrong-stage']
+        scripts: ['git clone']
+        docker_image: 'ubuntu:latest'
+
+    checkout:
+        stage: build
+        # This job is missing a script, should throw error
+        # scripts: ['git clone']
+        docker_image: 'ubuntu:latest'
+
+    compile:
+        # stage name is required. a job can only be part of 1 stage (Req #C5.2)
+        stage: build
+
+        # allow_failure flag allow override the default behavior and allow for the pipeline execution
+        # to continue even if this job has failed.
+        allow_failure: True
+
+        # Dependencies are specified in needs section (Req #C5.6). 
+        needs: ['checkout']
+
+        # scripts keyword is used to identify the commands to run as part of a job
+        scripts:
+          - 'poetry install'
+
+        docker_image: 'ubuntu:latest'
+        # artifacts is defined but no artifact_upload_path specified, should throw error
+        artifacts:
+            # on_success_only: attemp to upload the artifact(s) on success only,
+            # available values are True/False, by default is True
+            on_success_only: True
+            paths:
+                - 'build/lib'
+    
+    pytest:
+        stage: test
+        scripts: ['poetry run pytest']
+        # No docker_image defined here or in global, should throw error
+    
+    pydoc:
+        stage: doc 
+        scripts: ['pydoc']
+        docker_image: 'ubuntu:latest'
+    
+    # No job defined for stage deploy, should throw error
