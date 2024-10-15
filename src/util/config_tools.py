@@ -63,15 +63,12 @@ class ConfigChecker:
 
         Returns:
             dict: dictionary of {
-                    #valid flag indicates if the validation passed or failed
-                    'valid':<True or False>,
-
-                    # If validation passed this will be an empty string
+                    'valid':<True or False>, 
+                    valid flag indicates if the validation passed or failed.\n 
                     'error_msg': <str of error messages collected>,
-
-                    # pipeline_config is the dictionary of the pipeline config processed.
-                    # if validation failed, it will be empty
-                    'pipeline_config': dict
+                    If validation passed this will be an empty string \n
+                    'pipeline_config': dict. pipeline_config is the dictionary of 
+                    the pipeline config processed. if validation failed, it will be empty
             }
         """
         self.pipeline_name = pipeline_name
@@ -244,7 +241,8 @@ class ConfigChecker:
             result_error_msg += error
             # Third check, for each stage, verify the dependencies are correct
             for stage, job_list in processed_stages.items():
-                flag, error, dependency_dict = self._check_jobs_dependencies(job_list, jobs_section)
+                flag, error, dependency_dict = self._check_jobs_dependencies(
+                    stage, job_list, jobs_section)
                 result_flag = result_flag and flag
                 result_error_msg += error
                 processed_stages[stage] = dependency_dict
@@ -288,20 +286,20 @@ class ConfigChecker:
             for job, config in jobs_dict.items():
                 if JOB_SUBKEY_STAGE not in config:
                     result_flag = False
-                    result_error_msg += f"No stage key defined for job {job}\n"
+                    result_error_msg += f"Error in section:jobs job:{job} No stage key defined\n"
                     continue
                 job_stage = config[JOB_SUBKEY_STAGE]
                 if job_stage not in stage_list:
                     result_flag = False
-                    result_error_msg += f"stage value {job_stage} defined for job {job} "
-                    result_error_msg += "does not exist in stages list\n"
+                    result_error_msg += f"Error in section:jobs job:{job} stage value {job_stage}"
+                    result_error_msg += " defined does not exist in stages list\n"
                     continue
                 stage2jobs[job_stage].add(job)
             # Check all stage has jobs
             for stage, job_list in stage2jobs.items():
                 if len(job_list) == 0:
                     result_flag = False
-                    result_error_msg += f"No job defined for stage {stage}\n"
+                    result_error_msg += f"Error in section:stages stage:{stage} No job defined for this stage\n" # pylint: disable=line-too-long
             new_stage_jobs_list = collections.OrderedDict()
             for stage in stage_list:
                 new_stage_jobs_list[stage]=stage2jobs[stage]
@@ -314,13 +312,15 @@ class ConfigChecker:
             self.logger.warning(err_msg)
             return (False, "checking stages jobs relationship, unexpected error occur\n", {})
 
-    def _check_jobs_dependencies(self, job_list: list|set,
+    def _check_jobs_dependencies(self, stage_name:str,
+                                 job_list: list|set,
                                  jobs_dict: dict) -> tuple[bool, str, dict]:
         """ check dependencies for the jobs within the same stage. 
             no jobs should depends on jobs not defined in current stage
             no cycle allowed for the group of jobs
 
         Args:
+            stage_name:str name of the stage checking on 
             job_list (list | set): iterable of jobs within same stage
             jobs_dict (dict): dictionary of jobs(key) and jobs config(value)
 
@@ -351,7 +351,7 @@ class ConfigChecker:
             for job in job_list:
                 if job not in jobs_dict:
                     result_flag = False
-                    result_error_msg += f"Job not found in jobs_dict error for job:{job}\n"
+                    result_error_msg += f"Error in stage:{stage_name}-Job not found in jobs_dict error for job:{job}\n" # pylint: disable=line-too-long
                     continue
                 job_config = jobs_dict[job]
                 if need_key not in job_config:
@@ -359,39 +359,50 @@ class ConfigChecker:
                 job_needs = job_config[need_key]
                 if not isinstance(job_needs, list):
                     result_flag = False
-                    result_error_msg += f"Job needs not in list format for job:{job}"
-                    result_error_msg += f" and needs:{job_needs}\n"
+                    result_error_msg += f"Error in stage:{stage_name}-Job needs not in list format"
+                    result_error_msg += f" for job:{job} and needs:{job_needs}\n"
                     continue
                 for need in job_needs:
+                    if need == job:
+                        result_flag = False
+                        result_error_msg += f"Error in stage:{stage_name}-Self cycle error detected for job {job}" # pylint: disable=line-too-long
+                        continue
                     if need not in adjacency_list:
                         result_flag = False
-                        result_error_msg += f"Job:{job} depends on job:{need}"
-                        result_error_msg += "outside of this stage\n"
+                        result_error_msg += f"Error in stage:{stage_name}-Job:{job} depends on "
+                        result_error_msg += f"job:{need} outside of this stage\n"
                         continue
                     adjacency_list[need].append(job)
-            flag, error_msg, order = self._topo_sort(adjacency_list)
-            result_flag = result_flag and flag
-            result_error_msg += error_msg
+            if result_flag:
+                flag, error_msg, order = self._topo_sort(stage_name, adjacency_list)
+                result_flag = result_flag and flag
+                result_error_msg += error_msg
             if result_flag:
                 result_dict[STAGE_SUBKEY_JOB_GRAPH] = adjacency_list
                 # TODO - update here after update the toposort method to separate group of orders
                 result_dict[STAGE_SUBKEY_JOB_ORDER] = [order]
             return (result_flag, result_error_msg, result_dict)
         except (LookupError, IndexError, KeyError) as e:
-            err_msg = f"Error in checking jobs dependency for {self.pipeline_name} "
-            err_msg += f"and job_list {job_list}, exception msg is {e}"
+            err_msg = f"stage:{stage_name}-Error in checking jobs dependency for "
+            err_msg += f"{self.pipeline_name} and job_list {job_list}, exception msg is {e}"
             self.logger.warning(err_msg)
             return (
                     False,
-                    f"checking jobs dependency for job_list{job_list}, unexpected error occur\n",
+                    f"stage:{stage_name}-checking jobs dependency for job_list{job_list}, unexpected error occur\n", # pylint: disable=line-too-long
                     {}
                 )
 
     # TODO - Update to separate groups of jobs that can be executed independently
-    def _topo_sort(self, adjacency_list:dict, entire_list:list=None)->tuple[bool, str, list]:
+    def _topo_sort(
+            self,
+            stage_name:str,
+            adjacency_list:dict,
+            entire_list:list=None
+        )->tuple[bool, str, list]:
         """ performed topological sort based on the nodes in adjacency_list and entire_list
 
         Args:
+            stage_name:str name of the stage checking on 
             adjacency_list (dict): graph representation of given nodes
             entire_list (list, optional): List of all nodes to be sorted, 
                 if provided will use this. Defaults to None.
@@ -454,7 +465,7 @@ class ConfigChecker:
         self.logger.debug(node2depend_cnt)
         if len(node2depend_cnt) != 0:
             result_flag = False
-            result_error_msg = f"Cycle error detected for jobs:{list(node2depend_cnt.keys())}"
+            result_error_msg = f"stage:{stage_name}-Cycle error detected for jobs:{list(node2depend_cnt.keys())}\n" # pylint: disable=line-too-long
             return (result_flag, result_error_msg, [])
         return (result_flag, result_error_msg, order)
 
@@ -480,10 +491,12 @@ class ConfigChecker:
                 return (False, f"No global section defined for pipeline {self.pipeline_name}")
             job_configs = pipeline_config[sec_key]
             error_prefix = f"Error in section:{sec_key} "
-            # All global values should be available when called
-            global_docker_reg = pipeline_config[SECT_KEY_GLOBAL][SUBSECT_KEY_DOCKER_REG]
-            global_docker_img = pipeline_config[SECT_KEY_GLOBAL][SUBSECT_KEY_DOCKER_IMG]
-            global_upload_path = pipeline_config[SECT_KEY_GLOBAL][SUBSECT_KEY_ARTIFACT_PATH]
+            # All global values should be available in processed config when called
+            # as prepared by previous section
+            global_docker_reg = processed_config[SECT_KEY_GLOBAL][SUBSECT_KEY_DOCKER_REG]
+            global_docker_img = processed_config[SECT_KEY_GLOBAL][SUBSECT_KEY_DOCKER_IMG]
+            global_upload_path = processed_config[SECT_KEY_GLOBAL][SUBSECT_KEY_ARTIFACT_PATH]
+            self.logger.debug(job_configs)
             for job, config in job_configs.items():
                 job_error_prefix = error_prefix + f"job:{job} "
                 processed_job = {}
@@ -514,8 +527,8 @@ class ConfigChecker:
                     str,
                     str,
                     list,
-                ]
-                for sub_key, default, etype in zip(sub_key_list, default_list, expected_type):
+                ]     
+                for sub_key, default, etype in zip(sub_key_list, default_list, expected_type):        
                     flag, error = self._check_individual_config(
                         sub_key=sub_key,
                         config_dict=config,
@@ -530,7 +543,7 @@ class ConfigChecker:
                 if JOB_SUBKEY_ARTIFACT in config:
                     if processed_job[SUBSECT_KEY_ARTIFACT_PATH] == DEFAULT_STR:
                         result_flag = False
-                        result_error_msg += job_error_prefix + "no artifact upload path defined"
+                        result_error_msg += job_error_prefix + "no artifact upload path defined\n"
                     artifact_dict = config[JOB_SUBKEY_ARTIFACT]
                     artifact_config = {}
                     # Check flag upload on success
