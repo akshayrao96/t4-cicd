@@ -56,7 +56,6 @@ class Controller:
         self.repo = repo_source
         self.repo_manager = RepoManager(self.repo)
         click.echo(self.repo)
-        
         # Try extract all yaml files and validate it
 
     def _is_valid_repo(self, repo_source:str) -> bool:
@@ -94,7 +93,7 @@ class Controller:
         #return pipelines
 
     ### CONFIG ###
-    def validate_config(self, file_name:str = "pipelines.yml") -> tuple[bool, str, dict]:
+    def validate_config(self, file_name:str) -> tuple[bool, str, dict]:
         """_summary_
         command: validate configuration file `cid config validate`
 
@@ -102,7 +101,7 @@ class Controller:
             file_name (str): _description_
 
         Returns:
-            tuple[bool, str]: status of the config validation and output message
+            tuple[bool, str, dict]: status of the config validation and output message
         """
 
         pipeline_config = {}
@@ -124,7 +123,7 @@ class Controller:
         error_msg = response_dict.get('error_msg')
         resp_pipeline_config = response_dict.get('pipeline_config')
 
-        return tuple([status, error_msg, resp_pipeline_config])
+        return (status, error_msg, resp_pipeline_config)
 
     ### PIPELINE ###
     def setup_pipeline(self):
@@ -185,4 +184,3 @@ class Controller:
     def list_configuration(self):
         """_summary_
         """
-

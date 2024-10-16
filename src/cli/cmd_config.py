@@ -1,8 +1,8 @@
 """ All related commands for config actions
 """
 # pylint: disable=logging-fstring-interpolation
-import click
 import pprint
+import click
 from util.common_utils import get_logger
 from controller.controller import Controller
 
@@ -36,21 +36,21 @@ def list(repo:str):
     logger.debug("list config files at: %s", repo)
 
 @config.command()
-@click.option('--file_name', default='valid_config.yml',help="location of the file")
+@click.option('--file_name', default='pipeline.yml',help="name of the file")
 def check_config_file(file_name:str):
-    """Lists the global configuration of the repository .cicd-pipelines/pipeline.yml 
+    """Check single config file within the directory of .cicd-pipelines/
     of the specified repository location
 
     Args:
-        repo_location (str): repository location
+        file_name (str): file_name to check
     """
     click.echo(f"checking config files at: {file_name}")
     logger.debug("list config files at: %s", file_name)
     controller = Controller()
     passed, error_msg, processed_config = controller.validate_config(file_name)
     click.echo(f"check pass or fail = {passed}")
-    click.echo(f"error message if any = {error_msg}")
-    click.echo(f"printing processed_config")
+    click.echo(f"error message if any =\n{error_msg}")
+    click.echo("printing processed_config")
     pprint.pprint(processed_config)
 
 @config.command()
