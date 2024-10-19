@@ -1,0 +1,41 @@
+# Copy of valid_config.yml, file that will be called when controller's
+# repo is set and cli does not specify repo and yml file by default
+# Pipeline name changed to avoid duplication names
+global:
+
+    pipeline_name: valid_pipeline_default
+
+    docker_registry: 'dockerhub'
+
+    docker_image: 'ubuntu:latest'
+
+    artifact_upload_path: 'GitHub.com'
+
+
+stages: ['build', 'test']
+
+jobs:
+    checkout:
+        stage: build
+        scripts: ['git clone']
+
+    compile:
+        stage: build
+
+        allow_failure: True
+
+        needs: ['checkout']
+
+        scripts:
+            - 'poetry install'
+
+        artifacts:
+
+            on_success_only: True
+
+            paths:
+                - 'build/lib'
+
+    pytest:
+        stage: test
+        scripts: ['poetry run pytest']
