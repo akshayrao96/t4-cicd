@@ -50,7 +50,6 @@ Next week meeting chairperson - Chin
 | ----------------------------------------------------------------------------------------- | ------------ | -------- |
 | [SystemDesign] Standardize and document the error handling and logging behaviour #41      | M - 2/3 days | TBD      |
 | [CLI] Update CLI documentation [#67](https://github.com/CS6510-SEA-F24/t4-cicd/issues/67) | S - 1 day    | Akshay   |
-
 | L4.1.Show summary all past pipeline runs for a repository[#55](https://github.com/CS6510-SEA-F24/t4-cicd/issues/55) | S - 1 day | TBD |
 | Implement use case 1 - get & set working repo | L - 1 week | Akshay |
 | Implement use case 2 - Validate Pipeline Configurations | L - 1 week | Chin |
