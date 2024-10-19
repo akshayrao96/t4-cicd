@@ -15,13 +15,14 @@ Following are notes from meeting:
 - added several use cases that we defined and want to prioritize as a team to achieve. Ideally to have 2 out of 4 use cases are delivered. The use cases is defined from the new system_integration_diagram_*.png that is added below the #Design Updates section.
 
 This week meeting chairperson & report writer - Jason
+
 Next week meeting chairperson - Chin
 
 # Completed tasks
 
 | Task | Weight | Assignee |
 | ------------------------------------------------------ | --------- | -------- |
-| [Config] Implement Config Checker for pipeline content validation with job cycle detection #38 | M - 2/3 days | Chin |
+| [Config] Implement Config Checker for pipeline content validation with job cycle detection [#38](https://github.com/CS6510-SEA-F24/t4-cicd/issues/38) | M - 2/3 days | Chin |
 | [Design] Update High Level Design Diagram to incorporate the local/server design. This should include defining REST API. [#64](https://github.com/CS6510-SEA-F24/t4-cicd/issues/64) | M - 2/3 days | Jason -> Chin |
 
 # Carry over tasks
