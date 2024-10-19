@@ -55,7 +55,7 @@ Next week meeting chairperson - Chin
 - Jason: the code walk opens up new perspective on how well we have done as a team up to this point. 
 
 # What did not work this week?
-- Jason: spent more time to redesigning the components (which includes Controller) because it's not working as we planned.
+- Jason: spent more time to redesigning the components because it's not working as we planned, such as Controller singleton.
 - Jason: I have emergency issues that took me away from this project for a day.
 
 
