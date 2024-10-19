@@ -99,7 +99,7 @@ jobs:
 
         # Dependencies are specified in needs section (Req #C5.6). It can be
         # no dependency - when no key-value pair is included
-        # only one dependency - can be specified as needs: <job required>
+        # only one dependency - can be specified as needs: [<job required>]
         # more than one dependencies - specified as below
         # cycle detection check will be performed (Req #C5.6.1)
         needs: [<job_required_1>, <job_required_2>]
@@ -138,6 +138,7 @@ jobs:
                 # e.g. build/java/doc, build/python/doc/ match, while build/java/reports/doc does not match
             # Double star for directories at any depth
                 # build/**/doc/ matches all directories, regardless how deep, that contain a doc sub directory
+            # all paths must start with - prefix
             paths:
                 - <filename>
                 - <path>
@@ -181,11 +182,11 @@ The ConfigChecker validation method will return a dictionary with the following 
 ### Stages information
 
 ```python
-# The values for the stages will be a list of dict.
+# The values for the stages will be an OrderedDict
 # Order of the dict represents the order in which the stages should be executed.
 # in example below, stage 1 must be run before stage 2
 # Each stage will have additional information available
-'stages':[
+'stages':OrderedDict([
     'stage1':{
         # job_graph is the adjacency list representation of the jobs dependencies
         # the key is the job_name other jobs depend on
@@ -210,8 +211,8 @@ The ConfigChecker validation method will return a dictionary with the following 
     'stage2':{
         # ....
     }
+])
 
-]
 
 ```
 

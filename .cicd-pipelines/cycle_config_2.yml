@@ -1,0 +1,39 @@
+
+global:
+  pipeline_name: cycle_pipeline
+  docker_registry: 'dockerhub'
+  docker_image: 'ubuntu:latest'
+  artifact_upload_path: 'GitHub.com'
+
+stages: ['build', 'test']
+
+jobs:
+    checkout:
+        stage: build
+        needs: ['package']
+        scripts: ['git clone']
+
+    compile:
+        stage: build
+        allow_failure: True
+        
+        needs: ['checkout']
+        scripts:
+          - 'poetry install'
+        artifacts:
+            on_success_only: True
+            paths:
+                - 'build/lib'
+    
+    package:
+        stage: build
+        # package need compile, compile job need checkout, but checkout need package
+        # There is a cycle should be detected. 
+        needs: ['compile']
+        scripts: ['git clone']
+    
+    pytest:
+        stage: test
+        # self cycle is not allowed
+        needs: ['pytest']
+        scripts: ['poetry run pytest']
