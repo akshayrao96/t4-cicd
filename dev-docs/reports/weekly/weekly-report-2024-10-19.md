@@ -56,12 +56,13 @@ Next week meeting chairperson - Chin
 | Implement use case 1 - get & set working repo | L - 1 week | Akshay |
 | Implement use case 2 - Validate Pipeline Configurations | L - 1 week | Chin |
 | Implement use case 3 - dry run command | L - 1 week | Jason |
-| Implement use case 4 - change config values via cli | L - 1 week | Lin |
+| Implement use case 4 - change config values via cli [#70](https://github.com/CS6510-SEA-F24/t4-cicd/issues/70) | L - 1 week | Lin |
 
 # What worked this week?
 
 - Jason: the code walk opens up new perspective on how well we have done as a team up to this point.
 - Akshay: Codewalk to get feedback from everyone
+- Peihsuan: Align understanding with CLI & Controller
 
 # What did not work this week?
 
