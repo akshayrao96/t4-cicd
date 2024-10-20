@@ -32,6 +32,9 @@ Next week meeting chairperson - Chin
 | [Config] Implement Config Checker for pipeline content validation with job cycle detection [#38](https://github.com/CS6510-SEA-F24/t4-cicd/issues/38)                               | M - 2/3 days | Chin          |
 | [Design] Update High Level Design Diagram to incorporate the local/server design. This should include defining REST API. [#64](https://github.com/CS6510-SEA-F24/t4-cicd/issues/64) | M - 2/3 days | Jason -> Chin |
 | [Design] Initial design for Data Storage Schemes                                                                                                                                    | XS - 2-3 hrs | Chin          |
+| [CLI] Update CLI documentation [#67](https://github.com/CS6510-SEA-F24/t4-cicd/issues/67)                                                                                           | S - 1 day    | Akshay      |
+| [CLI] L1.Check Configuration File [#57](https://github.com/CS6510-SEA-F24/t4-cicd/issues/57)                                                                                        | S - 1 day    | Akshay      |
+
 
 # Carry over tasks
 
@@ -42,7 +45,6 @@ Next week meeting chairperson - Chin
 | [ConfigChecker] Add flexible method to extract any yaml file given the absolute path [#56](https://github.com/CS6510-SEA-F24/t4-cicd/issues/56)                                     | S - 1 day    | Chin        |
 | [Design] Update High Level Design Diagram to incorporate the local/server design. This should include defining REST API. [#64](https://github.com/CS6510-SEA-F24/t4-cicd/issues/64) | M - 2/3 days | Chin        |
 | [RepoManager] refactor RepoManager & ConfigChecker to stick to single responsibility principle for yml extraction [#68](https://github.com/CS6510-SEA-F24/t4-cicd/issues/68)        | S - 1 day    | Lin -> Chin |
-| [CLI] Update CLI documentation [#67](https://github.com/CS6510-SEA-F24/t4-cicd/issues/67)                                                                                           | S - 1 day    | Akshay      |
 
 # New tasks / Backlog
 
@@ -59,6 +61,7 @@ Next week meeting chairperson - Chin
 # What worked this week?
 
 - Jason: the code walk opens up new perspective on how well we have done as a team up to this point.
+- Akshay: Codewalk to get feedback from everyone
 
 # What did not work this week?
 
