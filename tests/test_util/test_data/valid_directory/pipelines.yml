@@ -1,0 +1,67 @@
+# Another valid configuration file that will be called when controller's
+# repo is set and cli does not specify repo and yml file by default
+# Pipeline name changed to avoid duplication names
+global:
+
+    pipeline_name: valid_pipeline_default
+    docker: 
+        registry: 'dockerhub'
+        image: 'ubuntu:latest'
+    artifact_upload_path: 'GitHub.com'
+
+# default stages: [build, test, doc, deploy]
+# stages: ['build', 'test']
+
+jobs:
+    # Job for build stage
+    checkout:
+        stage: build
+        scripts: ['git clone']
+
+    compile:
+        stage: build
+        allow_failure: True
+        needs: ['checkout']
+        scripts:
+            - 'poetry install'
+        artifacts:
+            on_success_only: True
+            paths:
+                - 'build/lib'
+
+    # Job for test stage
+    test_checkout:
+        stage: test
+        scripts: ['git clone']
+
+    pytest:
+        stage: test
+        needs: ['test_checkout']
+        scripts: ['poetry run pytest']
+    
+    pylint:
+        stage: test
+        scripts: ['poetry run pylint ./src --fail-under=9.5']
+    
+    # Job for doc stage
+    pyreverse:
+        stage: doc
+        scripts: ['poetry run pyreverse']
+    
+    # Job for deploy
+    deploy_checkout:
+        stage: deploy
+        scripts: ['git clone']
+
+    deploy_compile:
+        stage: deploy
+        allow_failure: True
+        needs: ['deploy_checkout']
+        scripts:
+            - 'poetry install'
+            - 'poetry run pyreverse'
+        artifacts:
+            on_success_only: True
+            paths:
+                - 'build/lib'
+                - 'build/doc'

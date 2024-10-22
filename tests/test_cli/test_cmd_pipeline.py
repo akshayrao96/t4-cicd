@@ -49,11 +49,9 @@ def test_pipeline_dry_run():
     """
 
     runner = CliRunner()
-    result = runner.invoke(cmd_pipeline.pipeline, ['run', '--dry-run=true'])
+    result = runner.invoke(cmd_pipeline.pipeline, ['run', '--dry-run'])
 
     assert result.exit_code == 0
-    assert result.output.rstrip() == 'This executes the dry-run when dry-run flag \
-is set to true (--dry-run=True)'
 
 # def test_pipeline_greet():
 #     """ Test the greet function

@@ -1,0 +1,351 @@
+{
+    "test_parse_yaml_file_valid":{
+        "global": {
+            "pipeline_name": "valid_pipeline",
+            "docker": {
+                "registry": "dockerhub",
+                "image": "ubuntu:latest"
+            },
+            "artifact_upload_path": "GitHub.com"
+        },
+        "stages": [
+            "build",
+            "test"
+        ],
+        "jobs": {
+            "checkout": {
+                "stage": "build",
+                "scripts": [
+                    "git clone"
+                ]
+            },
+            "compile": {
+                "stage": "build",
+                "allow_failure": true,
+                "needs": [
+                    "checkout"
+                ],
+                "scripts": [
+                    "poetry install"
+                ],
+                "artifacts": {
+                    "on_success_only": true,
+                    "paths": [
+                        "build/lib"
+                    ]
+                }
+            },
+            "pytest": {
+                "stage": "test",
+                "scripts": [
+                    "poetry run pytest"
+                ]
+            }
+        }
+    },
+
+    "test_validate_config_valid":{
+        "valid": true,
+        "error_msg": "",
+        "pipeline_config": {
+            "global": {
+                "pipeline_name": "valid_pipeline",
+                "artifact_upload_path": "GitHub.com",
+                "docker": {
+                    "registry": "dockerhub",
+                    "image": "ubuntu:latest"
+                }
+            },
+            "stages": {
+                "build": {
+                    "job_graph": {
+                        "checkout": [
+                            "compile"
+                        ],
+                        "compile": []
+                    },
+                    "job_groups": [
+                        [
+                            "checkout",
+                            "compile"
+                        ]
+                    ]
+                },
+                "test": {
+                    "job_graph": {
+                        "pytest": []
+                    },
+                    "job_groups": [
+                        [
+                            "pytest"
+                        ]
+                    ]
+                }
+            },
+            "jobs": {
+                "checkout": {
+                    "stage": "build",
+                    "allow_failure": false,
+                    "needs": [],
+                    "artifact_upload_path": "GitHub.com",
+                    "scripts": [
+                        "git clone"
+                    ],
+                    "docker": {
+                        "registry": "dockerhub",
+                        "image": "ubuntu:latest"
+                    }
+                },
+                "compile": {
+                    "stage": "build",
+                    "allow_failure": true,
+                    "needs": [
+                        "checkout"
+                    ],
+                    "artifact_upload_path": "GitHub.com",
+                    "scripts": [
+                        "poetry install"
+                    ],
+                    "docker": {
+                        "registry": "dockerhub",
+                        "image": "ubuntu:latest"
+                    },
+                    "artifacts": {
+                        "on_success_only": true,
+                        "paths": [
+                            "build/lib"
+                        ]
+                    }
+                },
+                "pytest": {
+                    "stage": "test",
+                    "allow_failure": false,
+                    "needs": [],
+                    "artifact_upload_path": "GitHub.com",
+                    "scripts": [
+                        "poetry run pytest"
+                    ],
+                    "docker": {
+                        "registry": "dockerhub",
+                        "image": "ubuntu:latest"
+                    }
+                }
+            }
+        }
+    },
+    "test_validate_config_valid_default":{
+            "valid": true,
+            "error_msg": "",
+            "pipeline_config": {
+                "global": {
+                    "pipeline_name": "valid_pipeline_default",
+                    "artifact_upload_path": "GitHub.com",
+                    "docker": {
+                        "registry": "dockerhub",
+                        "image": "ubuntu:latest"
+                    }
+                },
+                "stages": {
+                    "build": {
+                        "job_graph": {
+                            "compile": [],
+                            "checkout": [
+                                "compile"
+                            ]
+                        },
+                        "job_groups": [
+                            [
+                                "checkout",
+                                "compile"
+                            ]
+                        ]
+                    },
+                    "test": {
+                        "job_graph": {
+                            "pytest": [],
+                            "test_checkout": [
+                                "pytest"
+                            ],
+                            "pylint": []
+                        },
+                        "job_groups": [
+                            [
+                                "pylint"
+                            ],
+                            [
+                                "test_checkout",
+                                "pytest"
+                            ]
+                        ]
+                    },
+                    "doc": {
+                        "job_graph": {
+                            "pyreverse": []
+                        },
+                        "job_groups": [
+                            [
+                                "pyreverse"
+                            ]
+                        ]
+                    },
+                    "deploy": {
+                        "job_graph": {
+                            "deploy_compile": [],
+                            "deploy_checkout": [
+                                "deploy_compile"
+                            ]
+                        },
+                        "job_groups": [
+                            [
+                                "deploy_checkout",
+                                "deploy_compile"
+                            ]
+                        ]
+                    }
+                },
+                "jobs": {
+                    "checkout": {
+                        "stage": "build",
+                        "allow_failure": false,
+                        "needs": [],
+                        "artifact_upload_path": "GitHub.com",
+                        "scripts": [
+                            "git clone"
+                        ],
+                        "docker": {
+                            "registry": "dockerhub",
+                            "image": "ubuntu:latest"
+                        }
+                    },
+                    "compile": {
+                        "stage": "build",
+                        "allow_failure": true,
+                        "needs": [
+                            "checkout"
+                        ],
+                        "artifact_upload_path": "GitHub.com",
+                        "scripts": [
+                            "poetry install"
+                        ],
+                        "docker": {
+                            "registry": "dockerhub",
+                            "image": "ubuntu:latest"
+                        },
+                        "artifacts": {
+                            "on_success_only": true,
+                            "paths": [
+                                "build/lib"
+                            ]
+                        }
+                    },
+                    "test_checkout": {
+                        "stage": "test",
+                        "allow_failure": false,
+                        "needs": [],
+                        "artifact_upload_path": "GitHub.com",
+                        "scripts": [
+                            "git clone"
+                        ],
+                        "docker": {
+                            "registry": "dockerhub",
+                            "image": "ubuntu:latest"
+                        }
+                    },
+                    "pytest": {
+                        "stage": "test",
+                        "allow_failure": false,
+                        "needs": [
+                            "test_checkout"
+                        ],
+                        "artifact_upload_path": "GitHub.com",
+                        "scripts": [
+                            "poetry run pytest"
+                        ],
+                        "docker": {
+                            "registry": "dockerhub",
+                            "image": "ubuntu:latest"
+                        }
+                    },
+                    "pylint": {
+                        "stage": "test",
+                        "allow_failure": false,
+                        "needs": [],
+                        "artifact_upload_path": "GitHub.com",
+                        "scripts": [
+                            "poetry run pylint ./src --fail-under=9.5"
+                        ],
+                        "docker": {
+                            "registry": "dockerhub",
+                            "image": "ubuntu:latest"
+                        }
+                    },
+                    "pyreverse": {
+                        "stage": "doc",
+                        "allow_failure": false,
+                        "needs": [],
+                        "artifact_upload_path": "GitHub.com",
+                        "scripts": [
+                            "poetry run pyreverse"
+                        ],
+                        "docker": {
+                            "registry": "dockerhub",
+                            "image": "ubuntu:latest"
+                        }
+                    },
+                    "deploy_checkout": {
+                        "stage": "deploy",
+                        "allow_failure": false,
+                        "needs": [],
+                        "artifact_upload_path": "GitHub.com",
+                        "scripts": [
+                            "git clone"
+                        ],
+                        "docker": {
+                            "registry": "dockerhub",
+                            "image": "ubuntu:latest"
+                        }
+                    },
+                    "deploy_compile": {
+                        "stage": "deploy",
+                        "allow_failure": true,
+                        "needs": [
+                            "deploy_checkout"
+                        ],
+                        "artifact_upload_path": "GitHub.com",
+                        "scripts": [
+                            "poetry install",
+                            "poetry run pyreverse"
+                        ],
+                        "docker": {
+                            "registry": "dockerhub",
+                            "image": "ubuntu:latest"
+                        },
+                        "artifacts": {
+                            "on_success_only": true,
+                            "paths": [
+                                "build/lib",
+                                "build/doc"
+                            ]
+                        }
+                    }
+                }
+            }
+        
+    },
+    "test_parse_yaml_file_cycle_detection_1":{
+            "valid": false,
+            "error_msg": "stage:build Cycle error detected for jobs:['checkout', 'compile']\n",
+            "pipeline_config": {}
+    },
+    "test_parse_yaml_file_cycle_detection_2":{
+            "valid": false,
+            "error_msg": "stage:build Cycle error detected for jobs:['checkout', 'compile', 'package']\ncycle_config_2.yml:38:15 Error in stage:test-Self cycle error detected for job pytest",
+            "pipeline_config": {}
+    },
+    "test_validate_config_invalid":{
+        "valid": false,
+        "error_msg": "invalid_config.yml:11:8 Error in section:jobs job:nostage No stage key defined\ninvalid_config.yml:17:15 Error in section:jobs job:wrongstage stage value ['wrong-stage'] defined does not exist in stages list\nError in section:stages stage:deploy No job defined for this stage\ninvalid_config.yml:11:8 jobs:nostage key not found error for subkey:stage\ninvalid_config.yml:23:8 jobs:checkout key not found error for subkey:scripts\ninvalid_config.yml:50:12 jobs:compile no artifact upload path defined\njobs:pytest key not found error for subkey:image\n",
+        "pipeline_config": {}
+    }
+    
+}

@@ -1,98 +1,99 @@
 """ All testing method for config tool
 """
 from collections import OrderedDict
+import unittest
 import util.config_tools as config
+import util.constant as c
 # from util.config_tools import (ConfigChecker)
 from util.common_utils import get_logger
 
+logger = get_logger("tests.test_util.test_config_tools")
 
-def test_check_global_section():
-    """ test the _check_global_section() method
-    """
-    checker = config.ConfigChecker()
-
-    # Normal check
-    input_dict = {
-        "global": {
-            'pipeline_name': 'test_pipeline',
-            'docker_registry': 'docker',
-            'docker_image': 'ubuntu:latest',
-            'artifact_upload_path': 'Github.com'
+class TestConfigChecker(unittest.TestCase):
+    
+    def setUp(self):
+        self.checker = config.ConfigChecker()
+        self.expected_dict = {
+            c.KEY_GLOBAL: {
+                c.KEY_PIPE_NAME: 'test_pipeline',
+                c.KEY_DOCKER:{
+                    c.KEY_DOCKER_REG: config.DEFAULT_DOCKER_REGISTRY,
+                    c.KEY_DOCKER_IMG:'ubuntu:latest'
+                },
+                c.KEY_ARTIFACT_PATH: 'Github.com'
+            }
         }
-    }
-    expected_dict = {
-        "global": {
-            'pipeline_name': 'test_pipeline',
-            'docker_registry': 'docker',
-            'docker_image': 'ubuntu:latest',
-            'artifact_upload_path': 'Github.com'
+        self.expected_error_msg = ""
+        self.actual_dict = {}
+    
+    def test_check_global_section(self):
+        """ test the _check_global_section() method
+        """
+        # Normal check
+        input_dict = {
+            c.KEY_GLOBAL: {
+                c.KEY_PIPE_NAME: 'test_pipeline',
+                c.KEY_DOCKER:{
+                    c.KEY_DOCKER_REG:config.DEFAULT_DOCKER_REGISTRY,
+                    c.KEY_DOCKER_IMG:'ubuntu:latest'
+                },
+                c.KEY_ARTIFACT_PATH: 'Github.com'
+            }
         }
-    }
-    expected_error_msg = ""
-    actual_dict = {}
-    passed, error_msg = checker._check_global_section(
-        pipeline_config=input_dict, processed_config=actual_dict)
-    assert passed
-    assert error_msg == expected_error_msg
-    assert actual_dict == expected_dict
+
+        passed, error_msg = self.checker._check_global_section(
+            pipeline_config=input_dict, processed_config=self.actual_dict)
+        self.assertTrue(passed)
+        self.assertEqual(error_msg, self.expected_error_msg)
+        self.assertEqual(self.actual_dict, self.expected_dict)
 
 
-def test_check_global_section_missing_docker_reg():
-    """ test the _check_global_section() for special case, no docker registry defined
-    """
-    checker = config.ConfigChecker()
-
-    # Normal check
-    input_dict = {
-        "global": {
-            'pipeline_name': 'test_pipeline',
-            'docker_image': 'ubuntu:latest',
-            'artifact_upload_path': 'Github.com'
+    def test_check_global_section_missing_docker_reg(self):
+        """ test the _check_global_section() for special case, no docker registry defined
+        """
+        # Normal check
+        input_dict = {
+            c.KEY_GLOBAL: {
+                c.KEY_PIPE_NAME: 'test_pipeline',
+                c.KEY_DOCKER:{
+                    c.KEY_DOCKER_IMG:'ubuntu:latest'
+                },
+                c.KEY_ARTIFACT_PATH: 'Github.com'
+            }
         }
-    }
-    expected_dict = {
-        "global": {
-            'pipeline_name': 'test_pipeline',
-            'docker_registry': 'dockerhub',
-            'docker_image': 'ubuntu:latest',
-            'artifact_upload_path': 'Github.com'
-        }
-    }
-    expected_error_msg = ""
-    actual_dict = {}
-    passed, error_msg = checker._check_global_section(
-        pipeline_config=input_dict, processed_config=actual_dict)
-    assert passed
-    assert error_msg == expected_error_msg
-    assert actual_dict == expected_dict
+        passed, error_msg = self.checker._check_global_section(
+            pipeline_config=input_dict, processed_config=self.actual_dict)
+        self.assertTrue(passed)
+        self.assertEqual(error_msg, self.expected_error_msg)
+        self.assertEqual(self.actual_dict, self.expected_dict)
 
-
-def test_check_global_section_missing_pipeline_name():
-    """ test the _check_global_section() for special case, no pipeline_name defined
-    """
-    checker = config.ConfigChecker()
-
-    # Normal check
-    input_dict = {
-        "global": {
-            'docker_image': 'ubuntu:latest',
-            'artifact_upload_path': 'Github.com'
+    def test_check_global_section_missing_pipeline_name(self):
+        """ test the _check_global_section() for special case, no pipeline_name defined
+        """
+        input_dict = {
+            c.KEY_GLOBAL: {
+                c.KEY_DOCKER:{
+                    c.KEY_DOCKER_IMG:'ubuntu:latest'
+                },
+                c.KEY_ARTIFACT_PATH: 'Github.com'
+            }
         }
-    }
-    expected_dict = {
-        "global": {
-            'docker_registry': 'dockerhub',
-            'docker_image': 'ubuntu:latest',
-            'artifact_upload_path': 'Github.com'
+        expected_dict = {
+            c.KEY_GLOBAL: {
+                c.KEY_DOCKER:{
+                    c.KEY_DOCKER_REG:config.DEFAULT_DOCKER_REGISTRY,
+                    c.KEY_DOCKER_IMG:'ubuntu:latest'
+                },
+                c.KEY_ARTIFACT_PATH: 'Github.com'
+            }
         }
-    }
-    expected_error_msg = "Error in section:global key not found error for subkey:pipeline_name\n"
-    actual_dict = {}
-    passed, error_msg = checker._check_global_section(
-        pipeline_config=input_dict, processed_config=actual_dict)
-    assert not passed
-    assert error_msg == expected_error_msg
-    assert actual_dict == expected_dict
+        expected_error_msg = "Pipeline: from file:. Error in section:global key not found error for subkey:pipeline_name\n"
+        actual_dict = {}
+        passed, error_msg = self.checker._check_global_section(
+            pipeline_config=input_dict, processed_config=actual_dict)
+        assert not passed
+        assert error_msg == expected_error_msg
+        assert actual_dict == expected_dict
 
 
 def test_check_stages_section():
@@ -102,49 +103,49 @@ def test_check_stages_section():
 
     # Normal check
     input_dict = {
-        config.SECT_KEY_JOBS:{
+        c.KEY_JOBS:{
             'compile':{
-            config.JOB_SUBKEY_STAGE:'build'
+                c.JOB_SUBKEY_STAGE:'build'
             },
             'pytest':{
-                config.JOB_SUBKEY_STAGE:'test',
-                config.JOB_SUBKEY_NEEDS:['pylint']
+                c.JOB_SUBKEY_STAGE:'test',
+                c.JOB_SUBKEY_NEEDS:['pylint']
             },
             'pylint':{
-                config.JOB_SUBKEY_STAGE:'test',
+                c.JOB_SUBKEY_STAGE:'test',
                 
             },
             'pydoc':{
-                config.JOB_SUBKEY_STAGE:'doc'
+                c.JOB_SUBKEY_STAGE:'doc'
             },
             'pydeploy':{
-                config.JOB_SUBKEY_STAGE:'deploy'
+                c.JOB_SUBKEY_STAGE:'deploy'
             }
         }
     }
     expected_dict = {
-        config.SECT_KEY_STAGES:OrderedDict({
+        c.KEY_STAGES:OrderedDict({
                 # Note since Python 3.7 , 
                 # dict is ordered which guarantee the insertion order
                 'build':{
-                    config.STAGE_SUBKEY_JOB_GRAPH:{'compile':[]},
-                    config.STAGE_SUBKEY_JOB_ORDER:[['compile']]
+                    c.KEY_JOB_GRAPH:{'compile':[]},
+                    c.KEY_JOB_ORDER:[['compile']]
                 }, 
                 'test':{
-                    config.STAGE_SUBKEY_JOB_GRAPH:{
+                    c.KEY_JOB_GRAPH:{
                         'pylint':['pytest'],
                         'pytest':[]
                     },
-                    config.STAGE_SUBKEY_JOB_ORDER:[['pylint', 'pytest']]
+                    c.KEY_JOB_ORDER:[['pylint', 'pytest']]
                 },
                 'doc':{
-                    config.STAGE_SUBKEY_JOB_GRAPH:{'pydoc':[]},
-                    config.STAGE_SUBKEY_JOB_ORDER:[['pydoc']]
+                    c.KEY_JOB_GRAPH:{'pydoc':[]},
+                    c.KEY_JOB_ORDER:[['pydoc']]
                 },
             
                 'deploy':{
-                    config.STAGE_SUBKEY_JOB_GRAPH:{'pydeploy':[]},
-                    config.STAGE_SUBKEY_JOB_ORDER:[['pydeploy']]
+                    c.KEY_JOB_GRAPH:{'pydeploy':[]},
+                    c.KEY_JOB_ORDER:[['pydeploy']]
                 },
         })
     }
@@ -164,13 +165,13 @@ def test_check_stages_jobs_relationship():
     stage_list = ['build', 'test']
     jobs_dict = {
         'compile':{
-            config.JOB_SUBKEY_STAGE:'build'
+            c.JOB_SUBKEY_STAGE:'build'
         },
         'pytest':{
-            config.JOB_SUBKEY_STAGE:'test'
+            c.JOB_SUBKEY_STAGE:'test'
         },
         'pylint':{
-            config.JOB_SUBKEY_STAGE:'test'
+            c.JOB_SUBKEY_STAGE:'test'
         },
     }
     expected_stages = OrderedDict(
@@ -193,10 +194,10 @@ def test_check_stages_jobs_relationship_fails():
         'compile':{
         },
         'pytest':{
-            config.JOB_SUBKEY_STAGE:'test'
+            c.JOB_SUBKEY_STAGE:'test'
         },
         'pylint':{
-            config.JOB_SUBKEY_STAGE:'test'
+            c.JOB_SUBKEY_STAGE:'test'
         },
     }
     expected_stages = OrderedDict()
@@ -210,13 +211,13 @@ def test_check_stages_jobs_relationship_fails():
     # Job defined unknown stage
     jobs_dict = {
         'compile':{
-            config.JOB_SUBKEY_STAGE:'build'
+            c.JOB_SUBKEY_STAGE:'build'
         },
         'pytest':{
-            config.JOB_SUBKEY_STAGE:'testing'
+            c.JOB_SUBKEY_STAGE:'testing'
         },
         'pylint':{
-            config.JOB_SUBKEY_STAGE:'test'
+            c.JOB_SUBKEY_STAGE:'test'
         },
     }
     expected_stages = OrderedDict()
@@ -234,26 +235,26 @@ def test_check_jobs_dependencies():
     job_list = ['compile', 'pytest']
     jobs_dict = {
         'compile':{
-            config.JOB_SUBKEY_STAGE:'build',
+            c.JOB_SUBKEY_STAGE:'build',
             
         },
 
         'pylint':{
-            config.JOB_SUBKEY_STAGE:'test'
+            c.JOB_SUBKEY_STAGE:'test'
         },
         
         'pytest':{
-            config.JOB_SUBKEY_STAGE:'test',
-            config.JOB_SUBKEY_NEEDS:['compile']
+            c.JOB_SUBKEY_STAGE:'test',
+            c.JOB_SUBKEY_NEEDS:['compile']
         },
     }
     expected_error_msg = ""
     expected_result_dict = {
-        config.STAGE_SUBKEY_JOB_GRAPH:{
+        c.KEY_JOB_GRAPH:{
             'compile':['pytest'],
             'pytest':[]
         },
-        config.STAGE_SUBKEY_JOB_ORDER:[[
+        c.KEY_JOB_ORDER:[[
             'compile', 'pytest'
         ]]
     }
@@ -272,9 +273,9 @@ def test_topo_sort():
         # job2 is required by job1
         'job2':['job1']
     }
-    expected_order = ['job2', 'job1']
+    expected_order = [['job2', 'job1']]
     expected_error_msg = ""
-    passed, actual_error_msg, actual_order = checker._topo_sort(stage_name, adjacency_list)
+    passed, actual_error_msg, actual_order = checker._group_n_sort(stage_name, adjacency_list)
     assert passed
     assert actual_error_msg == expected_error_msg
     assert actual_order == expected_order
@@ -286,76 +287,88 @@ def test_check_jobs_section():
     
     # Normal check
     input_dict = {
-        config.SECT_KEY_GLOBAL: {
-            config.SUBSECT_KEY_PIPE_NAME: 'test_pipeline',
-            config.SUBSECT_KEY_DOCKER_REG: 'docker',
-            config.SUBSECT_KEY_DOCKER_IMG: 'ubuntu:latest',
-            config.SUBSECT_KEY_ARTIFACT_PATH: 'Github.com'
-        }, 
-        config.SECT_KEY_JOBS: {
+        c.KEY_GLOBAL: {
+                c.KEY_PIPE_NAME: 'test_pipeline',
+                c.KEY_DOCKER:{
+                    c.KEY_DOCKER_REG:config.DEFAULT_DOCKER_REGISTRY,
+                    c.KEY_DOCKER_IMG:'ubuntu:latest'
+                },
+                c.KEY_ARTIFACT_PATH: 'Github.com'
+        },
+        c.KEY_JOBS: {
             # First job with every things defined
             'compile':{
-                config.JOB_SUBKEY_STAGE: 'build',
-                config.JOB_SUBKEY_ALLOW: True,
-                config.JOB_SUBKEY_NEEDS:['checkout'],
-                config.SUBSECT_KEY_DOCKER_REG:"ghcr.io",
-                config.SUBSECT_KEY_DOCKER_IMG:"ubuntu:22.04",
-                config.SUBSECT_KEY_ARTIFACT_PATH: 'Github.com/cicd',
-                config.JOB_SUBKEY_ARTIFACT:{
-                    config.ARTIFACT_SUBKEY_ONSUCCESS: False,
-                    config.ARTIFACT_SUBKEY_PATH: ['build/lib', 'build/doc'],
+                c.JOB_SUBKEY_STAGE: 'build',
+                c.JOB_SUBKEY_ALLOW: True,
+                c.JOB_SUBKEY_NEEDS:['checkout'],
+                c.KEY_DOCKER:{
+                    c.KEY_DOCKER_REG:"ghcr.io",
+                    c.KEY_DOCKER_IMG:"ubuntu:22.04",
                 },
-                config.JOB_SUBKEY_SCRIPTS: ['poetry install']
+                c.KEY_ARTIFACT_PATH: 'Github.com/cicd',
+                c.JOB_SUBKEY_ARTIFACT:{
+                    c.ARTIFACT_SUBKEY_ONSUCCESS: False,
+                    c.ARTIFACT_SUBKEY_PATH: ['build/lib', 'build/doc'],
+                },
+                c.JOB_SUBKEY_SCRIPTS: ['poetry install']
             },
             # Second job with minimal required defined
             'checkout':{
-                config.JOB_SUBKEY_STAGE: 'build',
-                config.JOB_SUBKEY_SCRIPTS: ['git clone']
+                c.JOB_SUBKEY_STAGE: 'build',
+                c.JOB_SUBKEY_SCRIPTS: ['git clone']
             }
         }
     }
     expected_dict = {
-        config.SECT_KEY_GLOBAL: {
-            config.SUBSECT_KEY_PIPE_NAME: 'test_pipeline',
-            config.SUBSECT_KEY_DOCKER_REG: 'docker',
-            config.SUBSECT_KEY_DOCKER_IMG: 'ubuntu:latest',
-            config.SUBSECT_KEY_ARTIFACT_PATH: 'Github.com'
-        }, 
-        config.SECT_KEY_JOBS: {
+        c.KEY_GLOBAL: {
+                c.KEY_PIPE_NAME: 'test_pipeline',
+                c.KEY_DOCKER:{
+                    c.KEY_DOCKER_REG:config.DEFAULT_DOCKER_REGISTRY,
+                    c.KEY_DOCKER_IMG:'ubuntu:latest'
+                },
+                c.KEY_ARTIFACT_PATH: 'Github.com'
+        },
+        c.KEY_JOBS: {
             # First job with every things defined
             'compile':{
-                config.JOB_SUBKEY_STAGE: 'build',
-                config.JOB_SUBKEY_ALLOW: True,
-                config.JOB_SUBKEY_NEEDS:['checkout'],
-                config.SUBSECT_KEY_DOCKER_REG:"ghcr.io",
-                config.SUBSECT_KEY_DOCKER_IMG:"ubuntu:22.04",
-                config.SUBSECT_KEY_ARTIFACT_PATH: 'Github.com/cicd',
-                config.JOB_SUBKEY_ARTIFACT:{
-                    config.ARTIFACT_SUBKEY_ONSUCCESS: False,
-                    config.ARTIFACT_SUBKEY_PATH: ['build/lib', 'build/doc'],
+                c.JOB_SUBKEY_STAGE: 'build',
+                c.JOB_SUBKEY_ALLOW: True,
+                c.JOB_SUBKEY_NEEDS:['checkout'],
+                c.KEY_DOCKER:{
+                    c.KEY_DOCKER_REG:"ghcr.io",
+                    c.KEY_DOCKER_IMG:"ubuntu:22.04",
                 },
-                config.JOB_SUBKEY_SCRIPTS: ['poetry install']
+                c.KEY_ARTIFACT_PATH: 'Github.com/cicd',
+                c.JOB_SUBKEY_ARTIFACT:{
+                    c.ARTIFACT_SUBKEY_ONSUCCESS: False,
+                    c.ARTIFACT_SUBKEY_PATH: ['build/lib', 'build/doc'],
+                },
+                c.JOB_SUBKEY_SCRIPTS: ['poetry install']
             },
             # Second job with minimal required defined
             'checkout':{
-                config.JOB_SUBKEY_STAGE: 'build',
-                config.JOB_SUBKEY_ALLOW: config.DEFAULT_FLAG_JOB_ALLOW_FAIL,
-                config.JOB_SUBKEY_NEEDS: config.DEFAULT_LIST,
-                config.SUBSECT_KEY_DOCKER_REG:'docker',
-                config.SUBSECT_KEY_DOCKER_IMG: 'ubuntu:latest',
-                config.SUBSECT_KEY_ARTIFACT_PATH: 'Github.com',
-                config.JOB_SUBKEY_SCRIPTS: ['git clone']
+                c.JOB_SUBKEY_STAGE: 'build',
+                c.JOB_SUBKEY_ALLOW: config.DEFAULT_FLAG_JOB_ALLOW_FAIL,
+                c.JOB_SUBKEY_NEEDS: config.DEFAULT_LIST,
+                c.KEY_DOCKER:{
+                    c.KEY_DOCKER_REG:config.DEFAULT_DOCKER_REGISTRY,
+                    c.KEY_DOCKER_IMG:'ubuntu:latest'
+                },
+                c.KEY_ARTIFACT_PATH: 'Github.com',
+                c.JOB_SUBKEY_SCRIPTS: ['git clone']
             }
         }
     }
     expected_error_msg = ""
     actual_dict = {
-        config.SECT_KEY_GLOBAL: {
-            config.SUBSECT_KEY_PIPE_NAME: 'test_pipeline',
-            config.SUBSECT_KEY_DOCKER_REG: 'docker',
-            config.SUBSECT_KEY_DOCKER_IMG: 'ubuntu:latest',
-            config.SUBSECT_KEY_ARTIFACT_PATH: 'Github.com'
-        }, 
+        c.KEY_GLOBAL: {
+                c.KEY_PIPE_NAME: 'test_pipeline',
+                c.KEY_DOCKER:{
+                    c.KEY_DOCKER_REG:config.DEFAULT_DOCKER_REGISTRY,
+                    c.KEY_DOCKER_IMG:'ubuntu:latest'
+                },
+                c.KEY_ARTIFACT_PATH: 'Github.com'
+        },
     }
     passed, error_msg = checker._check_jobs_section(input_dict, actual_dict)
     assert passed
