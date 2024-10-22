@@ -3,11 +3,13 @@
     other related class.
 """
 
-# import os
+import os
 import click
+import util.constant as const
 from util.common_utils import (get_logger)
 from util.repo_manager import (RepoManager)
 from util.db_mongo import (MongoAdapter)
+from util.yaml_parser import YamlParser
 from util.config_tools import (ConfigChecker)
 
 #os.path.dirname(os.path.abspath(__file__)) #get current directory of this file
@@ -93,30 +95,93 @@ class Controller:
         #return pipelines
 
     ### CONFIG ###
-    def validate_config(self, file_name:str) -> tuple[bool, str, dict]:
-        """_summary_
-        command: validate configuration file `cid config validate`
+    def validate_n_save_configs(self, directory:str) -> dict:
+        """ Set Up repo, validate config, and save the config into datastore
 
         Args:
-            file_name (str): _description_
+            directory (str): valid directory containing pipeline configuration
+
+        Returns:
+            dict: dictionary of {
+                <pipeline_name>:<single validation results>
+            }
+        """
+        # stub response for repo set up
+        click.echo("Setting Up Repo")
+        results = self.validate_configs(directory)
+        # stub response for save
+        click.echo("Saving into datastore")
+        return results
+
+    def validate_n_save_config(self, file_name:str)-> tuple[bool, str, dict]:
+        """ Set Up repo, validate config, and save the config into datastore
+
+        Args:
+            file_name (str): full absolute path of the file to be validated
 
         Returns:
             tuple[bool, str, dict]: status of the config validation and output message
         """
+        status = True
+        error_msg = ""
+        resp_pipeline_config = {}
+        # stub response for repo set up
+        click.echo("Setting Up Repo")
+        status, error_msg, resp_pipeline_config = self.validate_config(file_name)
+        # stub response for save
+        click.echo("Saving into datastore")
+        return (status, error_msg, resp_pipeline_config)
 
-        pipeline_config = {}
-        #parse the config yaml file given the file_name that the user specified, or
-        #by default "pipelines.yml". Next, call the Repo Manager function that will
-        #return the configuration in dictionary form (parsed with key-value pair structure)
-        # assuming it is inside the .cicd-pipelines folder
-        pipeline_config = self.repo_manager.parse_yaml(file_name)
+    def validate_configs(self, directory:str) -> dict:
+        """ Validate configuration file in a directory
+
+        Args:
+            directory (str): valid directory containing pipeline configuration
+
+        Returns:
+            dict: dictionary of {
+                <pipeline_name>:<single validation results>
+            }
+        """
+        # stub response
+        parser = YamlParser()
+        results = {}
+        pipeline_configs = parser.parse_yaml_directory(directory)
+        for pipeline_name, values in pipeline_configs.items():
+            pipeline_file_name = values[const.KEY_PIPE_FILE]
+            pipeline_config = values[const.KEY_PIPE_CONFIG]
+            response_dict = self.config_checker.validate_config(pipeline_name,
+                                                         pipeline_config,
+                                                         pipeline_file_name,
+                                                         True)
+            # response_dict[const.KEY_PIPE_FILE] = pipeline_file_name
+            results[pipeline_name] = response_dict
+        return results
+
+    def validate_config(self, file_name:str) -> tuple[bool, str, dict]:
+        """ Validate a single configuration file
+
+        Args:
+            file_name (str): full absolute path of the file to be validated
+
+        Returns:
+            tuple[bool, str, dict]: status of the config validation and output message
+        """
+        parser = YamlParser()
+        pipeline_config = parser.parse_yaml_file(file_name)
 
         #get the pipeline_name for ConfigChecker
         pipeline_name = pipeline_config.get('global.pipeline_name')
+        # Extract the filename without extension or path
+        pipeline_file_name = os.path.basename(file_name)
+        click.echo(f"Validating file in {pipeline_file_name}")
 
         #call ConfigChecker to validate the configuration
         #returns: dict <valid, error_msg, pipeline_config
-        response_dict = self.config_checker.validate_config(pipeline_name, pipeline_config)
+        response_dict = self.config_checker.validate_config(pipeline_name,
+                                                            pipeline_config,
+                                                            pipeline_file_name,
+                                                            error_lc=True)
 
         #store the response to variables
         status = response_dict.get('valid')

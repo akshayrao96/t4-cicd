@@ -41,14 +41,15 @@ global:
   # If no value is specified , will use dockerhub as default
   # For other container registries, you need to supply the url prefix
   # like ghcr.io for github container
-  docker_registry: <'dockerhub' or other registries url prefix>
+  docker:
+    registry: <'dockerhub' or other registries url prefix>
 
-  # docker_image, must be defined either here globally or for each individual jobs
-  # image name must be in one of the following formats
-  # image: <image-name> (Same as using <image-name> with the latest tag)
-  # image: <image-name>:<tag>
-  # Note the registry value must be specified using the docker_registry key, only namespace/image:tag are allowed as value in docker_image, namespace is optional if the image is from official (like ubuntu)
-  docker_image: <namespace>/<image>:<tag>
+    # docker_image, must be defined either here globally or for each individual jobs
+    # image name must be in one of the following formats
+    # image: <image-name> (Same as using <image-name> with the latest tag)
+    # image: <image-name>:<tag>
+    # Note the registry value must be specified using the docker_registry key, only namespace/image:tag are allowed as value in docker_image, namespace is optional if the image is from official (like ubuntu)
+    image: <namespace>/<image>:<tag>
 
   # Repo path to use for artifact uploads into
   # If Job configurations optionally specify artifacts to upload (Req #C5.7)
@@ -107,8 +108,9 @@ jobs:
         # override global keys (Req #C3.1, C5.3)such as docker_registry, docker_image, repo_path for uploads
         # Refer to the global section. If these values are not defined it will use global defaults
         # image name is required to be set at either here or global section.
-        docker_registry: <'dockerhub' or other registries url prefix>
-        docker_image: <namespace(optional)>/<image>:<tag(optional)>
+        docker: <'dockerhub' or other registries url prefix>
+            registry:
+            image: <namespace(optional)>/<image>:<tag(optional)>
         artifact_upload_path: <valid upload path>
 
         # scripts keyword is used to identify the commands to run as part of a job
