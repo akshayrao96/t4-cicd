@@ -14,14 +14,14 @@ global:
   # If no value is specified , will use dockerhub as default
   # For other container registries, you need to supply the url prefix
   # like ghcr.io for github container
-  docker_registry: 'dockerhub'
-
+  docker: 
+    registry: 'dockerhub'
   # docker_image, must be defined either here globally or for each individual jobs
   # image name must be in one of the following formats
   # image: <image-name> (Same as using <image-name> with the latest tag)
   # image: <image-name>:<tag>
   # Note the registry value must be specified using the docker_registry key, only namespace/image:tag are allowed as value in docker_image, namespace is optional if the image is from official (like ubuntu)
-  docker_image: 'ubuntu:latest'
+    image: 'ubuntu:latest'
 
   # Repo path to use for artifact uploads into
   # If Job configurations optionally specify artifacts to upload (Req #C5.7)

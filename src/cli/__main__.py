@@ -14,7 +14,7 @@ def cid(ctx, version):
         ctx.exit()
 
     if ctx.invoked_subcommand is None:
-        click.echo(ctx.get_help()) 
+        click.echo(ctx.get_help())
 
 # Add all sub commands to the main cid group
 cid.add_command(cmd_pipeline.pipeline)
