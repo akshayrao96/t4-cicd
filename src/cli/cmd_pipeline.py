@@ -21,7 +21,7 @@ def pipeline(ctx):
         click.echo(ctx.get_help())
 
 @pipeline.command()
-@click.option('--name', default='pipelines.yml', help='configuration file name')
+@click.option('--name', default='.cicd-pipelines/pipelines.yml', help='configuration file name')
 @click.option('-r', '--repo-url', 'repo_url', default='local', help='repository url')
 @click.option('--dry-run', 'dry_run', help='dry-run options to simulate the pipeline\
 process', is_flag=True)
