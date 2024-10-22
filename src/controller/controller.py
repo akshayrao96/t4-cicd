@@ -4,13 +4,12 @@
 """
 
 # import os
+from datetime import datetime
 import click
 from util.common_utils import (get_logger)
 from util.repo_manager import (RepoManager)
 from util.db_mongo import (MongoAdapter)
 from util.config_tools import (ConfigChecker)
-
-#os.path.dirname(os.path.abspath(__file__)) #get current directory of this file
 
 REPO_SOURCE = ""
 REPO_TARGET_PATH = ""
@@ -20,20 +19,9 @@ REPO_BRANCH_NAME = "main"
 class Controller:
     """Controller class that integrates the CLI with the other class components"""
 
-    _instance = None
-
-    def __new__(cls, *args, **kwargs):
-        """Singleton pattern: ensure only one instance exists."""
-        if not cls._instance:
-            cls._instance = super(Controller, cls).__new__(cls, *args, **kwargs)
-        return cls._instance
-
     def __init__(self):
         """Initialize the controller class
         """
-        if hasattr(self, '_initialized'):
-            return
-
         # init Docker
         # init RepoManager
         self.repo_manager = RepoManager(REPO_SOURCE)
@@ -166,14 +154,14 @@ class Controller:
 
         return tuple([status,message,pipeline_id])
 
-    def _start_job(self):
-        """_summary_
-        """
+    # def _start_job(self):
+    #     """_summary_
+    #     """
 
 
-    def stop_job(self):
-        """_summary_
-        """
+    # def stop_job(self):
+    #     """_summary_
+    #     """
 
 
     def display_or_edit_config(self):
@@ -184,3 +172,122 @@ class Controller:
     def list_configuration(self):
         """_summary_
         """
+
+    def dry_run(self, config_name: str) -> str:
+        """dry run methods responsible for the `--dry-run` method for pipelines.
+        The function will retrieve any pipeline history from database, then validate 
+        the configuration file (check hash_commit), and then perform the dry_run 
+
+        Args:
+            pipeline_name (str): _description_
+
+        Returns:
+            str: _description_
+        """
+        # 1. Usecase 1a/b - call function to check if it's a valid git repo
+
+        # 2. call RepoManager to check_commit whether hash file is modified or git commit is changed
+        #TODO: in a way, pipeline_name means we need to implement repo_manager to parse the dict
+
+        # 3. call MongoAdapter get_pipeline_record(repo_name:str, pipeline_name:str, branch:str)
+            #what can I do with this?
+
+        # 4. if step #2 sets to True (commit hash different) run usecase 2a (call
+        # validate_config(filename: str))
+        #TODO: check hash commit of current file. can use import hashlib.
+        # then, call method to compare previous_file (mongodb) and current_file
+
+        #current_config_hash = repo_manager.get_config_hash(config_name)
+        #initialize MongoAdapter()
+        status, message, config_dict = self.validate_config(config_name)
+        #print what validate_config() returns
+        #print(f"{status}, {message}")
+
+        #not successful
+        if not status:
+            return f"[ERROR] {message}"
+
+        #test_get_db()
+        mongo = MongoAdapter()
+
+        ### Print Dry-Run
+        # 5. Simulate Dry run
+        dry_run_msg = ""
+        #TODO: need to know the order of execution
+        #output_dict #to combine the global and jobs
+        #call methods
+        global_dict = config_dict.get("global")
+        jobs_dict = config_dict.get("jobs")
+        stages_dict = config_dict.get("stages")
+        #print("global\n", global_dict)
+        global_output = self._run_global(global_dict, dry_run=True)
+        #print(global_output)
+        dry_run_msg += global_output
+
+        #self._run_stages(stages_dict, dry_run=True)
+        #print(stages_dict)
+
+        #print("jobs\n", jobs_dict)
+        jobs_output = self._run_jobs(jobs_dict, dry_run=True)
+        dry_run_msg += jobs_output
+
+        #GET TIME
+        now = datetime.now()
+        time_log = now.strftime("%Y-%m-%d %H:%M:%S")
+        pipeline_history = {"dry_run_message": dry_run_msg, "executed_time": time_log}
+
+        #TODO: instead of inserting the the dry_run_msg, make it more useful
+        pipeline_id = mongo.insert_pipeline(pipeline_history)
+
+        #get the pipeline_id inserted to mongodb
+        print(f"Insert successfully!\npipeline_id: {pipeline_id}")
+
+        # 6. return message of the dry_run info
+        return dry_run_msg
+
+    #what shall I return?
+    def _run_global(self, global_dict:dict, dry_run:bool = False) -> str:
+
+        #Step 1. Parse the dict.
+        #Step 2. check if dry_run=True
+        if dry_run:
+            #parse what you get from the dict...
+            pipeline_name = global_dict.get("pipeline_name")
+            docker_registry = global_dict.get("docker_registry")
+
+            global_output = f"pipeline name: {pipeline_name}\ndocker registry: {docker_registry}\n"
+
+            return global_output
+
+        # TODO; call DockerRunner and perform the execution
+        return
+
+    def _run_jobs(self, jobs:dict, dry_run:bool = False) -> str:
+        if dry_run:
+            jobs_output = ""
+
+            for job in jobs:
+                jobs_output += self._format_job_info_msg(job, jobs[job]['stage'],
+                                jobs[job]['scripts'], jobs[job]['allow_failure'])
+
+            return jobs_output
+
+        #TODO: implement job run
+        return "not implemented yet - run jobs"
+
+    def _format_job_info_msg(self, job_name, stage, command, allow_failure):
+        formatted_msg = f'[INFO] Running job: "{job_name}"\n'
+        formatted_msg += f'  -> Stage: {stage}\n'
+        formatted_msg += f'  -> Command: {command}\n'
+        formatted_msg += f'  -> Allow Failure: {allow_failure}\n'
+
+        return formatted_msg
+
+    def _test_mongo_db(self) -> str:
+        mongo = MongoAdapter()
+
+        ##INSERT
+        pipeline_history = {"hello": "world"}
+        inserted_id = mongo.insert_pipeline(pipeline_history)
+
+        return inserted_id

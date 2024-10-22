@@ -222,3 +222,18 @@ class RepoManager:
         else:
             logger.error("YAML file %s not found in the '.cicd-pipelines' directory.", file_name)
             raise FileNotFoundError("YAML file not found.")
+
+    def get_config_hash(self, config_file: str) -> str:
+        """[To Be Completed] get configuration file hash given the configuration file path
+
+        Args:
+            config_file (str): _description_
+
+        Returns:
+            str: _description_
+        """
+        #check the current hash file of the sha config
+
+        #absolute_path = self._get_yaml_path(config_file)
+        #print("repo_manager | the config_file = : ", absolute_path)
+        return f"sha256 - {config_file}"
