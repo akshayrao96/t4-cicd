@@ -21,23 +21,28 @@ def pipeline(ctx):
         click.echo(ctx.get_help())
 
 @pipeline.command()
-@click.option('--config-file', default='pipeline.yml', help='configuration file name')
+@click.option('--name', default='.cicd-pipelines/pipelines.yml', help='configuration file name')
 @click.option('-r', '--repo-url', 'repo_url', default='local', help='repository url')
 @click.option('--dry-run', 'dry_run', help='dry-run options to simulate the pipeline\
-process', default=False, show_default=True)
-def run(config_file: str, repo_url: str, dry_run: bool):
+process', is_flag=True)
+def run(name: str, repo_url: str, dry_run: bool):
     """ Run pipeline given the configuration file. 
         Command to run `cid pipeline run <config_file>`
     """
+    #if --name not defined, set name = pipeline.yml
+    ctrl = Controller()
+
     if dry_run:
-        click.echo(f"This executes the dry-run when dry-run flag is set \
-to true (--dry-run={dry_run})")
+        click.echo("dry-run is set. Here's the output:")
+        dry_run_msg = ctrl.dry_run(name)
+        click.echo("############## dry-run ##############")
+        click.echo(dry_run_msg)
         return
 
     #call run_pipeline
-    click.echo(f'Run config file called {config_file} at repo {repo_url}')
+    click.echo(f'Run config file called {name} at repo {repo_url}')
     control = Controller()
-    pipeline_details = control.run_pipeline(config_file=config_file,
+    pipeline_details = control.run_pipeline(config_file=name,
                                             repo_url=repo_url, dry_run=dry_run)
 
     logger.debug(f"pipeline run response: {pipeline_details}")
@@ -75,6 +80,6 @@ def log(tail: str, repo:str):
     click.echo(f"\nLast pipeline command output: {repo} : {pipeline_hash}")
     click.echo("")
     click.echo("\n".join(mock_log))
-    click.echo(f"\n[{pipeline_hash}] Pipeline 'Build and Test' completed.\n")     
+    click.echo(f"\n[{pipeline_hash}] Pipeline 'Build and Test' completed.\n")
     # Optionally log this action for debugging
     # logger.debug(f"Showing the last {tail} lines of the pipeline log with hash {pipeline_hash}")
