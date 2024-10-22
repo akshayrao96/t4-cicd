@@ -10,6 +10,7 @@ DEFAULT_CONFIG_FILE_PATH = ".cicd-pipelines/pipeline.yml"
 
 logger = get_logger('cli.cmd_pipeline')
 
+
 @click.group(invoke_without_command=True)
 @click.pass_context
 def pipeline(ctx):
@@ -17,19 +18,25 @@ def pipeline(ctx):
     All commands related to pipeline
     """
     if ctx.invoked_subcommand is None:
-        click.echo(f"Run pipeline check with default config file path={DEFAULT_CONFIG_FILE_PATH}")
+        click.echo(
+            f"Run pipeline check with default config file path={DEFAULT_CONFIG_FILE_PATH}")
         click.echo(ctx.get_help())
 
+
 @pipeline.command()
-@click.option('--name', default='.cicd-pipelines/pipelines.yml', help='configuration file name')
-@click.option('-r', '--repo-url', 'repo_url', default='local', help='repository url')
-@click.option('--dry-run', 'dry_run', help='dry-run options to simulate the pipeline\
+@click.option('--name',
+              default='.cicd-pipelines/pipelines.yml',
+              help='configuration file name')
+@click.option('-r', '--repo-url', 'repo_url',
+              default='local', help='repository url')
+@click.option('--dry-run', 'dry_run',
+              help='dry-run options to simulate the pipeline\
 process', is_flag=True)
 def run(name: str, repo_url: str, dry_run: bool):
-    """ Run pipeline given the configuration file. 
+    """ Run pipeline given the configuration file.
         Command to run `cid pipeline run <config_file>`
     """
-    #if --name not defined, set name = pipeline.yml
+    # if --name not defined, set name = pipeline.yml
     ctrl = Controller()
 
     if dry_run:
@@ -39,7 +46,7 @@ def run(name: str, repo_url: str, dry_run: bool):
         click.echo(dry_run_msg)
         return
 
-    #call run_pipeline
+    # call run_pipeline
     click.echo(f'Run config file called {name} at repo {repo_url}')
     control = Controller()
     pipeline_details = control.run_pipeline(config_file=name,
@@ -49,10 +56,12 @@ def run(name: str, repo_url: str, dry_run: bool):
     click.echo(f"pipeline run response: {pipeline_details}")
 
 # Pipeline logs
+
+
 @pipeline.command()
 @click.option('--repo', default='local', help="Obtain logs for this repo")
 @click.option('--tail', default=20, help="Number of log lines to display")
-def log(tail: str, repo:str):
+def log(tail: str, repo: str):
     """ Obtains logs of pipeline run attached to current repository
 
     Args:

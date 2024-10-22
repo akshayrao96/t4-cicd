@@ -88,7 +88,11 @@ class MongoAdapter:
         mongo_client.close()
         return result.acknowledged
 
-    def _retrieve(self, doc_id: str, db_name: str, collection_name: str) -> dict:
+    def _retrieve(
+            self,
+            doc_id: str,
+            db_name: str,
+            collection_name: str) -> dict:
         """ Retrieve the first found record based on given id
 
         Args:
@@ -113,7 +117,7 @@ class MongoAdapter:
         Args:
             doc_id (str): id of target record
             db_name (str): targeted database
-            collection_name (str): targeted collection(table) 
+            collection_name (str): targeted collection(table)
 
         Returns:
             bool: boolean indicator if successful
@@ -126,14 +130,17 @@ class MongoAdapter:
         mongo_client.close()
         return result.acknowledged
 
-    def insert_pipeline(self, pipeline_history: dict, db_name: str = MONGO_DB_NAME,
-                        collection_name: str = MONGO_PIPELINES_TABLE) -> str:
+    def insert_pipeline(
+            self,
+            pipeline_history: dict,
+            db_name: str = MONGO_DB_NAME,
+            collection_name: str = MONGO_PIPELINES_TABLE) -> str:
         """ Insert a new pipeline history record
 
         Args:
             pipeline_history (dict): dictionary of the history record in key=value pairs
             db_name (str, optional): database to be inserted into. Defaults to MONGO_DB_NAME.
-            collection_name (str, optional): collection(table) to be inserted into. 
+            collection_name (str, optional): collection(table) to be inserted into.
                 Defaults to MONGO_PIPELINES_TABLE.
 
         Returns:
@@ -146,14 +153,17 @@ class MongoAdapter:
                 f"Error inserting new pipeline, exception is {e}")
             return None
 
-    def update_pipeline(self, pipeline_history: dict, db_name: str = MONGO_DB_NAME,
-                        collection_name: str = MONGO_PIPELINES_TABLE) -> bool:
+    def update_pipeline(
+            self,
+            pipeline_history: dict,
+            db_name: str = MONGO_DB_NAME,
+            collection_name: str = MONGO_PIPELINES_TABLE) -> bool:
         """ Update the pipeline history based on given dict
 
         Args:
             pipeline_history (dict): updated pipeline_history
             db_name (str, optional): database to be updated Defaults to MONGO_DB_NAME.
-            collection_name (str, optional): collection(table) to be updated. 
+            collection_name (str, optional): collection(table) to be updated.
                 Defaults to MONGO_PIPELINES_TABLE.
 
         Returns:
@@ -172,7 +182,7 @@ class MongoAdapter:
         Args:
             pipeline_id (str): id of the given pipeline
             db_name (str, optional): target database. Defaults to MONGO_DB_NAME.
-            collection_name (str, optional): target collection table. 
+            collection_name (str, optional): target collection table.
                 Defaults to MONGO_PIPELINES_TABLE.
         Returns:
             dict: given pipeline in dict form
@@ -190,7 +200,7 @@ class MongoAdapter:
         Args:
             pipeline_id (str): id of the given pipeline
             db_name (str, optional): target database. Defaults to MONGO_DB_NAME.
-            collection_name (str, optional): target collection table. 
+            collection_name (str, optional): target collection table.
                 Defaults to MONGO_PIPELINES_TABLE.
         Returns:
             dict: given pipeline in dict form
@@ -229,7 +239,7 @@ class MongoAdapter:
         Args:
             job_log (dict): updated job_log
             db_name (str, optional): database to be updated. Defaults to MONGO_DB_NAME.
-            collection_name (str, optional): collection(table) to be updated. 
+            collection_name (str, optional): collection(table) to be updated.
                 Defaults to MONGO_JOBS_TABLE.
         Returns:
             bool: if the update is successful or fail
@@ -334,7 +344,8 @@ class MongoAdapter:
             mongo_client = MongoClient(self.mongo_uri)
             database = mongo_client[MONGO_DB_NAME]
             collection = database['repo_configs']
-            pipeline_document = collection.find_one(query_filter, {'_id': 1, 'pipeline_config': 1})
+            pipeline_document = collection.find_one(
+                query_filter, {'_id': 1, 'pipeline_config': 1})
 
             if pipeline_document:
                 return pipeline_document
@@ -347,8 +358,13 @@ class MongoAdapter:
             logger.warning(f"Error retrieving pipeline config: {str(e)}")
             return {}
 
-    def update_pipeline_config(self, repo_name: str, repo_url: str,
-                               branch: str, pipeline_name: str,pipeline_config: dict) -> bool:
+    def update_pipeline_config(
+            self,
+            repo_name: str,
+            repo_url: str,
+            branch: str,
+            pipeline_name: str,
+            pipeline_config: dict) -> bool:
         """Update the pipeline_config field in the repo_configs collection for a specific pipeline.
 
         Args:

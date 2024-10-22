@@ -218,7 +218,7 @@ class Controller:
     def edit_config(self, pipeline_name: str, overrides: dict) -> bool:
         """Modify the pipeline configuration. Retrieves the existing configuration from db,
             applies the given overrides, and then updates to the db.
-            
+
             Args:
                 pipeline_name (str): The name of the pipeline to update.
                 overrides (dict): A dictionary of overrides to apply to the pipeline configuration.
@@ -230,18 +230,24 @@ class Controller:
                 ValueError: If no pipeline configuration is found for the given pipeline name.
             """
         pipeline = self.mongo_ds.get_pipeline_config(
-            "sample-repo", "https://github.com/sample-user/sample-repo", "main", pipeline_name)
+            "sample-repo",
+            "https://github.com/sample-user/sample-repo",
+            "main",
+            pipeline_name)
         if not pipeline.get('pipeline_config'):
             click.echo(f"No pipeline config found for '{pipeline_name}'.")
             return False
-        data = self.mongo_ds.get_pipeline(pipeline.get('_id'), collection_name="repo_configs")
-        data['pipeline_config'] = ConfigOverrides.apply_overrides(pipeline['pipeline_config'],
-                                                                  overrides)
+        data = self.mongo_ds.get_pipeline(
+            pipeline.get('_id'), collection_name="repo_configs")
+        data['pipeline_config'] = ConfigOverrides.apply_overrides(
+            pipeline['pipeline_config'], overrides)
         # TODO: check if the modified pipeline configuration is valid
-        success = self.mongo_ds.update_pipeline_config("sample-repo",
-                                                       "https://github.com/sample-user/sample-repo",
-                                                       "main", "valid_pipeline",
-                                                       data['pipeline_config'])
+        success = self.mongo_ds.update_pipeline_config(
+            "sample-repo",
+            "https://github.com/sample-user/sample-repo",
+            "main",
+            "valid_pipeline",
+            data['pipeline_config'])
         if not success:
             click.echo("Error updating pipeline configuration.")
             return False
