@@ -37,19 +37,42 @@ class Controller:
         self._initialized = True  # prevent reinitialization
 
     ### REPOSITORY (REPO) ###
-    def set_repo(self, repo_source: str) -> tuple[bool, str]:
-        """_summary_
+    def set_repo(self, repo_url: str) -> tuple[bool, str]:
+        """Set the repository URL, validate it, and store in MongoDB.
 
         Args:
-            repo_source (str): _description_
+            repo_url (str): The repository URL provided by the user.
 
         Returns:
-            tuple[bool, str]: true if repository initialization successful and the message output
+            tuple[bool, str]: A tuple indicating success/failure and a message.
         """
-        self.repo = repo_source
-        self.repo_manager = RepoManager(self.repo)
-        click.echo(self.repo)
-        # Try extract all yaml files and validate it
+
+        mongo = MongoAdapter()
+
+        if not self._is_valid_repo(repo_url):
+            return False, "The provided URL is not a valid URL or a valid Git repository."
+
+        repo_name = self.repo_manager._extract_repo_name_from_url(repo_url)
+
+        # can use main branch for now, can later extract branch from
+        # repoManager
+        branch = "main"
+
+        now = datetime.now()
+        time_log = now.strftime("%Y-%m-%d %H:%M:%S")
+
+        repo_data = {
+            "repo-url": repo_url,
+            "repo-name": repo_name,
+            "branch": branch,
+            "time": time_log
+        }
+
+        inserted_id = mongo.insert_repo(repo_data)
+        if inserted_id:
+            return True, f"Repository set successfully with ID: {inserted_id}"
+        else:
+            return False, "Failed to set repository."
 
     def _is_valid_repo(self, repo_source: str) -> bool:
         """private function to check if the repository path specified is a valid repository
@@ -60,15 +83,27 @@ class Controller:
         Returns:
             bool: _description_
         """
+        return self.repo_manager._is_remote_repo_valid(repo_source)
 
     def get_repo(self) -> str:
-        """_summary_
+        """Check if the current directory is a Git repository.
 
         Returns:
-            bool: _description_ #check if bool is the right type to return
+            str: Repository's name if current working directory is a Git repo, None otherwise.
         """
-        print(self.repo)
-        return self.repo
+        mongo = MongoAdapter()
+        try:
+            repo = git.Repo(os.getcwd(), search_parent_directories=True)
+            repo_name = os.path.basename(repo.working_tree_dir)
+            return repo_name
+        except git.exc.InvalidGitRepositoryError:
+            self.logger.info(
+                "Not in a git repository, fetching last set repo from MongoDB.")
+            last_repo = mongo.get_last_set_repo()
+            if last_repo:
+                return last_repo.get('repo-url', '')
+            else:
+                return ""
 
     def get_controller_history(self) -> dict:
         """Retrieve pipeline history from Mongo DB
@@ -358,20 +393,3 @@ class Controller:
         inserted_id = mongo.insert_pipeline(pipeline_history)
 
         return inserted_id
-
-    def get_git_repo(self) -> str:
-        """Check if the current directory is a Git repository.
-
-        Returns:
-            str: Repository's name if current working directory is a Git repo, None otherwise.
-        """
-        try:
-            # Check if the current directory (or its parent directories) is a
-            # Git repository
-            repo = git.Repo(os.getcwd(), search_parent_directories=True)
-            repo_name = os.path.basename(repo.working_tree_dir)
-            return repo_name
-        except git.exc.InvalidGitRepositoryError:
-            # Not a Git repository
-            self.logger.info("Not in a git repository.")
-            return ""
