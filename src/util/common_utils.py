@@ -231,3 +231,46 @@ class TopoSort:
             result_error_msg = f"Cycle error detected for jobs:{sorted(cycle_list)}\n"
             return (result_flag, result_error_msg, [])
         return (result_flag, result_error_msg, order)
+
+class ConfigOverrides:
+    """ConfigOverrides Class to handle building and applying nested dictionary overrides."""
+
+    @staticmethod
+    def build_nested_dict(overrides):
+        """
+        Build a nested dictionary from multiple key=value strings.
+
+        Args:
+            overrides (list): List of override strings in the form 'key=value'.
+
+        Returns:
+            dict: A nested dictionary.
+        """
+        updates = {}
+        for override in overrides:
+            key, value = override.split('=', 1)
+            keys = key.split('.')
+            nested_update = updates
+            for k in keys[:-1]:
+                nested_update = nested_update.setdefault(k, {})
+            nested_update[keys[-1]] = value
+        return updates
+
+    @staticmethod
+    def apply_overrides(config, updates):
+        """
+        Recursively apply updates to a configuration dictionary.
+
+        Args:
+            config (dict): The original dictionary.
+            updates (dict): New key-value pairs to apply.
+
+        Returns:
+            dict: The updated dictionary.
+        """
+        for key, value in updates.items():
+            if isinstance(value, dict):
+                config[key] = ConfigOverrides.apply_overrides(config.get(key, {}), value)
+            else:
+                config[key] = value
+        return config
