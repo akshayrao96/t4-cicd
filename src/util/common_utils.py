@@ -145,7 +145,7 @@ class UnionFind:
                 root2nodes[node].append(node)
             else:
                 root2nodes[parent].append(node)
-        return root2nodes.values()
+        return sorted(root2nodes.values())
 
 class TopoSort:
     """ class provide topological sort order 
