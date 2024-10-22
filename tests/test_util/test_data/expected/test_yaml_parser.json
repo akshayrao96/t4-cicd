@@ -170,11 +170,11 @@
                         },
                         "job_groups": [
                             [
-                                "test_checkout",
-                                "pytest"
+                                "pylint"
                             ],
                             [
-                                "pylint"
+                                "test_checkout",
+                                "pytest"
                             ]
                         ]
                     },
