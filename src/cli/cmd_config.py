@@ -5,7 +5,7 @@ import os
 import pprint
 import click
 import util.constant as const
-from util.common_utils import get_logger
+from util.common_utils import (get_logger, ConfigOverrides)
 from controller.controller import Controller
 
 logger = get_logger('cli.cmd_config')
@@ -197,3 +197,25 @@ def get_repo():
         click.echo(f"Current repository set to: {repo_url}")
     else:
         click.echo("No repository is currently set.")
+
+@config.command()
+@click.option('--pipeline', required=True, help="pipeline name to update")
+@click.argument('overrides', nargs=-1)
+def edit(pipeline, overrides):
+    """
+    Override configuration values in a pipeline.
+
+    Example usage:
+        cid config edit --pipeline my_pipeline global.docker.image=gradle:jdk8 global.timeout=300
+    """
+    try:
+        updates = ConfigOverrides.build_nested_dict(overrides)
+    except ValueError as e:
+        click.echo(str(e))
+        return
+    control = Controller()
+    success = control.edit_config(pipeline, updates)
+    if success:
+        click.echo(f"Pipeline '{pipeline}' updated successfully with overrides: {updates}")
+    else:
+        click.echo(f"Failed to update pipeline '{pipeline}'.")

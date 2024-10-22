@@ -1,6 +1,9 @@
 """Test controller integration
 """
+import os
+import json
 from controller.controller import (Controller)
+from util.db_mongo import MongoAdapter
 from util.common_utils import (get_logger)
 logger = get_logger("tests.test_controller.test_controller")
 
@@ -23,3 +26,15 @@ logger = get_logger("tests.test_controller.test_controller")
 #     logger.info(passed)
 #     logger.info(error_msg)
 #     logger.info(config_dict)
+
+def test_edit_config():
+    current_dir = os.path.dirname(__file__)
+    file_path = os.path.join(current_dir, 'pipeline_data.json')
+    with open(file_path, 'r', encoding='utf-8') as file:
+        pipeline_data = json.load(file)
+    db = MongoAdapter()
+    # db.insert_pipeline(pipeline_data, "CICDControllerDB", "repo_configs")
+    controller = Controller()
+    updates = {'global': {'docker': {'image': 'gradle:jdk8'}}}
+    # controller.edit_config(pipeline_data['pipeline_name'], updates)
+test_edit_config()
