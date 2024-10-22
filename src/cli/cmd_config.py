@@ -191,9 +191,9 @@ def get_repo():
 
     # Gets the currently set repo from the controller
     controller = Controller()
-    repo_url = controller.get_repo()
+    repo_url = controller.get_git_repo()
     print(repo_url)
     if repo_url:
         click.echo(f"Current repository set to: {repo_url}")
     else:
-        click.echo("No repository is currently set.")
+        click.echo("Working directory is not a git repository. Please set a valid git repository")
