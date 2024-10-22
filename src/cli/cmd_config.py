@@ -92,7 +92,7 @@ def config(ctx, check:bool, check_all:bool, no_set:bool, config_file: str, dir:s
             if not valid:
                 click.echo(f"error message:\n{err}")
             else:
-                click.echo(f"printing top 10 lines of processed config:")
+                click.echo("printing top 10 lines of processed config:")
                 config_str = pprint.pformat(pipe_config)
                 for line in config_str.splitlines()[:10]:
                     click.echo(line)
@@ -120,32 +120,6 @@ def config(ctx, check:bool, check_all:bool, no_set:bool, config_file: str, dir:s
         click.echo(f"Error message (if any) =\n{err}")
         click.echo("Printing processed_config")
         pprint.pprint(processed_config)
-
-@config.command()
-def test():
-    """ Test behaviour of config
-
-    Raises:
-        ValueError: _description_
-    """
-    click.echo("testing out checks")
-
-
-
-@config.command()
-@click.option('--repo', default='local',
-              help="repository url for remote repository \
-or directory path for local repository")
-def list(repo: str):
-    """Lists the global configuration of the repository .cicd-pipelines/pipeline.yml
-    of the specified repository location
-
-    Args:
-        repo_location (str): repository location
-    """
-    click.echo(f"list config files at: {repo}")
-    logger.debug("list config files at: %s", repo)
-
 
 @config.command()
 # @click.option('--file_name', default='valid_config.yml',help="location of the file")

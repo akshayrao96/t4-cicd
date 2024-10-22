@@ -32,7 +32,6 @@ class Controller:
         self.config_checker = ConfigChecker() #init Configuration Checker
         # ..and many more
         self.logger = get_logger('cli.controller')
-        self._initialized = True # prevent reinitialization
 
     ### REPOSITORY (REPO) ###
     def set_repo(self, repo_source:str) -> tuple[bool, str]:

@@ -657,7 +657,7 @@ class ConfigChecker:
                     str,
                     list,
                 ]
-                for sub_key, default, etype in zip(sub_key_list, default_list, expected_type):        
+                for sub_key, default, etype in zip(sub_key_list, default_list, expected_type):
                     flag, error = self._check_individual_config(
                         sub_key=sub_key,
                         config_dict=config,
@@ -691,7 +691,7 @@ class ConfigChecker:
                             )
                     result_flag = result_flag and flag
                     result_error_msg += error
- 
+
                 # Check artifacts
                 if c.JOB_SUBKEY_ARTIFACT in config:
                     if processed_job[c.KEY_ARTIFACT_PATH] == DEFAULT_STR:
