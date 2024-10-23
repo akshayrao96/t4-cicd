@@ -274,3 +274,70 @@ class MongoAdapter:
         except errors.PyMongoError as e:
             logger.warning(f"Error deleting the job log, exception is {e}")
             return False
+
+    def get_pipeline_config(self, repo_name: str, repo_url: str,
+                            branch: str, pipeline_name: str) -> dict:
+        """Retrieve the _id and pipeline_config based on the given args.
+
+        Returns:
+            dict: the _id and pipeline_config fields.
+        """
+        try:
+            query_filter = {
+                'repo_name': repo_name,
+                'repo_url': repo_url,
+                'branch': branch,
+                'pipeline_name': pipeline_name
+            }
+            mongo_client = MongoClient(self.mongo_uri)
+            database = mongo_client[MONGO_DB_NAME]
+            collection = database['repo_configs']
+            pipeline_document = collection.find_one(query_filter, {'_id': 1, 'pipeline_config': 1})
+
+            if pipeline_document:
+                return pipeline_document
+            logger.warning(
+                f"No pipeline config found for '{pipeline_name}' "
+                f"in '{repo_name}' on branch '{branch}'."
+            )
+            return {}
+        except errors.PyMongoError as e:
+            logger.warning(f"Error retrieving pipeline config: {str(e)}")
+            return {}
+
+    def update_pipeline_config(self, repo_name: str, repo_url: str,
+                               branch: str, pipeline_name: str,pipeline_config: dict) -> bool:
+        """Update the pipeline_config field in the repo_configs collection for a specific pipeline.
+
+        Args:
+            repo_name (str): The repository name.
+            repo_url (str): The URL of the repository.
+            branch (str): The branch of the repository.
+            pipeline_name (str): The name of the pipeline to update.
+            pipeline_config (dict): The new pipeline configuration to be updated.
+
+        Returns:
+            bool: True if the update was successful, False otherwise.
+        """
+        try:
+            query_filter = {
+                'repo_name': repo_name,
+                'repo_url': repo_url,
+                'branch': branch,
+                'pipeline_name': pipeline_name
+            }
+
+            update_operation = {
+                '$set': {
+                    'pipeline_config': pipeline_config
+                }
+            }
+            mongo_client = MongoClient(self.mongo_uri)
+            database = mongo_client[MONGO_DB_NAME]
+            collection = database['repo_configs']
+            result = collection.update_one(query_filter, update_operation)
+            mongo_client.close()
+            return result.acknowledged
+        except errors.PyMongoError as e:
+            logger.warning(f"Error updating pipeline config: {str(e)}")
+            return False

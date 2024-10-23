@@ -1,6 +1,6 @@
-
+# global keyword is required to identify the section for all global properties (Req #C3) at the top level.
 global:
-  pipeline_name: cycle_pipeline2
+  # pipeline_name: valid_pipeline
   docker: 
     registry: 'dockerhub'
     image: 'ubuntu:latest'
@@ -11,13 +11,11 @@ stages: ['build', 'test']
 jobs:
     checkout:
         stage: build
-        needs: ['package']
         scripts: ['git clone']
 
     compile:
         stage: build
         allow_failure: True
-        
         needs: ['checkout']
         scripts:
           - 'poetry install'
@@ -26,15 +24,6 @@ jobs:
             paths:
                 - 'build/lib'
     
-    package:
-        stage: build
-        # package need compile, compile job need checkout, but checkout need package
-        # There is a cycle should be detected. 
-        needs: ['compile']
-        scripts: ['git clone']
-    
     pytest:
         stage: test
-        # self cycle is not allowed
-        needs: ['pytest']
         scripts: ['poetry run pytest']

@@ -1,0 +1,25 @@
+""" Constants that will be used within this program
+"""
+
+# Pipeline Configurations
+KEY_GLOBAL = 'global'
+KEY_STAGES = 'stages'
+KEY_JOBS = 'jobs'
+KEY_PIPE_NAME = 'pipeline_name'
+KEY_PIPE_CONFIG = 'pipeline_config'
+KEY_PIPE_FILE = 'pipeline_file_name'
+KEY_DOCKER = 'docker'
+KEY_DOCKER_REG = 'registry'
+KEY_DOCKER_IMG = 'image'
+KEY_ARTIFACT_PATH = 'artifact_upload_path'
+KEY_JOB_GRAPH = 'job_graph'
+KEY_JOB_ORDER = 'job_groups'
+JOB_SUBKEY_STAGE = 'stage'
+JOB_SUBKEY_ALLOW = 'allow_failure'
+JOB_SUBKEY_NEEDS = 'needs'
+JOB_SUBKEY_SCRIPTS = 'scripts'
+JOB_SUBKEY_ARTIFACT = 'artifacts'
+ARTIFACT_SUBKEY_ONSUCCESS = 'on_success_only'
+ARTIFACT_SUBKEY_PATH = 'paths'
+RETURN_KEY_VALID = 'valid'
+RETURN_KEY_ERR = 'error_msg'
