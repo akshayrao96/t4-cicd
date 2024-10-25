@@ -27,7 +27,6 @@ def pipeline(ctx):
 #     click.echo(click.format_filename(filename))
 
 #TODO: add exception when user cancel the pipeline job https://click.palletsprojects.com/en/stable/exceptions/
-#TODO: do I need to specify the name path?
 @pipeline.command()
 @click.option('--file', 'file_path', default=DEFAULT_CONFIG_FILE_PATH, help='configuration file path.\
 if path not specified, search file name in .cicd-pipelines/')
@@ -54,12 +53,12 @@ def run(file_path:str, pipeline:str, repo:str, branch:str, commit:str, local:boo
         local (bool): execute pipeline locally.
         dry_run (bool): plan the pipeline without creating 
     """
-    
+
     # --file and --pipeline are mutually exclusive, raise error if both value are provided
     if pipeline != 'all' and file_path !=  DEFAULT_CONFIG_FILE_PATH:
-        click.echo(f"cid: invalid flag. you can only pass --file or --pipeline and can't be both.")
+        click.echo("cid: invalid flag. you can only pass --file or --pipeline and can't be both.")
         return
-    
+
     is_remote_repo = repo.startswith("https://")
     git_details = {
         "repo_source": repo,
@@ -67,8 +66,6 @@ def run(file_path:str, pipeline:str, repo:str, branch:str, commit:str, local:boo
         "commit_hash": commit,
         "remote_repo": is_remote_repo,
     }
-
-
 
     ctrl = Controller()
     pipeline_details = ctrl.run_pipeline(config_file=file_path, dry_run=dry_run,
