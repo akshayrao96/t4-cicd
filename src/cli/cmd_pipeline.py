@@ -19,11 +19,12 @@ def pipeline(ctx):
         click.echo(ctx.get_help())
 
 #https://click.palletsprojects.com/en/stable/arguments/#file-path-arguments
-@pipeline.command()
-@click.argument('filename', type=click.Path(exists=True))
-def touch(filename):
-    """Print FILENAME if the file exists."""
-    click.echo(click.format_filename(filename))
+#TODO: to delete. this is a click function where I can validate if filename
+# @pipeline.command()
+# @click.argument('filename', type=click.Path(exists=True))
+# def touch(filename):
+#     """Print FILENAME if the file exists."""
+#     click.echo(click.format_filename(filename))
 
 #TODO: add exception when user cancel the pipeline job https://click.palletsprojects.com/en/stable/exceptions/
 #TODO: do I need to specify the name path?
