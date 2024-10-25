@@ -217,7 +217,7 @@ class Controller:
         command: `cid pipeline setup`
         """
 
-    def run_pipeline(self, config_file: str, dry_run:bool, git_details:dict, 
+    def run_pipeline(self, config_file: str, dry_run:bool, git_details:dict,
                      run_locally:bool) -> tuple[bool, str, str]:
         """Executes the job by coordinating the repository, runner, artifact store, and logger.
 
@@ -259,7 +259,8 @@ class Controller:
             print(dry_run_msg)
         
         # Step 3: Perform pipeline run steps
-
+        #TODO: need to validate run_locally for non-dry-run
+        
         ### Pseudocode
         # # Step 0: Clone the repo
         # gitrepo = RepoManager()

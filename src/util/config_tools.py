@@ -761,8 +761,6 @@ class GitRepoChecker:
         Returns:
             tuple[bool, str]: _description_
         """
-        if commit_hash == "latest":
-            print("replace it with the latest commit")
         
         if not self._commit_exists(commit_hash):
             return False, f"Commit {commit_hash} does not exist."
