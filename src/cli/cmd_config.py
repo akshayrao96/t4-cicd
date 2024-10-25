@@ -34,7 +34,7 @@ def config(ctx, check:bool, check_all:bool, no_set:bool, config_file: str, dir:s
     This command allows you to manage and validate configuration files used in 
     pipeline executions. You can run this to check the configuration files in 
     default location or pass a custom file/directory to check. 
-
+    \f
     Example usage:
 
     To set up repo, check and save the default config file (pipelines.yml):

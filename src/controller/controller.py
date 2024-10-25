@@ -12,7 +12,7 @@ from util.common_utils import (get_logger, ConfigOverrides)
 from util.repo_manager import (RepoManager)
 from util.db_mongo import (MongoAdapter)
 from util.yaml_parser import YamlParser
-from util.config_tools import (ConfigChecker)
+from util.config_tools import (ConfigChecker, GitRepoChecker)
 
 REPO_SOURCE = ""
 REPO_TARGET_PATH = ""
@@ -217,12 +217,49 @@ class Controller:
         command: `cid pipeline setup`
         """
 
-    def run_pipeline(self, **kwargs) -> tuple:
+    def run_pipeline(self, config_file: str, dry_run:bool, git_details:dict, 
+                     run_locally:bool) -> tuple[bool, str, str]:
         """Executes the job by coordinating the repository, runner, artifact store, and logger.
 
         Returns:
             tuple: _description_
         """
+    
+        #validate the repo has the valid branch name and commit hash
+
+        repo_source = git_details.get('repo_source')
+        branch = git_details.get('branch')
+        commit = git_details.get('commit_hash')
+        repo_checker = GitRepoChecker(repo_source)
+
+        # Step 0: Clone the repo
+        # TODO: now only setup_repo(), need to discuss what functions to add next
+        #           comment: setup_repo() returns None, can we return bool?
+        # TODO: do I need to check if it's a remote_repo or let repo_manager do it?
+        # [Repo_Manager]check if input is a remote repository (https://)
+        #remote_repo = git_details.get('remote_repo')
+        repo_manager = RepoManager(repo_source)
+        repo_manager.setup_repo()
+
+        # Step 1: check for valid branch / commit
+        #check for valid git commit / branch to run the pipeline
+        valid_git, msg = repo_checker.verify_branch_and_commit(branch, commit)
+
+        if not valid_git:
+            self.logger.debug(msg)
+            status = False
+            pipeline_id = ""
+            return status, msg, pipeline_id
+        
+        click.echo(f"{valid_git}, {msg}")
+
+        # Step 2: check if pipeline is  running dry-run or not
+        if dry_run:
+            dry_run_msg = self.dry_run(config_file)
+            print(dry_run_msg)
+        
+        # Step 3: Perform pipeline run steps
+
         ### Pseudocode
         # # Step 0: Clone the repo
         # gitrepo = RepoManager()

@@ -2,6 +2,7 @@
 validate and process the content of pipeline_configuration 
 """
 import collections
+import subprocess
 import util.constant as c
 from util.common_utils import (get_logger, UnionFind, TopoSort)
 
@@ -14,6 +15,7 @@ DEFAULT_FLAG_ARTIFACT_UPLOAD_ONSUCCESS = True
 DEFAULT_STR = ""
 DEFAULT_LIST = []
 DEFAULT_DICT = {}
+DEFAULT_DIR = "./"
 
 # pylint: disable=logging-fstring-interpolation
 # pylint: disable=fixme
@@ -740,3 +742,104 @@ class ConfigChecker:
             self.logger.warning(f"Error in parsing job sections, exception msg is {e}\n"
                                 )
             return (False, "Parsing jobs section, unexpected error occur")
+
+class GitRepoChecker:
+    """A util to verify the validity of commits, branches, and branch commit in a Git repository.
+    This is done by using subprocess to run the Git command and verify the path given by the user.
+    """
+    def __init__(self, repo_path=DEFAULT_DIR, log_tool=logger):
+        self.repo_source = repo_path
+        self.logger = log_tool
+
+    def verify_branch_and_commit(self, branch_name, commit_hash) -> tuple[bool, str]:
+        """_summary_
+
+        Args:
+            branch_name (_type_): _description_
+            commit_hash (_type_): _description_
+
+        Returns:
+            tuple[bool, str]: _description_
+        """
+        if commit_hash == "latest":
+            print("replace it with the latest commit")
+        
+        if not self._commit_exists(commit_hash):
+            return False, f"Commit {commit_hash} does not exist."
+
+        if not self._branch_exists(branch_name):
+            return False, f"Branch {branch_name} does not exist."
+
+        #if commit_hash is set to HEAD, skip the validation. this is the latest commit.
+        if commit_hash != "HEAD" and not self._branch_points_to_commit(branch_name, commit_hash):
+            return False, f"Branch {branch_name} does not point to commit {commit_hash}."
+        
+        return True, f"commit {commit_hash} is a valid hash in Branch {branch_name}"
+
+
+    def _commit_exists(self, commit_hash: str) -> bool:
+        """Check if a commit hash exists in the repository.
+
+        Args:
+            commit_hash (str): commit hash to validate
+
+        Returns:
+            bool: True if commit exist, False otherwise.
+        """
+        try:
+            subprocess.run(
+                ["git", "cat-file", "-t", commit_hash],
+                cwd=self.repo_source,
+                check=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE
+            )
+            return True
+        except subprocess.CalledProcessError:
+            return False
+
+    def _branch_exists(self, branch_name: str) -> bool:
+        """Validate if git branch exist
+
+        Args:
+            branch_name (str): name of the branch
+
+        Returns:
+            bool: true if branch name is valid inside the repository;
+            false otherwise
+        """
+        try:
+            subprocess.run(
+                ["git", "show-ref", branch_name],
+                cwd=self.repo_source,
+                check=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE
+            )
+            return True
+        except subprocess.CalledProcessError:
+            return False
+
+    def _branch_points_to_commit(self, branch_name: str, commit_hash: str) -> bool:
+        """verify if the commit_hash is a valid hash for that branch name
+
+        Args:
+            branch_name (str): branch name of the given repository
+            commit_hash (str): commit hash to be verified
+
+        Returns:
+            bool: True if commit hash exist in the branch name.
+        """
+        try:
+            result = subprocess.run(
+                ["git", "rev-parse", branch_name],
+                cwd=self.repo_source,
+                check=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE
+            )
+            branch_commit = result.stdout.decode().strip()
+            
+            return branch_commit == commit_hash
+        except subprocess.CalledProcessError:
+            return False
