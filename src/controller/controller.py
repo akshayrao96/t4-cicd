@@ -36,7 +36,6 @@ class Controller:
         self.config_checker = ConfigChecker()  # init Configuration Checker
         # ..and many more
         self.logger = get_logger('cli.controller')
-        self._initialized = True  # prevent reinitialization
 
     def set_repo(self, repo_url: str) -> tuple[bool, str]:
         """Set the repository URL, validate it, and store in MongoDB.
@@ -130,14 +129,14 @@ class Controller:
         Returns:
             dict: return list of pipeline_id of pipeline history commit
         """
-        # TODO: need to configure mongodb local before this can be run
-        # pipelines = self.mongo_ds.get_controller_history()
-        # self.logger.debug("history of the pipelines: %s", str(pipelines))
+        #TODO: need to configure mongodb local before this can be run
+        #pipelines = self.mongo_ds.get_controller_history()
+        #self.logger.debug("history of the pipelines: %s", str(pipelines))
 
-        # TODO: add validation / conditional checking for returned value
-        # TODO: determine if simply return <dict> or have some logic
+        #TODO: add validation / conditional checking for returned value
+        #TODO: determine if simply return <dict> or have some logic
 
-        # return pipelines
+        #return pipelines
 
     ### CONFIG ###
     def validate_n_save_configs(self, directory: str) -> dict:
@@ -318,13 +317,16 @@ class Controller:
     #     """_summary_
     #     """
 
+
     # def stop_job(self):
     #     """_summary_
     #     """
 
+
     def display_or_edit_config(self):
         """_summary_
         """
+
 
     def list_configuration(self):
         """_summary_
@@ -377,41 +379,39 @@ class Controller:
         global_dict = config_dict.get("global")
         jobs_dict = config_dict.get("jobs")
         stages_dict = config_dict.get("stages")
-        # print("global\n", global_dict)
+        #print("global\n", global_dict)
         global_output = self._run_global(global_dict, dry_run=True)
-        # print(global_output)
+        #print(global_output)
         dry_run_msg += global_output
 
-        # self._run_stages(stages_dict, dry_run=True)
-        # print(stages_dict)
+        #self._run_stages(stages_dict, dry_run=True)
+        #print(stages_dict)
 
-        # print("jobs\n", jobs_dict)
+        #print("jobs\n", jobs_dict)
         jobs_output = self._run_jobs(jobs_dict, dry_run=True)
         dry_run_msg += jobs_output
 
-        # GET TIME
+        #GET TIME
         now = datetime.now()
         time_log = now.strftime("%Y-%m-%d %H:%M:%S")
-        pipeline_history = {
-            "dry_run_message": dry_run_msg,
-            "executed_time": time_log}
+        pipeline_history = {"dry_run_message": dry_run_msg, "executed_time": time_log}
 
-        # TODO: instead of inserting the the dry_run_msg, make it more useful
+        #TODO: instead of inserting the the dry_run_msg, make it more useful
         pipeline_id = mongo.insert_pipeline(pipeline_history)
 
-        # get the pipeline_id inserted to mongodb
+        #get the pipeline_id inserted to mongodb
         print(f"Insert successfully!\npipeline_id: {pipeline_id}")
 
         # 6. return message of the dry_run info
         return dry_run_msg
 
-    # what shall I return?
-    def _run_global(self, global_dict: dict, dry_run: bool = False) -> str:
+    #what shall I return?
+    def _run_global(self, global_dict:dict, dry_run:bool = False) -> str:
 
-        # Step 1. Parse the dict.
-        # Step 2. check if dry_run=True
+        #Step 1. Parse the dict.
+        #Step 2. check if dry_run=True
         if dry_run:
-            # parse what you get from the dict...
+            #parse what you get from the dict...
             pipeline_name = global_dict.get("pipeline_name")
             docker_registry = global_dict.get("docker_registry")
 
@@ -422,17 +422,17 @@ class Controller:
         # TODO; call DockerRunner and perform the execution
         return
 
-    def _run_jobs(self, jobs: dict, dry_run: bool = False) -> str:
+    def _run_jobs(self, jobs:dict, dry_run:bool = False) -> str:
         if dry_run:
             jobs_output = ""
 
             for job in jobs:
-                jobs_output += self._format_job_info_msg(
-                    job, jobs[job]['stage'], jobs[job]['scripts'], jobs[job]['allow_failure'])
+                jobs_output += self._format_job_info_msg(job, jobs[job]['stage'],
+                                jobs[job]['scripts'], jobs[job]['allow_failure'])
 
             return jobs_output
 
-        # TODO: implement job run
+        #TODO: implement job run
         return "not implemented yet - run jobs"
 
     def _format_job_info_msg(self, job_name, stage, command, allow_failure):
@@ -446,7 +446,7 @@ class Controller:
     def _test_mongo_db(self) -> str:
         mongo = MongoAdapter()
 
-        # INSERT
+        ##INSERT
         pipeline_history = {"hello": "world"}
         inserted_id = mongo.insert_pipeline(pipeline_history)
 

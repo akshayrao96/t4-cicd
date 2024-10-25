@@ -1,6 +1,7 @@
 """ 
 Provide the common utility functions used by all other modules
 """
+import os
 import collections
 import logging
 from dotenv import dotenv_values
@@ -49,7 +50,10 @@ def get_env() -> dict:
     Returns:
         dict: dictionary of env values in key=value pairs
     """
-    config = dotenv_values(".env")
+    # previous code
+    # config = dotenv_values(".env")
+
+    config = {key: os.getenv(key) for key in os.environ.keys()}
     return config
 
 class UnionFind:

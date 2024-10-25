@@ -1,7 +1,6 @@
 """ Manage connection to MongoDB, and provides functions for relevent CRUD operation
 """
 import copy
-import os
 
 import bson
 from pymongo import (MongoClient, errors)
@@ -25,8 +24,8 @@ class MongoAdapter:
         """
 
         # store the mongoDB url in bash rc file. Using atlas for this.
-        self.mongo_uri = os.getenv('MONGO_DB_URL')
-        # self.mongo_uri = env['MONGO_DB_URL'] if 'MONGO_DB_URL' in env else ""
+        # self.mongo_uri = os.getenv('MONGO_DB_URL')
+        self.mongo_uri = env['MONGO_DB_URL'] if 'MONGO_DB_URL' in env else ""
 
     def get_controller_history(self) -> dict:
         """ Retrieve all pipeline history for the controller
