@@ -6,6 +6,8 @@
 
 from datetime import datetime
 import os
+from typing import Tuple, Any
+
 import click
 import git.exc
 import util.constant as const
@@ -36,7 +38,6 @@ class Controller:
         self.logger = get_logger('cli.controller')
         self._initialized = True  # prevent reinitialization
 
-    ### REPOSITORY (REPO) ###
     def set_repo(self, repo_url: str) -> tuple[bool, str]:
         """Set the repository URL, validate it, and store in MongoDB.
 
@@ -49,25 +50,45 @@ class Controller:
 
         mongo = MongoAdapter()
 
+        # Check if the current directory is a Git repository using get_repo
+        try:
+            repo = git.Repo(os.getcwd(), search_parent_directories=True)
+            repo_name = os.path.basename(repo.working_tree_dir)
+            return False, (
+                f"You are currently in a current working directory Git repository: '{repo_name}'.\n"
+                "Please navigate out of the current working directory repository and try again\n"
+                "cid config set-repo <repository>."
+            )
+        except git.exc.InvalidGitRepositoryError:
+            self.logger.info(
+                f"Proceeding to configure for repository {repo_url}.")
+
+        # Validate the provided repo URL
         if not self._is_valid_repo(repo_url):
             return False, "The provided URL is not a valid URL or a valid Git repository."
 
         repo_name = self.repo_manager._extract_repo_name_from_url(repo_url)
 
-        # can use main branch for now, can later extract branch from
-        # repoManager
+        # Default to 'main' branch for now
         branch = "main"
 
+        # Log the current time
         now = datetime.now()
         time_log = now.strftime("%Y-%m-%d %H:%M:%S")
 
+        # Data to insert into MongoDB
         repo_data = {
-            "repo-url": repo_url,
-            "repo-name": repo_name,
+            "user_id": "random",  # random user session for now
+            "repo_url": repo_url,
+            "repo_name": repo_name,
             "branch": branch,
+            "commit_hash": "random hash for now",
+            "is_remote": True,  # can only set remote repo for now
+            "last_temp_working_dir": None,  # placeholder for now
             "time": time_log
         }
 
+        # Insert the repo data into MongoDB
         inserted_id = mongo.insert_repo(repo_data)
         if inserted_id:
             return True, f"Repository set successfully with ID: {inserted_id}"
@@ -85,7 +106,7 @@ class Controller:
         """
         return self.repo_manager._is_remote_repo_valid(repo_source)
 
-    def get_repo(self) -> str:
+    def get_repo(self) -> tuple[Any, str] | str:
         """Check if the current directory is a Git repository.
 
         Returns:
@@ -95,15 +116,13 @@ class Controller:
         try:
             repo = git.Repo(os.getcwd(), search_parent_directories=True)
             repo_name = os.path.basename(repo.working_tree_dir)
-            return repo_name
+            return True, repo_name
         except git.exc.InvalidGitRepositoryError:
-            self.logger.info(
-                "Not in a git repository, fetching last set repo from MongoDB.")
             last_repo = mongo.get_last_set_repo()
             if last_repo:
-                return last_repo.get('repo-url', '')
+                return False, last_repo.get('repo_url', '')
             else:
-                return ""
+                return False, ""
 
     def get_controller_history(self) -> dict:
         """Retrieve pipeline history from Mongo DB

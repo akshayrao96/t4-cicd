@@ -71,9 +71,6 @@ class RepoManager:
 
         # _is_remote_repo does not take parameters, but need to check with
         # given param in cli config set-repo
-        if not repo_source.startswith("https://"):
-            return False
-
         try:
             result = subprocess.run(
                 ["git", "ls-remote", repo_source],

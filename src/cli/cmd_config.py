@@ -175,7 +175,6 @@ def set_repo(repo_url: str) -> None:
 
     try:
         success, message = controller.set_repo(repo_url)
-
         if success:
             click.echo(f"Repository set successfully: {repo_url}")
         else:
@@ -191,13 +190,19 @@ def get_repo():
 
     # Gets the currently set repo from the controller
     controller = Controller()
-    repo_url = controller.get_repo()
-    print(repo_url)
-    if repo_url:
-        click.echo(f"Current repository set to: {repo_url}")
+    status, repo_url = controller.get_repo()
+    if status and repo_url:
+        click.echo(f"Using current directory. \nCurrent repository configured: {repo_url}")
+    elif repo_url:
+        print(
+            "Fetching last set repo...")
+        click.echo(f"Repository configured: {repo_url}")
     else:
-        click.echo(
-            "Working directory is not a git repository. Please set a valid git repository")
+        click.echo("No repository currently configured.")
+        click.echo("Please navigate to a working directory that is a git repository project")
+        click.echo("OR")
+        click.echo("Please set an either remote or local repository using:")
+        click.echo("cid config set-repo <REPO NAME>")
 
 
 @config.command()

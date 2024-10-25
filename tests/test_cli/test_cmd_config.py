@@ -4,6 +4,8 @@ from unittest.mock import MagicMock, patch
 from click.testing import CliRunner
 from cli import (__main__, cmd_config)
 from util.common_utils import (get_logger)
+from util.db_mongo import MongoAdapter
+
 logger = get_logger("tests.test_cmd_config")
 
 
@@ -124,27 +126,36 @@ def test_config_check_with_invalid_file():
 #     # result.output will have newline ending, need to strip it
 
 
-@patch("cli.cmd_config.Controller.get_git_repo", return_value="my-repo")
-def test_get_url(mock_controller):
-    """Test the get_url command, expecting to return a repo name."""
-
+@patch("cli.cmd_config.Controller.get_repo", return_value=(True, "./t4-cicd"))
+def test_get_repo_in_git_directory(mock_controller):
+    """ Test when in a Git repo directory """
     runner = CliRunner()
-    result = runner.invoke(cmd_config.get_repo)
-
-    # Assert that the exit code is 0 (success)
+    result = runner.invoke(cmd_config.config, ['get-repo'])
     assert result.exit_code == 0
-    # Check if the output contains the expected repo name
-    assert "Current repository set to: my-repo" in result.output
+    assert "Using current directory." in result.output
+    assert "Current repository configured: ./t4-cicd" in result.output
 
 
-@patch("cli.cmd_config.Controller.get_git_repo", return_value=None)
-def test_get_url_no_repo(mock_controller):
-    """Test the get_url command when no repo is set."""
-
+@patch("cli.cmd_config.Controller.set_repo", return_value=(True,
+       "Repository set successfully: https://github.com/github/docs"))
+def test_set_repo(mock_controller):
+    """ Test setting a repository after no repo is configured """
     runner = CliRunner()
-    result = runner.invoke(cmd_config.get_repo)
+    result = runner.invoke(
+        cmd_config.config, [
+            'set-repo', 'https://github.com/github/docs'])
 
-    # Assert that the exit code is 0 (success)
+    # Ensure the set_repo command was called successfully
     assert result.exit_code == 0
-    # Check if the output informs that no repository is set
-    assert "Working directory is not a git repository. Please set a valid git repository" in result.output
+    assert "Repository set successfully: https://github.com/github/docs" in result.output
+
+@patch("cli.cmd_config.Controller.get_repo", return_value=(False, "https://github.com/github/docs"))
+def test_get_repo_with_last_set_repo(mock_controller):
+    """ Test when a repository has already been set and retrieved from MongoDB """
+    runner = CliRunner()
+    result = runner.invoke(cmd_config.config, ['get-repo'])
+
+    assert result.exit_code == 0
+    assert "Fetching last set repo..." in result.output
+    assert "Repository configured: https://github.com/github/docs" in result.output
+
