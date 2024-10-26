@@ -20,38 +20,50 @@ logger = get_logger('cli.cmd_config')
 @click.option('--no-set', is_flag=True,
               help="validate the config/configs without setting the repo and\
               saving the validated info to datastore")
-@click.option('--config-file', default='pipelines.yml', show_default=True,
-              type=str,
+@click.option('--config-file', default='pipelines.yml', show_default=True, type=str,
               help="specifies the YAML configuration file to check. used with --check flag")
 @click.option('--dir', default='.cicd-pipelines', show_default=True,
               type=str,
               help="specify the directory to check all configuration files.\
                   used with --check-all flag")
-def config(ctx, check:bool, check_all:bool, no_set:bool, config_file: str, dir:str):
+def config(
+        ctx,
+        check: bool,
+        check_all: bool,
+        no_set: bool,
+        config_file: str,
+        dir: str):
     """
     Command working with pipeline and repo configurations
 
+<<<<<<< HEAD
     This command allows you to manage and validate configuration files used in 
     pipeline executions. You can run this to check the configuration files in 
     default location or pass a custom file/directory to check. 
     \f
+=======
+    This command allows you to manage and validate configuration files used in
+    pipeline executions. You can run this to check the configuration files in
+    default location or pass a custom file/directory to check.
+
+>>>>>>> development
     Example usage:
 
     To set up repo, check and save the default config file (pipelines.yml):
-    
-    - cid config / cid config --check --config-file pipelines.yml 
 
-    To set up repo, check and save a specific config file located in 
+    - cid config / cid config --check --config-file pipelines.yml
+
+    To set up repo, check and save a specific config file located in
     .cicd-pipelines folder:
-    
+
     - cid config --check --config-file <filename.yml>
 
-    To set up repo, check and save all config file located in 
+    To set up repo, check and save all config file located in
     .cicd-pipelines folder:
-    
+
     - cid config --check-all
 
-    To check a specific config file only without repo set up and saving: 
+    To check a specific config file only without repo set up and saving:
 
     - cid config --check --config-file <absolute path to config.yml> --no-set
 
@@ -80,15 +92,18 @@ def config(ctx, check:bool, check_all:bool, no_set:bool, config_file: str, dir:s
         click.echo(config_dir_path)
         if no_set:
             click.echo(f"checking all config files in directory {dir}")
-            results=controller.validate_configs(dir)
+            results = controller.validate_configs(dir)
         else:
-            click.echo(f"set repo, checking and saving all config files in directory {dir}")
-            results=controller.validate_n_save_configs(dir)
+            click.echo(
+                f"set repo, checking and saving all config files in directory {dir}")
+            results = controller.validate_n_save_configs(dir)
         for pipeline_name, res_dict in results.items():
             valid = res_dict[const.RETURN_KEY_VALID]
             err = res_dict[const.RETURN_KEY_ERR]
             pipe_config = res_dict[const.KEY_PIPE_CONFIG]
-            click.echo(f"\nStatus for {pipeline_name}: {'passed' if valid else 'failed'}")
+            click.echo(
+                f"\nStatus for {pipeline_name}: {
+                    'passed' if valid else 'failed'}")
             if not valid:
                 click.echo(f"error message:\n{err}")
             else:
@@ -101,7 +116,8 @@ def config(ctx, check:bool, check_all:bool, no_set:bool, config_file: str, dir:s
         config_file_path = config_file
         if not os.path.isfile(config_file):
             # assume it will be in .cicd-pipelines folder
-            config_file_path = os.path.join(os.getcwd(), '.cicd-pipelines', config_file)
+            config_file_path = os.path.join(
+                os.getcwd(), '.cicd-pipelines', config_file)
         if not os.path.isfile(config_file_path):
             click.echo(f"Invalid config_file_path:{config_file_path}")
             return
@@ -109,11 +125,13 @@ def config(ctx, check:bool, check_all:bool, no_set:bool, config_file: str, dir:s
             if no_set:
                 click.echo(f"checking config file at: {dir}/{config_file}")
                 # logger.debug("Checking config file at: %s", config_file)
-                passed, err, processed_config = controller.validate_config(config_file_path)
+                passed, err, processed_config = controller.validate_config(
+                    config_file_path)
             else:
                 msg = f"set repo, checking and saving config file at: {dir}/{config_file}"
                 click.echo(msg)
-                passed, err, processed_config = controller.validate_n_save_config(config_file_path)
+                passed, err, processed_config = controller.validate_n_save_config(
+                    config_file_path)
 
         # Print Validation Results
         click.echo(f"Check passed = {passed}")
@@ -121,41 +139,30 @@ def config(ctx, check:bool, check_all:bool, no_set:bool, config_file: str, dir:s
         click.echo("Printing processed_config")
         pprint.pprint(processed_config)
 
+
 @config.command()
-# @click.option('--file_name', default='valid_config.yml',help="location of the file")
-@click.argument('repo_url')
+@click.argument('repo_url', required=True)
 def set_repo(repo_url: str) -> None:
     """Sets a new repository for pipeline checks.
 
     Args:
         repo_url (str): The repository URL or path that must be provided.
     """
-
     if not repo_url:
         click.echo(
             "Error: No repository provided. Please specify a repository URL.")
         return
 
-    # run the controller set repo with the given repo url
-    # Controller.set_repo(repo_url)
+    controller = Controller()
 
     try:
-        controller = Controller()
-        controller.set_repo(repo_url)
-        success: bool = True  # controller logic result
+        success, message = controller.set_repo(repo_url)
         if success:
-            click.echo(f"Repository set to: {repo_url}")
+            click.echo(f"Repository set successfully: {repo_url}")
         else:
-            raise ValueError("Error occurred while setting repository")
-
-    except ValueError as e:
-        # Log the error and show a message to the user
-        logger.debug(f"Error: {str(e)}")
-        click.echo(f"Error: Unable to set repository. {str(e)}")
+            click.echo(f"Error: {message}")
 
     except Exception as e:
-        # Handle unexpected errors
-        logger.debug(f"Unexpected error: {str(e)}")
         click.echo(f"An unexpected error occurred: {str(e)}")
 
 
@@ -165,12 +172,22 @@ def get_repo():
 
     # Gets the currently set repo from the controller
     controller = Controller()
-    repo_url = controller.get_repo()
-    print(repo_url)
-    if repo_url:
-        click.echo(f"Current repository set to: {repo_url}")
+    status, repo_url = controller.get_repo()
+    if status and repo_url:
+        click.echo(
+            f"Using current directory. \nCurrent repository configured: {repo_url}")
+    elif repo_url:
+        print(
+            "Fetching last set repo...")
+        click.echo(f"Repository configured: {repo_url}")
     else:
-        click.echo("No repository is currently set.")
+        click.echo("No repository currently configured.")
+        click.echo(
+            "Please navigate to a working directory that is a git repository project")
+        click.echo("OR")
+        click.echo("Please set an either remote or local repository using:")
+        click.echo("cid config set-repo <REPO NAME>")
+
 
 @config.command()
 @click.option('--pipeline', required=True, help="pipeline name to update")
@@ -190,6 +207,7 @@ def edit(pipeline, overrides):
     control = Controller()
     success = control.edit_config(pipeline, updates)
     if success:
-        click.echo(f"Pipeline '{pipeline}' updated successfully with overrides: {updates}")
+        click.echo(
+            f"Pipeline '{pipeline}' updated successfully with overrides: {updates}")
     else:
         click.echo(f"Failed to update pipeline '{pipeline}'.")

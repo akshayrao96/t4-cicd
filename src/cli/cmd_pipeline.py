@@ -10,14 +10,17 @@ DEFAULT_CONFIG_FILE_PATH = ".cicd-pipelines/pipelines.yml"
 
 logger = get_logger('cli.cmd_pipeline')
 
+
 @click.group(invoke_without_command=True)
 @click.pass_context
 def pipeline(ctx):
     """All commands related to pipeline"""
     if ctx.invoked_subcommand is None:
-        click.echo(f"Run pipeline check with default config file path={DEFAULT_CONFIG_FILE_PATH}")
+        click.echo(
+            f"Run pipeline check with default config file path={DEFAULT_CONFIG_FILE_PATH}")
         click.echo(ctx.get_help())
 
+<<<<<<< HEAD
 #https://click.palletsprojects.com/en/stable/arguments/#file-path-arguments
 #TODO: to delete. this is a click function where I can validate if filename
 # @pipeline.command()
@@ -40,6 +43,24 @@ local directory path')
 process', is_flag=True)
 def run(file_path:str, pipeline:str, repo:str, branch:str, commit:str, local:bool, dry_run:bool):
     """Run pipeline given the configuration file. 
+=======
+
+@pipeline.command()
+@click.option('--name',
+              default='.cicd-pipelines/pipelines.yml',
+              help='configuration file name')
+@click.option('-r', '--repo-url', 'repo_url',
+              default='local', help='repository url')
+@click.option('--dry-run', 'dry_run',
+              help='dry-run options to simulate the pipeline\
+process', is_flag=True)
+def run(name: str, repo_url: str, dry_run: bool):
+    """ Run pipeline given the configuration file.
+        Command to run `cid pipeline run <config_file>`
+    """
+    # if --name not defined, set name = pipeline.yml
+    ctrl = Controller()
+>>>>>>> development
 
     Command to run `cid pipeline run <config_filename>`
     Command for dry-run `cid pipeline run --dry-run --repo <repo> --branch <branch_name> 
@@ -59,6 +80,7 @@ def run(file_path:str, pipeline:str, repo:str, branch:str, commit:str, local:boo
         click.echo("cid: invalid flag. you can only pass --file or --pipeline and can't be both.")
         return
 
+<<<<<<< HEAD
     is_remote_repo = repo.startswith("https://")
     git_details = {
         "repo_source": repo,
@@ -70,15 +92,28 @@ def run(file_path:str, pipeline:str, repo:str, branch:str, commit:str, local:boo
     ctrl = Controller()
     pipeline_details = ctrl.run_pipeline(config_file=file_path, dry_run=dry_run,
                                          git_details=git_details, run_locally=local)
+=======
+    # call run_pipeline
+    click.echo(f'Run config file called {name} at repo {repo_url}')
+    control = Controller()
+    pipeline_details = control.run_pipeline(config_file=name,
+                                            repo_url=repo_url, dry_run=dry_run)
+>>>>>>> development
 
     logger.debug(f"pipeline run response: {pipeline_details}")
     click.echo(f"pipeline run response: {pipeline_details}")
 
 # Pipeline logs
+
+
 @pipeline.command()
 @click.option('--repo', default='local', help="Obtain logs for this repo")
 @click.option('--tail', default=20, help="Number of log lines to display")
+<<<<<<< HEAD
 def log(tail:str, repo:str):
+=======
+def log(tail: str, repo: str):
+>>>>>>> development
     """ Obtains logs of pipeline run attached to current repository
 
     Args:
