@@ -6,7 +6,10 @@
 
 from datetime import datetime
 import os
+from typing import Tuple, Any
+
 import click
+import git.exc
 import util.constant as const
 from util.common_utils import (get_logger, ConfigOverrides)
 from util.repo_manager import (RepoManager)
@@ -19,6 +22,7 @@ REPO_TARGET_PATH = ""
 REPO_BRANCH_NAME = "main"
 # pylint: disable=fixme
 
+
 class Controller:
     """Controller class that integrates the CLI with the other class components"""
 
@@ -28,27 +32,69 @@ class Controller:
         # init Docker
         # init RepoManager
         self.repo_manager = RepoManager(REPO_SOURCE)
-        self.mongo_ds = MongoAdapter() # init DataStore (MongoDB, Postgres)
-        self.config_checker = ConfigChecker() #init Configuration Checker
+        self.mongo_ds = MongoAdapter()  # init DataStore (MongoDB, Postgres)
+        self.config_checker = ConfigChecker()  # init Configuration Checker
         # ..and many more
         self.logger = get_logger('cli.controller')
 
-    ### REPOSITORY (REPO) ###
-    def set_repo(self, repo_source:str) -> tuple[bool, str]:
-        """_summary_
+    def set_repo(self, repo_url: str) -> tuple[bool, str]:
+        """Set the repository URL, validate it, and store in MongoDB.
 
         Args:
-            repo_source (str): _description_
+            repo_url (str): The repository URL provided by the user.
 
         Returns:
-            tuple[bool, str]: true if repository initialization successful and the message output
+            tuple[bool, str]: A tuple indicating success/failure and a message.
         """
-        self.repo = repo_source
-        self.repo_manager = RepoManager(self.repo)
-        click.echo(self.repo)
-        # Try extract all yaml files and validate it
 
-    def _is_valid_repo(self, repo_source:str) -> bool:
+        mongo = MongoAdapter()
+
+        # Check if the current directory is a Git repository using get_repo
+        try:
+            repo = git.Repo(os.getcwd(), search_parent_directories=True)
+            repo_name = os.path.basename(repo.working_tree_dir)
+            return False, (
+                f"You are currently in a current working directory Git repository: '{repo_name}'.\n"
+                "Please navigate out of the current working directory repository and try again\n"
+                "cid config set-repo <repository>."
+            )
+        except git.exc.InvalidGitRepositoryError:
+            self.logger.info(
+                f"Proceeding to configure for repository {repo_url}.")
+
+        # Validate the provided repo URL
+        if not self._is_valid_repo(repo_url):
+            return False, "The provided URL is not a valid URL or a valid Git repository."
+
+        repo_name = self.repo_manager._extract_repo_name_from_url(repo_url)
+
+        # Default to 'main' branch for now
+        branch = "main"
+
+        # Log the current time
+        now = datetime.now()
+        time_log = now.strftime("%Y-%m-%d %H:%M:%S")
+
+        # Data to insert into MongoDB
+        repo_data = {
+            "user_id": "random",  # random user session for now
+            "repo_url": repo_url,
+            "repo_name": repo_name,
+            "branch": branch,
+            "commit_hash": "random hash for now",
+            "is_remote": True,  # can only set remote repo for now
+            "last_temp_working_dir": None,  # placeholder for now
+            "time": time_log
+        }
+
+        # Insert the repo data into MongoDB
+        inserted_id = mongo.insert_repo(repo_data)
+        if inserted_id:
+            return True, f"Repository set successfully with ID: {inserted_id}"
+        else:
+            return False, "Failed to set repository."
+
+    def _is_valid_repo(self, repo_source: str) -> bool:
         """private function to check if the repository path specified is a valid repository
 
         Args:
@@ -57,15 +103,25 @@ class Controller:
         Returns:
             bool: _description_
         """
+        return self.repo_manager._is_remote_repo_valid(repo_source)
 
-    def get_repo(self) -> str:
-        """_summary_
+    def get_repo(self) -> tuple[Any, str] | str:
+        """Check if the current directory is a Git repository.
 
         Returns:
-            bool: _description_ #check if bool is the right type to return
+            str: Repository's name if current working directory is a Git repo, None otherwise.
         """
-        print(self.repo)
-        return self.repo
+        mongo = MongoAdapter()
+        try:
+            repo = git.Repo(os.getcwd(), search_parent_directories=True)
+            repo_name = os.path.basename(repo.working_tree_dir)
+            return True, repo_name
+        except git.exc.InvalidGitRepositoryError:
+            last_repo = mongo.get_last_set_repo()
+            if last_repo:
+                return False, last_repo.get('repo_url', '')
+            else:
+                return False, ""
 
     def get_controller_history(self) -> dict:
         """Retrieve pipeline history from Mongo DB
@@ -83,7 +139,7 @@ class Controller:
         #return pipelines
 
     ### CONFIG ###
-    def validate_n_save_configs(self, directory:str) -> dict:
+    def validate_n_save_configs(self, directory: str) -> dict:
         """ Set Up repo, validate config, and save the config into datastore
 
         Args:
@@ -101,7 +157,7 @@ class Controller:
         click.echo("Saving into datastore")
         return results
 
-    def validate_n_save_config(self, file_name:str)-> tuple[bool, str, dict]:
+    def validate_n_save_config(self, file_name: str) -> tuple[bool, str, dict]:
         """ Set Up repo, validate config, and save the config into datastore
 
         Args:
@@ -115,12 +171,13 @@ class Controller:
         resp_pipeline_config = {}
         # stub response for repo set up
         click.echo("Setting Up Repo")
-        status, error_msg, resp_pipeline_config = self.validate_config(file_name)
+        status, error_msg, resp_pipeline_config = self.validate_config(
+            file_name)
         # stub response for save
         click.echo("Saving into datastore")
         return (status, error_msg, resp_pipeline_config)
 
-    def validate_configs(self, directory:str) -> dict:
+    def validate_configs(self, directory: str) -> dict:
         """ Validate configuration file in a directory
 
         Args:
@@ -138,15 +195,13 @@ class Controller:
         for pipeline_name, values in pipeline_configs.items():
             pipeline_file_name = values[const.KEY_PIPE_FILE]
             pipeline_config = values[const.KEY_PIPE_CONFIG]
-            response_dict = self.config_checker.validate_config(pipeline_name,
-                                                         pipeline_config,
-                                                         pipeline_file_name,
-                                                         True)
+            response_dict = self.config_checker.validate_config(
+                pipeline_name, pipeline_config, pipeline_file_name, True)
             # response_dict[const.KEY_PIPE_FILE] = pipeline_file_name
             results[pipeline_name] = response_dict
         return results
 
-    def validate_config(self, file_name:str) -> tuple[bool, str, dict]:
+    def validate_config(self, file_name: str) -> tuple[bool, str, dict]:
         """ Validate a single configuration file
 
         Args:
@@ -158,20 +213,20 @@ class Controller:
         parser = YamlParser()
         pipeline_config = parser.parse_yaml_file(file_name)
 
-        #get the pipeline_name for ConfigChecker
+        # get the pipeline_name for ConfigChecker
         pipeline_name = pipeline_config.get('global.pipeline_name')
         # Extract the filename without extension or path
         pipeline_file_name = os.path.basename(file_name)
         click.echo(f"Validating file in {pipeline_file_name}")
 
-        #call ConfigChecker to validate the configuration
-        #returns: dict <valid, error_msg, pipeline_config
+        # call ConfigChecker to validate the configuration
+        # returns: dict <valid, error_msg, pipeline_config
         response_dict = self.config_checker.validate_config(pipeline_name,
                                                             pipeline_config,
                                                             pipeline_file_name,
                                                             error_lc=True)
 
-        #store the response to variables
+        # store the response to variables
         status = response_dict.get('valid')
         error_msg = response_dict.get('error_msg')
         resp_pipeline_config = response_dict.get('pipeline_config')
@@ -181,7 +236,7 @@ class Controller:
     def edit_config(self, pipeline_name: str, overrides: dict) -> bool:
         """Modify the pipeline configuration. Retrieves the existing configuration from db,
             applies the given overrides, and then updates to the db.
-            
+
             Args:
                 pipeline_name (str): The name of the pipeline to update.
                 overrides (dict): A dictionary of overrides to apply to the pipeline configuration.
@@ -193,18 +248,24 @@ class Controller:
                 ValueError: If no pipeline configuration is found for the given pipeline name.
             """
         pipeline = self.mongo_ds.get_pipeline_config(
-            "sample-repo", "https://github.com/sample-user/sample-repo", "main", pipeline_name)
+            "sample-repo",
+            "https://github.com/sample-user/sample-repo",
+            "main",
+            pipeline_name)
         if not pipeline.get('pipeline_config'):
             click.echo(f"No pipeline config found for '{pipeline_name}'.")
             return False
-        data = self.mongo_ds.get_pipeline(pipeline.get('_id'), collection_name="repo_configs")
-        data['pipeline_config'] = ConfigOverrides.apply_overrides(pipeline['pipeline_config'],
-                                                                  overrides)
+        data = self.mongo_ds.get_pipeline(
+            pipeline.get('_id'), collection_name="repo_configs")
+        data['pipeline_config'] = ConfigOverrides.apply_overrides(
+            pipeline['pipeline_config'], overrides)
         # TODO: check if the modified pipeline configuration is valid
-        success = self.mongo_ds.update_pipeline_config("sample-repo",
-                                                       "https://github.com/sample-user/sample-repo",
-                                                       "main", "valid_pipeline",
-                                                       data['pipeline_config'])
+        success = self.mongo_ds.update_pipeline_config(
+            "sample-repo",
+            "https://github.com/sample-user/sample-repo",
+            "main",
+            "valid_pipeline",
+            data['pipeline_config'])
         if not success:
             click.echo("Error updating pipeline configuration.")
             return False
@@ -223,7 +284,7 @@ class Controller:
         Returns:
             tuple: _description_
         """
-        ### Pseudocode
+        # Pseudocode
         # # Step 0: Clone the repo
         # gitrepo = RepoManager()
         # gitrepo.cloneRepo(kwargs)
@@ -246,11 +307,11 @@ class Controller:
         message = "Pipeline runs successfully"
         pipeline_id = "pid_unique_string"
 
-        ## This is example how to call RepoManager util class from controller
-        #self.repo_manager.setup_repo()
-        #self.logger.debug("is_remote_repo: %s", remote_repo)
+        # This is example how to call RepoManager util class from controller
+        # self.repo_manager.setup_repo()
+        # self.logger.debug("is_remote_repo: %s", remote_repo)
 
-        return tuple([status,message,pipeline_id])
+        return tuple([status, message, pipeline_id])
 
     # def _start_job(self):
     #     """_summary_
@@ -273,8 +334,8 @@ class Controller:
 
     def dry_run(self, config_name: str) -> str:
         """dry run methods responsible for the `--dry-run` method for pipelines.
-        The function will retrieve any pipeline history from database, then validate 
-        the configuration file (check hash_commit), and then perform the dry_run 
+        The function will retrieve any pipeline history from database, then validate
+        the configuration file (check hash_commit), and then perform the dry_run
 
         Args:
             pipeline_name (str): _description_
@@ -285,35 +346,36 @@ class Controller:
         # 1. Usecase 1a/b - call function to check if it's a valid git repo
 
         # 2. call RepoManager to check_commit whether hash file is modified or git commit is changed
-        #TODO: in a way, pipeline_name means we need to implement repo_manager to parse the dict
+        # TODO: in a way, pipeline_name means we need to implement repo_manager
+        # to parse the dict
 
         # 3. call MongoAdapter get_pipeline_record(repo_name:str, pipeline_name:str, branch:str)
-            #what can I do with this?
+        # what can I do with this?
 
         # 4. if step #2 sets to True (commit hash different) run usecase 2a (call
         # validate_config(filename: str))
-        #TODO: check hash commit of current file. can use import hashlib.
+        # TODO: check hash commit of current file. can use import hashlib.
         # then, call method to compare previous_file (mongodb) and current_file
 
-        #current_config_hash = repo_manager.get_config_hash(config_name)
-        #initialize MongoAdapter()
+        # current_config_hash = repo_manager.get_config_hash(config_name)
+        # initialize MongoAdapter()
         status, message, config_dict = self.validate_config(config_name)
-        #print what validate_config() returns
-        #print(f"{status}, {message}")
+        # print what validate_config() returns
+        # print(f"{status}, {message}")
 
-        #not successful
+        # not successful
         if not status:
             return f"[ERROR] {message}"
 
-        #test_get_db()
+        # test_get_db()
         mongo = MongoAdapter()
 
-        ### Print Dry-Run
+        # Print Dry-Run
         # 5. Simulate Dry run
         dry_run_msg = ""
-        #TODO: need to know the order of execution
-        #output_dict #to combine the global and jobs
-        #call methods
+        # TODO: need to know the order of execution
+        # output_dict #to combine the global and jobs
+        # call methods
         global_dict = config_dict.get("global")
         jobs_dict = config_dict.get("jobs")
         stages_dict = config_dict.get("stages")
