@@ -12,10 +12,12 @@ from typing import List, Optional
 from urllib.parse import urlparse
 import yaml
 import git
+import subprocess
 from git import Repo
 from util.common_utils import get_logger
 
 logger = get_logger(logger_name='util.repo_manager')
+
 
 class RepoManager:
     """
@@ -25,18 +27,22 @@ class RepoManager:
     3. Use `parse_yaml(file_name)` to parse a specific YAML file by providing its file name.
     """
 
-    def __init__(self, repo_source: str, target_path: str = None, branch: str = "main"):
+    def __init__(
+            self,
+            repo_source: str,
+            target_path: str = None,
+            branch: str = "main"):
         """Initializes the RepoManager class.
 
         Args:
             repo_source (str): the remote URL that needs to be cloned or the local directory path.
-            target_path (str): The absolute path where the repo will be stored. 
+            target_path (str): The absolute path where the repo will be stored.
                        Example:
-                           - Remote repo: 
-                               repo_source="https://github.com/repo_test", 
-                               target_path="/Users/test/Downloads" 
+                           - Remote repo:
+                               repo_source="https://github.com/repo_test",
+                               target_path="/Users/test/Downloads"
                                The repo will be cloned into '/Users/test/Downloads/repo_test').
-                           - Local repo: 
+                           - Local repo:
                                repo_source="/Users/test/repo_test"
                                (If target_path is not provided, the repo_source path will be used).
             branch (str): The branch to work on.
@@ -44,6 +50,7 @@ class RepoManager:
         self.repo_source = repo_source
         self.target_path = repo_source if not self._is_remote_repo() else target_path
         self.branch = branch
+
     def _is_remote_repo(self) -> bool:
         """Helper method to check if the repo is a remote repo.
 
@@ -51,9 +58,31 @@ class RepoManager:
             bool: True if the repo is a remote repo, False otherwise.
         """
         return self.repo_source.startswith("https://")
+
+    def _is_remote_repo_valid(self, repo_source: str) -> bool:
+        """Validate if the given remote repository URL is a valid Git repository.
+
+        Args:
+            repo_source (str): The remote URL of the repository.
+
+        Returns:
+            bool: True if it's a valid Git repository, False otherwise.
+        """
+
+        # _is_remote_repo does not take parameters, but need to check with
+        # given param in cli config set-repo
+        try:
+            result = subprocess.run(
+                ["git", "ls-remote", repo_source],
+                capture_output=True, text=True, check=True
+            )
+            return result.returncode == 0
+        except subprocess.CalledProcessError:
+            return False
+
     def _extract_repo_name_from_url(self, url: str) -> str:
         """Helper method to extract the repo name from the remote URL.
-        
+
             Args:
                 url (str): The remote repo URL.
 
@@ -66,6 +95,7 @@ class RepoManager:
         if repo_name.endswith('.git'):
             repo_name = repo_name[:-4]
         return repo_name
+
     def _verify_target_path(self):
         """Helper method to verify the target path. Only used for local repositories.
 
@@ -73,12 +103,16 @@ class RepoManager:
             FileNotFoundError: If the target directory does not exist.
         """
         if not os.path.exists(self.target_path):
-            logger.error("Target directory %s does not exist. Try another one.", self.target_path)
+            logger.error(
+                "Target directory %s does not exist. Try another one.",
+                self.target_path)
             raise FileNotFoundError("Target directory not exist.")
-        logger.debug("Target directory %s is valid. Proceeding...", self.target_path)
+        logger.debug(
+            "Target directory %s is valid. Proceeding...",
+            self.target_path)
 
     def _get_unique_path(self, path: str) -> Path:
-        """Helper method to generates a unique path by appending _1, _2, _3, etc., 
+        """Helper method to generates a unique path by appending _1, _2, _3, etc.,
         if the path exists.
 
         Args:
@@ -120,13 +154,24 @@ class RepoManager:
                 self.target_path = str(self._get_unique_path(self.target_path))
             elif not os.path.exists(self.target_path):
                 os.makedirs(self.target_path)
-            logger.info("Cloning remote repo %s into %s", self.repo_source, self.target_path)
+            logger.info(
+                "Cloning remote repo %s into %s",
+                self.repo_source,
+                self.target_path)
             try:
-                Repo.clone_from(self.repo_source, self.target_path, branch=self.branch)
-                logger.info("Successfully cloned repo %s into %s", self.repo_source,
-                                    self.target_path)
+                Repo.clone_from(
+                    self.repo_source,
+                    self.target_path,
+                    branch=self.branch)
+                logger.info(
+                    "Successfully cloned repo %s into %s",
+                    self.repo_source,
+                    self.target_path)
             except (git.GitError, PermissionError) as e:
-                logger.error("Failed to clone repo: %s. Error: %s", self.repo_source, e)
+                logger.error(
+                    "Failed to clone repo: %s. Error: %s",
+                    self.repo_source,
+                    e)
                 raise e
         else:
             self._verify_target_path()
@@ -140,8 +185,8 @@ class RepoManager:
         Returns:
             str: _description_
         """
-        #check the current hash file of the sha config
+        # check the current hash file of the sha config
 
-        #absolute_path = self._get_yaml_path(config_file)
-        #print("repo_manager | the config_file = : ", absolute_path)
+        # absolute_path = self._get_yaml_path(config_file)
+        # print("repo_manager | the config_file = : ", absolute_path)
         return f"sha256 - {config_file}"
