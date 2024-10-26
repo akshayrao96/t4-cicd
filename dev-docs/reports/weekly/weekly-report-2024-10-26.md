@@ -34,6 +34,7 @@ Next week meeting chairperson - Akshay
 | [CLI] Update CLI documentation [#67](https://github.com/CS6510-SEA-F24/t4-cicd/issues/67)                                                                                           | S - 1 day    | Akshay      |
 | [CLI] Usecase 3: Integrate CLI with MongoAdapter cid pipeline run --dry-run <config_file> [#33](https://github.com/CS6510-SEA-F24/t4-cicd/issues/33)                                | M - 2/3 days | Jason       |
 | [CLI] Set Repo for CID service [#69](https://github.com/CS6510-SEA-F24/t4-cicd/issues/69)                                                                                           | L - 1 week   | Akshay      |
+| [CLI] Usecase 4: Allow CLI to Override Keys in CI/CD Configuration [#70](https://github.com/orgs/CS6510-SEA-F24/projects/8?pane=issue&itemId=84050684&issue=CS6510-SEA-F24%7Ct4-cicd%7C70) | L - 1 week | Lin |
 
 # Carry over tasks
 
@@ -41,7 +42,6 @@ Next week meeting chairperson - Akshay
 | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- | -------- |
 | [CLI] define & implement cid pipeline --dry-run [#33](https://github.com/CS6510-SEA-F24/t4-cicd/issues/33)                                           | M - 2/3 days  | Jason    |
 | [UC1-CLI&RepoManager] Options for Branch & Commit [#83](https://github.com/CS6510-SEA-F24/t4-cicd/issues/83)                                         | M - 2/3 days  | Akshay   |
-| [CLI] Usecase 4: Allow CLI to Override Keys in CI/CD Configuration [#70](https://github.com/CS6510-SEA-F24/t4-cicd/issues/70)                        | L - 1 week    | Lin      |
 | [Pytest] improve test coverage for cmd & controller [#82](https://github.com/CS6510-SEA-F24/t4-cicd/issues/82)                                       | M - 2/3 days  | Lin      |
 | [UC5] MongoAdapter methods for docker run operation [#90](https://github.com/CS6510-SEA-F24/t4-cicd/issues/90)                                       | M - 2/3 days  | Lin      |
 | [UC2 Config] Save validated config to MongoDB [#76](https://github.com/CS6510-SEA-F24/t4-cicd/issues/76)                                             | S - 1 days    | Lin      |
@@ -68,14 +68,16 @@ Next week meeting chairperson - Akshay
 - Chin: Our productivity seem to increase a bit following previous change in approach.
 - Akshay: Teamwork is good, our meetings are shorter since everyone knows their tasks and everything going on
 - Akshay: Communication is effective. I was able to get quick and to the point feedback with my tasks
+- Lin: Assigning tasks based on use cases works well because it lets us focus on our own work and cuts down on the need to check in with each other.
 
 # What did not work this week?
 
 - Jason: adjusting to the new requirement increase the amount of workload for each individual.
 - Chin: some of the team members are caught up by other courses workload hence we wont be able to maintain production after code walk 2
 - Chin: To continue improve test coverage when developing our code.
-- Akshay: Using IDE based formatter (autopep8) but it doesn't seem to be consistent throughout the team. Creates merge conflicts unnecessarily. 
-
+- Akshay: Using IDE based formatter (autopep8) but it doesn't seem to be consistent throughout the team. Creates merge conflicts unnecessarily.
+- Lin: Didn’t include unit tests—should've allocate more time to finish this part.
+  
 # Design updates
 
 Design docs added
