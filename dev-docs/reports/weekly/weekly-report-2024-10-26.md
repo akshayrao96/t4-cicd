@@ -33,13 +33,13 @@ Next week meeting chairperson - Akshay
 | [Database] Design Initial Database Schemes [#23](https://github.com/CS6510-SEA-F24/t4-cicd/issues/23)                                                                               | S - 1 day    | Chin        |
 | [CLI] Update CLI documentation [#67](https://github.com/CS6510-SEA-F24/t4-cicd/issues/67)                                                                                           | S - 1 day    | Akshay      |
 | [CLI] Usecase 3: Integrate CLI with MongoAdapter cid pipeline run --dry-run <config_file> [#33](https://github.com/CS6510-SEA-F24/t4-cicd/issues/33)                                | M - 2/3 days | Jason       |
+| [CLI] Set Repo for CID service [#69](https://github.com/CS6510-SEA-F24/t4-cicd/issues/69)                                                                                           | L - 1 week   | Akshay      |
 
 # Carry over tasks
 
 | Task                                                                                                                                                 | Weight        | Assignee |
 | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- | -------- |
 | [CLI] define & implement cid pipeline --dry-run [#33](https://github.com/CS6510-SEA-F24/t4-cicd/issues/33)                                           | M - 2/3 days  | Jason    |
-| [CLI] Set Repo for CID service [#69](https://github.com/CS6510-SEA-F24/t4-cicd/issues/69)                                                            | L - 1 week    | Akshay   |
 | [UC1-CLI&RepoManager] Options for Branch & Commit [#83](https://github.com/CS6510-SEA-F24/t4-cicd/issues/83)                                         | M - 2/3 days  | Akshay   |
 | [CLI] Usecase 4: Allow CLI to Override Keys in CI/CD Configuration [#70](https://github.com/CS6510-SEA-F24/t4-cicd/issues/70)                        | L - 1 week    | Lin      |
 | [Pytest] improve test coverage for cmd & controller [#82](https://github.com/CS6510-SEA-F24/t4-cicd/issues/82)                                       | M - 2/3 days  | Lin      |
@@ -66,12 +66,15 @@ Next week meeting chairperson - Akshay
 - Jason: Have more understanding on the pipeline dry-run and the priorities of the feature to be implemented based on the new requirement and feedback on code-walk.
 - Jason: continue on assigning responsibility based on Use Case. Cleaning up the backlog and assigned requirement that is done by the chairperson this week.
 - Chin: Our productivity seem to increase a bit following previous change in approach.
+- Akshay: Teamwork is good, our meetings are shorter since everyone knows their tasks and everything going on
+- Akshay: Communication is effective. I was able to get quick and to the point feedback with my tasks
 
 # What did not work this week?
 
 - Jason: adjusting to the new requirement increase the amount of workload for each individual.
 - Chin: some of the team members are caught up by other courses workload hence we wont be able to maintain production after code walk 2
 - Chin: To continue improve test coverage when developing our code.
+- Akshay: Using IDE based formatter (autopep8) but it doesn't seem to be consistent throughout the team. Creates merge conflicts unnecessarily. 
 
 # Design updates
 
