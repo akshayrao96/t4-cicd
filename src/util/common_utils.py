@@ -52,7 +52,7 @@ def get_env() -> dict:
     """
     file_config = dotenv_values(".env")
     env_config = {key: os.getenv(key) for key in os.environ.keys()}
-    # Merge dictionaries, with environment variables taking precedence over .env
+    # Merge dictionaries, .env file takes priority
     config = {**env_config, **file_config}
 
     return config
