@@ -40,11 +40,8 @@ Next week meeting chairperson - Chin
 | Task                                                                                 | Weight       | Assignee |
 | ------------------------------------------------------------------------------------ | ------------ | -------- |
 | [SystemDesign] Standardize and document the error handling and logging behaviour #41 | M - 2/3 days | TBD      |
-
 | [UC6] Show summary all past pipeline runs for a repository[#55](https://github.com/CS6510-SEA-F24/t4-cicd/issues/55) | L - 1 week | TBD |
-
 | Implement use case 3 - dry run command | L - 1 week | Jason |
-
 | [UC2-Config] Output Format Modification and Clean Up [#80](https://github.com/CS6510-SEA-F24/t4-cicd/issues/80)| S - 1 day |
 | [UC1-CLI&RepoManager] Options for Branch & Commit [#83](https://github.com/CS6510-SEA-F24/t4-cicd/issues/83) | M - 2/3 days | TBD |
 | [UC1, UC2, UC3] Integrate the usecases from set repo, check config, up to dry run [#84] (https://github.com/CS6510-SEA-F24/t4-cicd/issues/84) | S - 1 day |TBD |
@@ -54,9 +51,11 @@ Next week meeting chairperson - Chin
 | [UC5 - Python Repo Sample] Create Sample Repo with cicd configuration for testing [#87](https://github.com/CS6510-SEA-F24/t4-cicd/issues/87) | M - 2/3 days | TBD |
 
 # What worked this week?
-
+- Jason: Have more understanding on the pipeline dry-run and the priorities of the feature to be implemented based on the new requirement and feedback on code-walk.
+- Jason: continue on assigning responsibility based on Use Case. Cleaning up the backlog and assigned requirement that is done by the chairperson this week.
 # What did not work this week?
-
+- Jason: adjusting to the new requirement increase the amount of workload for each individual.
+- 
 # Design updates
 
 Local / Server design that describes the high level architecture of the current components we have.
