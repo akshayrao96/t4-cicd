@@ -45,15 +45,16 @@ def get_logger(logger_name='', log_level=logging.DEBUG, log_file='debug.log') ->
 
 
 def get_env() -> dict:
-    """ Retrieve the env variables from the environment. Perform further processing if necessary
+    """Retrieve the env variables from the environment and .env file. Perform further processing if necessary.
 
     Returns:
         dict: dictionary of env values in key=value pairs
     """
-    # previous code
-    # config = dotenv_values(".env")
+    file_config = dotenv_values(".env")
+    env_config = {key: os.getenv(key) for key in os.environ.keys()}
+    # Merge dictionaries, with environment variables taking precedence over .env
+    config = {**env_config, **file_config}
 
-    config = {key: os.getenv(key) for key in os.environ.keys()}
     return config
 
 class UnionFind:

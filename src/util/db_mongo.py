@@ -11,7 +11,7 @@ logger = get_logger("util.db_mongo")
 MONGO_DB_NAME = "CICDControllerDB"
 MONGO_PIPELINES_TABLE = "pipelines_collection"
 MONGO_JOBS_TABLE = "jobs_collection"
-MONGO_REPOS_TABLE = "repos_collection"
+MONGO_REPOS_TABLE = "sessions"
 # pylint: disable=logging-fstring-interpolation
 
 
