@@ -259,13 +259,21 @@ class Controller:
             pipeline.get('_id'), collection_name="repo_configs")
         data['pipeline_config'] = ConfigOverrides.apply_overrides(
             pipeline['pipeline_config'], overrides)
-        # TODO: check if the modified pipeline configuration is valid
+        # validate the updated pipeline configuration
+        response_dict = self.config_checker.validate_config(pipeline_name,
+                                                            data['pipeline_config'],
+                                                            error_lc=True)
+        status = response_dict.get('valid')
+        resp_pipeline_config = response_dict.get('pipeline_config')
+        if not status:
+            click.echo("Override pipeline configuration validation failed.")
+            return False
         success = self.mongo_ds.update_pipeline_config(
             "sample-repo",
             "https://github.com/sample-user/sample-repo",
             "main",
             "valid_pipeline",
-            data['pipeline_config'])
+            resp_pipeline_config)
         if not success:
             click.echo("Error updating pipeline configuration.")
             return False
