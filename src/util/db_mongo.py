@@ -343,15 +343,23 @@ class MongoAdapter:
                 'repo_name': repo_name,
                 'repo_url': repo_url,
                 'branch': branch,
-                'pipeline_name': pipeline_name
+                'pipelines.pipeline_name': pipeline_name
+            }
+            projection = {
+                "_id": 1,
+                "pipelines": {
+                    "$elemMatch": {"pipeline_name": pipeline_name}
+                }
             }
             mongo_client = MongoClient(self.mongo_uri)
             database = mongo_client[MONGO_DB_NAME]
             collection = database['repo_configs']
-            pipeline_document = collection.find_one(
-                query_filter, {'_id': 1, 'pipeline_config': 1})
-
-            if pipeline_document:
+            pipeline_document = collection.find_one(query_filter, projection)
+            mongo_client.close()
+            if pipeline_document and "pipelines" in pipeline_document:
+                # Flatten the result to directly access pipeline_config
+                pipeline_document["pipeline_config"] = pipeline_document["pipelines"][0].get("pipeline_config")
+                del pipeline_document["pipelines"]
                 return pipeline_document
             logger.warning(
                 f"No pipeline config found for '{pipeline_name}' "
@@ -386,12 +394,12 @@ class MongoAdapter:
                 'repo_name': repo_name,
                 'repo_url': repo_url,
                 'branch': branch,
-                'pipeline_name': pipeline_name
+                'pipelines.pipeline_name': pipeline_name
             }
 
             update_operation = {
                 '$set': {
-                    'pipeline_config': pipeline_config
+                    'pipelines.$.pipeline_config': pipeline_config
                 }
             }
             mongo_client = MongoClient(self.mongo_uri)
