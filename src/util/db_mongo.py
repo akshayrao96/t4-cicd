@@ -9,8 +9,8 @@ from util.common_utils import (get_env, get_logger)
 env = get_env()
 logger = get_logger("util.db_mongo")
 MONGO_DB_NAME = "CICDControllerDB"
-MONGO_PIPELINES_TABLE = "pipelines_collection"
-MONGO_JOBS_TABLE = "jobs_collection"
+MONGO_PIPELINES_TABLE = "repo_configs"
+MONGO_JOBS_TABLE = "jobs_history"
 MONGO_REPOS_TABLE = "sessions"
 # pylint: disable=logging-fstring-interpolation
 
@@ -353,7 +353,7 @@ class MongoAdapter:
             }
             mongo_client = MongoClient(self.mongo_uri)
             database = mongo_client[MONGO_DB_NAME]
-            collection = database['repo_configs']
+            collection = database[MONGO_PIPELINES_TABLE]
             pipeline_document = collection.find_one(query_filter, projection)
             mongo_client.close()
             if pipeline_document and "pipelines" in pipeline_document:
@@ -404,7 +404,7 @@ class MongoAdapter:
             }
             mongo_client = MongoClient(self.mongo_uri)
             database = mongo_client[MONGO_DB_NAME]
-            collection = database['repo_configs']
+            collection = database[MONGO_PIPELINES_TABLE]
             result = collection.update_one(query_filter, update_operation)
             mongo_client.close()
             return result.acknowledged

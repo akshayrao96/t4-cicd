@@ -20,6 +20,7 @@ from util.config_tools import (ConfigChecker)
 REPO_SOURCE = ""
 REPO_TARGET_PATH = ""
 REPO_BRANCH_NAME = "main"
+MONGO_PIPELINES_TABLE = "repo_configs"
 # pylint: disable=fixme
 
 
@@ -255,7 +256,7 @@ class Controller:
             click.echo(f"No pipeline config found for '{pipeline_name}'.")
             return False
         data = self.mongo_ds.get_pipeline(
-            pipeline.get('_id'), collection_name="repo_configs")
+            pipeline.get('_id'), collection_name=MONGO_PIPELINES_TABLE)
         data['pipeline_config'] = ConfigOverrides.apply_overrides(
             pipeline['pipeline_config'], overrides)
         # validate the updated pipeline configuration
