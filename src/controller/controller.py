@@ -233,9 +233,8 @@ class Controller:
 
         return (status, error_msg, resp_pipeline_config)
 
-    def edit_config(self, pipeline_name: str, overrides: dict) -> bool:
-        """Modify the pipeline configuration. Retrieves the existing configuration from db,
-            applies the given overrides, and then updates to the db.
+    def override_config(self, pipeline_name: str, overrides: dict) -> bool:
+        """Retrieve, apply overrides, validate, and update the pipeline configuration.
 
             Args:
                 pipeline_name (str): The name of the pipeline to update.
