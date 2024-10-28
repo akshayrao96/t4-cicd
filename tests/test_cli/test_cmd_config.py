@@ -159,3 +159,61 @@ def test_get_repo_with_last_set_repo(mock_controller):
     assert "Fetching last set repo..." in result.output
     assert "Repository configured: https://github.com/github/docs" in result.output
 
+
+@patch("cli.cmd_config.Controller.override_config", return_value=True)
+@patch("cli.cmd_config.ConfigOverrides.build_nested_dict", return_value={"global": {"docker": {"image": "gradle:jdk8"}}})
+def test_override_save_to_db(mock_build_nested_dict, mock_override_config):
+    """ Test override command with confirmation to save changes to the database """
+    runner = CliRunner()
+    result = runner.invoke(
+        cmd_config.config, 
+        ['override', '--pipeline', 'test_pipeline', '--override', 'global.docker.image=gradle:jdk8'],
+        input="y\n"  # Simulate 'yes' to confirm saving to DB
+    )
+    assert result.exit_code == 0
+    assert "Pipeline 'test_pipeline' updated successfully with overrides" in result.output
+    mock_build_nested_dict.assert_called_once_with(('global.docker.image=gradle:jdk8',))
+    mock_override_config.assert_called_once_with('test_pipeline', {"global": {"docker": {"image": "gradle:jdk8"}}})
+
+@patch("cli.cmd_config.Controller.override_config", return_value=True)
+@patch("cli.cmd_config.ConfigOverrides.build_nested_dict", return_value={"global": {"docker": {"image": "gradle:jdk8"}}})
+def test_override_decline_save_to_db(mock_build_nested_dict, mock_override_config):
+    """ Test override command without saving changes to the database """
+    runner = CliRunner()
+    result = runner.invoke(
+        cmd_config.config, 
+        ['override', '--pipeline', 'test_pipeline', '--override', 'global.docker.image=gradle:jdk8'],
+        input="n\n"  # Simulate 'no' to decline saving to DB
+    )
+    assert result.exit_code == 0
+    assert "No changes were made to the configuration." in result.output
+    mock_build_nested_dict.assert_called_once_with(('global.docker.image=gradle:jdk8',))
+    mock_override_config.assert_not_called()
+
+@patch("cli.cmd_config.ConfigOverrides.build_nested_dict", side_effect=ValueError("Invalid override format"))
+def test_override_value_error(mock_build_nested_dict):
+    """ Test override command when a ValueError is raised """
+    runner = CliRunner()
+    result = runner.invoke(
+        cmd_config.config, 
+        ['override', '--pipeline', 'test_pipeline', '--override', 'invalid_override_format']
+    )
+    # Check that the command exited correctly and the error message was printed
+    assert result.exit_code == 0
+    assert "Invalid override format" in result.output
+    mock_build_nested_dict.assert_called_once_with(('invalid_override_format',))
+
+@patch("cli.cmd_config.Controller.override_config", return_value=False)
+@patch("cli.cmd_config.ConfigOverrides.build_nested_dict", return_value={"global": {"docker": {"image": "gradle:jdk8"}}})
+def test_override_save_to_db_failure(mock_build_nested_dict, mock_override_config):
+    """ Test override command when the save to database fails """
+    runner = CliRunner()
+    result = runner.invoke(
+        cmd_config.config, 
+        ['override', '--pipeline', 'test_pipeline', '--override', 'global.docker.image=gradle:jdk8'],
+        input="y\n"  # Simulate 'yes' to confirm saving to DB
+    )
+    assert result.exit_code == 0
+    assert "Failed to update pipeline 'test_pipeline'." in result.output
+    mock_build_nested_dict.assert_called_once_with(('global.docker.image=gradle:jdk8',))
+    mock_override_config.assert_called_once_with('test_pipeline', {"global": {"docker": {"image": "gradle:jdk8"}}})

@@ -9,8 +9,8 @@ from util.common_utils import (get_env, get_logger)
 env = get_env()
 logger = get_logger("util.db_mongo")
 MONGO_DB_NAME = "CICDControllerDB"
-MONGO_PIPELINES_TABLE = "pipelines_collection"
-MONGO_JOBS_TABLE = "jobs_collection"
+MONGO_PIPELINES_TABLE = "repo_configs"
+MONGO_JOBS_TABLE = "jobs_history"
 MONGO_REPOS_TABLE = "sessions"
 # pylint: disable=logging-fstring-interpolation
 
@@ -343,15 +343,23 @@ class MongoAdapter:
                 'repo_name': repo_name,
                 'repo_url': repo_url,
                 'branch': branch,
-                'pipeline_name': pipeline_name
+                'pipelines.pipeline_name': pipeline_name
+            }
+            projection = {
+                "_id": 1,
+                "pipelines": {
+                    "$elemMatch": {"pipeline_name": pipeline_name}
+                }
             }
             mongo_client = MongoClient(self.mongo_uri)
             database = mongo_client[MONGO_DB_NAME]
-            collection = database['repo_configs']
-            pipeline_document = collection.find_one(
-                query_filter, {'_id': 1, 'pipeline_config': 1})
-
-            if pipeline_document:
+            collection = database[MONGO_PIPELINES_TABLE]
+            pipeline_document = collection.find_one(query_filter, projection)
+            mongo_client.close()
+            if pipeline_document and "pipelines" in pipeline_document:
+                # Flatten the result to directly access pipeline_config
+                pipeline_document["pipeline_config"] = pipeline_document["pipelines"][0].get("pipeline_config")
+                del pipeline_document["pipelines"]
                 return pipeline_document
             logger.warning(
                 f"No pipeline config found for '{pipeline_name}' "
@@ -386,17 +394,17 @@ class MongoAdapter:
                 'repo_name': repo_name,
                 'repo_url': repo_url,
                 'branch': branch,
-                'pipeline_name': pipeline_name
+                'pipelines.pipeline_name': pipeline_name
             }
 
             update_operation = {
                 '$set': {
-                    'pipeline_config': pipeline_config
+                    'pipelines.$.pipeline_config': pipeline_config
                 }
             }
             mongo_client = MongoClient(self.mongo_uri)
             database = mongo_client[MONGO_DB_NAME]
-            collection = database['repo_configs']
+            collection = database[MONGO_PIPELINES_TABLE]
             result = collection.update_one(query_filter, update_operation)
             mongo_client.close()
             return result.acknowledged
