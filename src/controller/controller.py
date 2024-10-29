@@ -156,6 +156,24 @@ class Controller:
         results = self.validate_configs(directory)
         # stub response for save
         click.echo("Saving into datastore")
+        for pipeline_name, validation_result in results.items():
+            status = validation_result.get('valid')
+            error_msg = validation_result.get('error_msg')
+            pipeline_config = validation_result.get('pipeline_config')
+            if status:
+                success = self.mongo_ds.update_pipeline_config(
+                    "sample-repo",
+                    "https://github.com/sample-user/sample-repo",
+                    "main",
+                    pipeline_name,
+                    pipeline_config
+                )
+                if not success:
+                    validation_result['valid'] = False
+                    validation_result['error_msg'] = "Error saving to datastore."
+            else:
+                click.echo(f"Validation failed for {pipeline_name}: {error_msg}")
+            results[pipeline_name] = validation_result
         return results
 
     def validate_n_save_config(self, file_name: str) -> tuple[bool, str, dict]:
@@ -174,9 +192,20 @@ class Controller:
         click.echo("Setting Up Repo")
         status, error_msg, resp_pipeline_config = self.validate_config(
             file_name)
-        # stub response for save
-        click.echo("Saving into datastore")
-        return (status, error_msg, resp_pipeline_config)
+        # If validation passes, save to datastore
+        if status:
+            click.echo("Saving into datastore")
+            success = self.mongo_ds.update_pipeline_config(
+                "sample-repo",
+                "https://github.com/sample-user/sample-repo",
+                "main",
+                resp_pipeline_config.get('pipeline_name'),
+                resp_pipeline_config
+            )
+            if not success:
+                error_msg = "Error saving to datastore."
+                status = False
+            return (status, error_msg, resp_pipeline_config)
 
     def validate_configs(self, directory: str) -> dict:
         """ Validate configuration file in a directory

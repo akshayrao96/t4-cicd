@@ -41,6 +41,91 @@ def test_edit_config():
     updates = {'global': {'docker': {'image': 'gradle:jdk8'}}}
     # controller.edit_config(pipeline_data['pipeline_name'], updates)
 test_edit_config()
+
+class TestController(unittest.TestCase):
+    """Test Controller class"""
+    def setUp(self):
+        self.valid_pipeline = {
+            'valid': True,
+            'error_msg': '',
+            'pipeline_config': {'pipeline_name': 'valid_pipeline'}
+        }
+        self.invalid_pipeline = {
+            'valid': False,
+            'error_msg': 'Validation failed',
+            'pipeline_config': {}
+        }
+        self.valid_pipeline_config = {'pipeline_name': 'valid_pipeline'}
+
+    @patch("controller.controller.Controller.validate_configs")
+    @patch("util.db_mongo.MongoAdapter.update_pipeline_config")
+    def test_validate_n_save_configs(self, mock_update_pipeline_config, mock_validate_configs):
+        """Test saving multiple pipeline configurations"""
+        mock_validate_configs.return_value = {
+            'valid_pipeline': self.valid_pipeline,
+            'invalid_pipeline': self.invalid_pipeline
+        }
+        mock_update_pipeline_config.return_value = True
+        controller = Controller()
+        controller.mongo_ds.update_pipeline_config = mock_update_pipeline_config
+        result = controller.validate_n_save_configs('/path/to/directory')
+        self.assertIn('valid_pipeline', result)
+        self.assertIn('invalid_pipeline', result)
+        self.assertTrue(result['valid_pipeline']['valid'])
+        self.assertFalse(result['invalid_pipeline']['valid'])
+        self.assertEqual(result['invalid_pipeline']['error_msg'], 'Validation failed')
+        mock_update_pipeline_config.assert_called_once_with(
+            "sample-repo", "https://github.com/sample-user/sample-repo",
+            "main", 'valid_pipeline', self.valid_pipeline_config
+        )
+
+    @patch("controller.controller.Controller.validate_configs")
+    @patch("util.db_mongo.MongoAdapter.update_pipeline_config")
+    def test_validate_n_save_configs_save_failure(self, mock_update_pipeline_config,
+                                                  mock_validate_configs):
+        """Test saving multiple pipeline configurations with save failure"""
+        mock_validate_configs.return_value = {'valid_pipeline': self.valid_pipeline}
+        mock_update_pipeline_config.return_value = False
+        controller = Controller()
+        controller.mongo_ds.update_pipeline_config = mock_update_pipeline_config
+        result = controller.validate_n_save_configs('/path/to/directory')
+        self.assertIn('valid_pipeline', result)
+        self.assertFalse(result['valid_pipeline']['valid'])
+        self.assertEqual(result['valid_pipeline']['error_msg'], "Error saving to datastore.")
+
+    @patch("controller.controller.Controller.validate_config")
+    @patch("util.db_mongo.MongoAdapter.update_pipeline_config")
+    def test_validate_n_save_config(self, mock_update_pipeline_config, mock_validate_config):
+        """Test saving a single pipeline configuration"""
+        mock_validate_config.return_value = (True, '', self.valid_pipeline_config)
+        mock_update_pipeline_config.return_value = True
+        controller = Controller()
+        controller.mongo_ds.update_pipeline_config = mock_update_pipeline_config
+        status, error_msg, resp_pipeline_config = controller.validate_n_save_config(
+            '/path/to/file.yml')
+        self.assertTrue(status)
+        self.assertEqual(error_msg, '')
+        self.assertEqual(resp_pipeline_config['pipeline_name'], 'valid_pipeline')
+        mock_update_pipeline_config.assert_called_once_with(
+            "sample-repo", "https://github.com/sample-user/sample-repo",
+            "main", 'valid_pipeline', self.valid_pipeline_config
+        )
+
+    @patch("controller.controller.Controller.validate_config")
+    @patch("util.db_mongo.MongoAdapter.update_pipeline_config")
+    def test_validate_n_save_config_save_failure(self, mock_update_pipeline_config, 
+                                                 mock_validate_config):
+        """Test saving pipeline configuration with save failure"""
+        mock_validate_config.return_value = (True, '', self.valid_pipeline_config)
+        mock_update_pipeline_config.return_value = False
+        controller = Controller()
+        controller.mongo_ds.update_pipeline_config = mock_update_pipeline_config
+        status, error_msg, resp_pipeline_config = controller.validate_n_save_config(
+            "/path/to/file.yml")
+        self.assertFalse(status)
+        self.assertEqual(error_msg, "Error saving to datastore.")
+        self.assertEqual(resp_pipeline_config, self.valid_pipeline_config)
+
 class TestOverrideConfig(unittest.TestCase):
 
     @patch("controller.controller.click.echo")
