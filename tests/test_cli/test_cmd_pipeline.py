@@ -53,6 +53,25 @@ def test_pipeline_dry_run():
 
     assert result.exit_code == 0
 
+def test_pipeline_multi_flag():
+    """test if --file and --pipeline are passed as arguments. it should return error
+    as it can't be both.
+    """
+    runner = CliRunner()
+    result = runner.invoke(cmd_pipeline.pipeline, ['run', '--pipeline', 'valid_pipeline_default',
+                                                   '--file', '.cicd-pipelines/pipelines.yml'])
+    
+    assert result.exit_code == 0
+    assert result.output.rstrip() == "cid: invalid flag. you can only pass --file or \
+--pipeline and can't be both."
+
+def test_pipeline_log():
+    """call pipeline log
+    """
+    runner = CliRunner()
+    result = runner.invoke(cmd_pipeline.pipeline, ['log'])
+
+    assert result.exit_code == 0
 # def test_pipeline_greet():
 #     """ Test the greet function
 #     """

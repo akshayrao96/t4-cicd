@@ -10,12 +10,13 @@ from typing import Tuple, Any
 
 import click
 import git.exc
+import json
 import util.constant as const
 from util.common_utils import (get_logger, ConfigOverrides)
 from util.repo_manager import (RepoManager)
 from util.db_mongo import (MongoAdapter)
 from util.yaml_parser import YamlParser
-from util.config_tools import (ConfigChecker, GitRepoChecker)
+from util.config_tools import (ConfigChecker)
 
 REPO_SOURCE = ""
 REPO_TARGET_PATH = ""
@@ -279,11 +280,20 @@ class Controller:
         """
 
     def run_pipeline(self, config_file: str, dry_run:bool, git_details:dict,
-                     run_locally:bool) -> tuple[bool, str, str]:
+                     local:bool) -> tuple[bool, str, str]:
         """Executes the job by coordinating the repository, runner, artifact store, and logger.
 
+        Args:
+            config_file (str): _description_
+            dry_run (bool): _description_
+            git_details (dict): _description_
+            local (bool): _description_
+
         Returns:
-            tuple: _description_
+            tuple[bool, str, str]:
+                bool: status
+                str: message
+                str: pipeline_id -- empty string if no pipeline run
         """
     
         #validate the repo has the valid branch name and commit hash
@@ -291,36 +301,31 @@ class Controller:
         repo_source = git_details.get('repo_source')
         branch = git_details.get('branch')
         commit = git_details.get('commit_hash')
-        repo_checker = GitRepoChecker(repo_source)
 
         # Step 0: Clone the repo
-        # TODO: now only setup_repo(), need to discuss what functions to add next
-        #           comment: setup_repo() returns None, can we return bool?
-        # TODO: do I need to check if it's a remote_repo or let repo_manager do it?
-        # [Repo_Manager]check if input is a remote repository (https://)
         #remote_repo = git_details.get('remote_repo')
         repo_manager = RepoManager(repo_source)
         repo_manager.setup_repo()
 
         # Step 1: check for valid branch / commit
         #check for valid git commit / branch to run the pipeline
-        valid_git, msg = repo_checker.verify_branch_and_commit(branch, commit)
+        #this is part of usecase 1 a/b
 
-        if not valid_git:
-            self.logger.debug(msg)
-            status = False
-            pipeline_id = ""
-            return status, msg, pipeline_id
-        
-        click.echo(f"{valid_git}, {msg}")
+
+        status, message, config_dict = self.validate_config(config_file)
 
         # Step 2: check if pipeline is  running dry-run or not
         if dry_run:
-            dry_run_msg = self.dry_run(config_file)
-            print(dry_run_msg)
+            dry_run_msg = self.dry_run(status, message, config_dict)
+            status = True
+            message = dry_run_msg
+            pipeline_id = "No Pipeline Id -- dry_run = True"
+            #print(dry_run_msg)
+            return status, message, pipeline_id
         
         # Step 3: Perform pipeline run steps
-        #TODO: need to validate run_locally for non-dry-run
+        #TODO: need to validate if run local
+        #if local:
         
         # Pseudocode
         # # Step 0: Clone the repo
@@ -341,13 +346,10 @@ class Controller:
 
         # create mockup data that simulate when the pipeline runs and return
         # the output to user CLI in tuple
+
         status = True
         message = "Pipeline runs successfully"
         pipeline_id = "pid_unique_string"
-
-        # This is example how to call RepoManager util class from controller
-        # self.repo_manager.setup_repo()
-        # self.logger.debug("is_remote_repo: %s", remote_repo)
 
         return tuple([status, message, pipeline_id])
 
@@ -370,7 +372,7 @@ class Controller:
         """_summary_
         """
 
-    def dry_run(self, config_name: str) -> str:
+    def dry_run(self, status: bool, message: str, config_dict: dict) -> str:
         """dry run methods responsible for the `--dry-run` method for pipelines.
         The function will retrieve any pipeline history from database, then validate
         the configuration file (check hash_commit), and then perform the dry_run
@@ -381,53 +383,41 @@ class Controller:
         Returns:
             str: _description_
         """
-        # 1. Usecase 1a/b - call function to check if it's a valid git repo
-
-        # 2. call RepoManager to check_commit whether hash file is modified or git commit is changed
-        # TODO: in a way, pipeline_name means we need to implement repo_manager
-        # to parse the dict
-
-        # 3. call MongoAdapter get_pipeline_record(repo_name:str, pipeline_name:str, branch:str)
-        # what can I do with this?
-
-        # 4. if step #2 sets to True (commit hash different) run usecase 2a (call
-        # validate_config(filename: str))
-        # TODO: check hash commit of current file. can use import hashlib.
-        # then, call method to compare previous_file (mongodb) and current_file
-
-        # current_config_hash = repo_manager.get_config_hash(config_name)
-        # initialize MongoAdapter()
-        status, message, config_dict = self.validate_config(config_name)
-        # print what validate_config() returns
-        # print(f"{status}, {message}")
-
         # not successful
         if not status:
             return f"[ERROR] {message}"
-
+        
         # test_get_db()
         mongo = MongoAdapter()
 
-        # Print Dry-Run
-        # 5. Simulate Dry run
         dry_run_msg = ""
         # TODO: need to know the order of execution
         # output_dict #to combine the global and jobs
         # call methods
+        # global_dict = config_dict.get("global")
+        # jobs_dict = config_dict.get("jobs")
+        # TODO: use this stages to determine the jobs dict I need
+        # stages_dict = config_dict.get("stages")
+        #TODO: formatting
+        # parsed = json.loads(str(config_dict))
+        # print(json.dumps(parsed, indent=2))
+
         global_dict = config_dict.get("global")
         jobs_dict = config_dict.get("jobs")
-        stages_dict = config_dict.get("stages")
-        #print("global\n", global_dict)
-        global_output = self._run_global(global_dict, dry_run=True)
-        #print(global_output)
-        dry_run_msg += global_output
+        stages_order = config_dict.get('stages')
 
-        #self._run_stages(stages_dict, dry_run=True)
-        #print(stages_dict)
-
-        #print("jobs\n", jobs_dict)
-        jobs_output = self._run_jobs(jobs_dict, dry_run=True)
-        dry_run_msg += jobs_output
+        # Loop through the stages with order
+        for stage in stages_order:
+            dry_run_msg += f"[INFO] Stages: '{stage}'\n" #build, test doc, deploy
+            # to retrieve the job of the stages, need to loop through
+            # the dict and run the job given the defined order.
+            job_groups = stages_order[stage]['job_groups']
+            for job_group in job_groups:
+                for job in job_group:
+                    command = jobs_dict[job]['scripts']
+                    allow_failure = jobs_dict[job]['allow_failure']
+                    job_msg = self._format_job_info_msg(job, command, allow_failure)
+                    dry_run_msg += job_msg
 
         #GET TIME
         now = datetime.now()
@@ -438,46 +428,41 @@ class Controller:
         pipeline_id = mongo.insert_pipeline(pipeline_history)
 
         #get the pipeline_id inserted to mongodb
-        print(f"Insert successfully!\npipeline_id: {pipeline_id}")
+        print(f"Insert successfully!\npipeline_id: {pipeline_id}\n")
 
-        # 6. return message of the dry_run info
+        # return message of the dry_run info
         return dry_run_msg
 
-    #what shall I return?
-    def _run_global(self, global_dict:dict, dry_run:bool = False) -> str:
+    # #what shall I return?
+    # def _run_global(self, global_dict:dict, dry_run:bool = False) -> str:
 
-        #Step 1. Parse the dict.
-        #Step 2. check if dry_run=True
-        if dry_run:
-            #parse what you get from the dict...
-            pipeline_name = global_dict.get("pipeline_name")
-            docker_registry = global_dict.get("docker_registry")
+    #     #Step 1. Parse the dict.
+    #     #Step 2. check if dry_run=True
+    #     if dry_run:
+    #         #parse what you get from the dict...
+    #         pipeline_name = global_dict.get("pipeline_name")
+    #         docker_registry = global_dict.get("docker_registry")
 
-            global_output = f"pipeline name: {pipeline_name}\ndocker registry: {docker_registry}\n"
+    #         global_output = f"pipeline name: {pipeline_name}\ndocker registry: {docker_registry}\n"
 
-            return global_output
+    #         return global_output
 
-        # TODO; call DockerRunner and perform the execution
-        return
+    #     # TODO; call DockerRunner and perform the execution
+    #     return
 
-    def _run_jobs(self, jobs:dict, dry_run:bool = False) -> str:
-        if dry_run:
-            jobs_output = ""
+    # def _run_job(self, job_name:str, job:dict, dry_run:bool = False) -> str:
+    #     if dry_run:
+    #         return self._format_job_info_msg(job_name,
+    #                         job['scripts'], job['allow_failure'])
 
-            for job in jobs:
-                jobs_output += self._format_job_info_msg(job, jobs[job]['stage'],
-                                jobs[job]['scripts'], jobs[job]['allow_failure'])
+    #     #TODO: implement job run
+    #     return "not implemented yet - run jobs"
 
-            return jobs_output
-
-        #TODO: implement job run
-        return "not implemented yet - run jobs"
-
-    def _format_job_info_msg(self, job_name, stage, command, allow_failure):
-        formatted_msg = f'[INFO] Running job: "{job_name}"\n'
-        formatted_msg += f'  -> Stage: {stage}\n'
-        formatted_msg += f'  -> Command: {command}\n'
-        formatted_msg += f'  -> Allow Failure: {allow_failure}\n'
+    
+    def _format_job_info_msg(self, job_name:str, command:list, allow_failure:bool):
+        formatted_msg = f'Running job: "{job_name}"'
+        formatted_msg += f', Command: {command}'
+        formatted_msg += f', Allow Failure: {allow_failure}\n'
 
         return formatted_msg
 
