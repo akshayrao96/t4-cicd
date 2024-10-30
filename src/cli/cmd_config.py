@@ -184,23 +184,27 @@ def get_repo():
 
 @config.command()
 @click.option('--pipeline', required=True, help="pipeline name to update")
-@click.argument('overrides', nargs=-1)
-def edit(pipeline, overrides):
+@click.option('--override', 'overrides', multiple=True, help="Override configuration in 'key=value' format")
+def override(pipeline, overrides):
     """
-    Override configuration values in a pipeline.
+    Apply configuration overrides to a pipeline and optionally save to the database. 
+    Override configurations in 'key=value' format. Multiple overrides can be provided.
 
     Example usage:
-        cid config edit --pipeline my_pipeline global.docker.image=gradle:jdk8 global.timeout=300
+        cid config override --pipeline pipeline_name --override "global.docker.image=gradle:jdk8"
     """
     try:
         updates = ConfigOverrides.build_nested_dict(overrides)
     except ValueError as e:
         click.echo(str(e))
         return
-    control = Controller()
-    success = control.edit_config(pipeline, updates)
-    if success:
-        click.echo(
-            f"Pipeline '{pipeline}' updated successfully with overrides: {updates}")
+    # Prompt the user to confirm storing in the database
+    if click.confirm("Do you want to apply these overrides and save them to the database?"):
+        control = Controller()
+        success = control.override_config(pipeline, updates)
+        if success:
+            click.echo(f"Pipeline '{pipeline}' updated successfully with overrides: {updates}")
+        else:
+            click.echo(f"Failed to update pipeline '{pipeline}'.")
     else:
-        click.echo(f"Failed to update pipeline '{pipeline}'.")
+        click.echo("No changes were made to the configuration.")

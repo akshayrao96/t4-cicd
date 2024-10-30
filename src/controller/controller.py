@@ -20,6 +20,7 @@ from util.config_tools import (ConfigChecker)
 REPO_SOURCE = ""
 REPO_TARGET_PATH = ""
 REPO_BRANCH_NAME = "main"
+MONGO_PIPELINES_TABLE = "repo_configs"
 # pylint: disable=fixme
 
 
@@ -233,9 +234,8 @@ class Controller:
 
         return (status, error_msg, resp_pipeline_config)
 
-    def edit_config(self, pipeline_name: str, overrides: dict) -> bool:
-        """Modify the pipeline configuration. Retrieves the existing configuration from db,
-            applies the given overrides, and then updates to the db.
+    def override_config(self, pipeline_name: str, overrides: dict) -> bool:
+        """Retrieve, apply overrides, validate, and update the pipeline configuration.
 
             Args:
                 pipeline_name (str): The name of the pipeline to update.
@@ -256,16 +256,24 @@ class Controller:
             click.echo(f"No pipeline config found for '{pipeline_name}'.")
             return False
         data = self.mongo_ds.get_pipeline(
-            pipeline.get('_id'), collection_name="repo_configs")
+            pipeline.get('_id'), collection_name=MONGO_PIPELINES_TABLE)
         data['pipeline_config'] = ConfigOverrides.apply_overrides(
             pipeline['pipeline_config'], overrides)
-        # TODO: check if the modified pipeline configuration is valid
+        # validate the updated pipeline configuration
+        response_dict = self.config_checker.validate_config(pipeline_name,
+                                                            data['pipeline_config'],
+                                                            error_lc=True)
+        status = response_dict.get('valid')
+        resp_pipeline_config = response_dict.get('pipeline_config')
+        if not status:
+            click.echo("Override pipeline configuration validation failed.")
+            return False
         success = self.mongo_ds.update_pipeline_config(
             "sample-repo",
             "https://github.com/sample-user/sample-repo",
             "main",
             "valid_pipeline",
-            data['pipeline_config'])
+            resp_pipeline_config)
         if not success:
             click.echo("Error updating pipeline configuration.")
             return False
