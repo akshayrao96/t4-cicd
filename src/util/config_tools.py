@@ -2,7 +2,6 @@
 validate and process the content of pipeline_configuration 
 """
 import collections
-import subprocess
 import util.constant as c
 from util.common_utils import (get_logger, UnionFind, TopoSort)
 
@@ -15,7 +14,6 @@ DEFAULT_FLAG_ARTIFACT_UPLOAD_ONSUCCESS = True
 DEFAULT_STR = ""
 DEFAULT_LIST = []
 DEFAULT_DICT = {}
-DEFAULT_DIR = "./"
 
 # pylint: disable=logging-fstring-interpolation
 # pylint: disable=fixme
