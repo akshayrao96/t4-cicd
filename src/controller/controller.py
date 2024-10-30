@@ -6,13 +6,12 @@
 
 from datetime import datetime
 import os
-from typing import Tuple, Any
+from typing import Any
 
 import click
 import git.exc
-import json
 import util.constant as const
-from util.common_utils import (get_logger, ConfigOverrides)
+from util.common_utils import (get_logger, ConfigOverrides, DryRun)
 from util.repo_manager import (RepoManager)
 from util.db_mongo import (MongoAdapter)
 from util.yaml_parser import YamlParser
@@ -279,54 +278,59 @@ class Controller:
         command: `cid pipeline setup`
         """
 
-    def run_pipeline(self, config_file: str, dry_run:bool, git_details:dict,
-                     local:bool) -> tuple[bool, str, str]:
+    def run_pipeline(self, config_file: str, pipeline: str, dry_run:bool, git_details:dict,
+                     local:bool = False, yaml_output: bool = False) -> tuple[bool, str, str]:
         """Executes the job by coordinating the repository, runner, artifact store, and logger.
 
         Args:
-            config_file (str): _description_
-            dry_run (bool): _description_
-            git_details (dict): _description_
-            local (bool): _description_
+            config_file (str): file path of the configuration file.
+            pipeline (str): pipeline name to be executed.
+            dry_run (bool): set dry_run = True to simulate pipeline order of execution.
+            git_details (dict): details of the git repository where to use.
+            local (bool): True = run pipeline locally, False = run pipeline remotely.
+                By default set to false.
+            yaml_output (bool): set output format to yaml
 
         Returns:
             tuple[bool, str, str]:
                 bool: status
                 str: message
-                str: pipeline_id -- empty string if no pipeline run
+                str: pipeline_id -- empty string if pipeline is not being run or 
+                        failed (dry_run = True)
         """
-    
-        #validate the repo has the valid branch name and commit hash
+        ## TODO: for --pipeline, need to call YamlParser to retrieve the pipeline_name
+        # for every config. Previously it's the file_path.
 
-        repo_source = git_details.get('repo_source')
-        branch = git_details.get('branch')
-        commit = git_details.get('commit_hash')
+        ## TODO: validate the repo has the valid branch name and commit hash
+        # repo_source = git_details.get('repo_source')
+        # branch = git_details.get('branch')
+        # commit = git_details.get('commit_hash')
 
-        # Step 0: Clone the repo
-        #remote_repo = git_details.get('remote_repo')
-        repo_manager = RepoManager(repo_source)
-        repo_manager.setup_repo()
+        ## Step 0: Clone the repo
+        # remote_repo = git_details.get('remote_repo')
+        # repo_manager = RepoManager(repo_source)
+        # repo_manager.setup_repo()
 
-        # Step 1: check for valid branch / commit
-        #check for valid git commit / branch to run the pipeline
-        #this is part of usecase 1 a/b
+        ## Step 1: check for valid branch / commit
+        ## check for valid git commit / branch to run the pipeline
+        ## this is part of usecase 1 a/b
 
-
+        # validate configuration file
         status, message, config_dict = self.validate_config(config_file)
 
+        if not status:
+            pipeline_id = ""
+            return status, message, pipeline_id
         # Step 2: check if pipeline is  running dry-run or not
         if dry_run:
-            dry_run_msg = self.dry_run(status, message, config_dict)
-            status = True
-            message = dry_run_msg
-            pipeline_id = "No Pipeline Id -- dry_run = True"
-            #print(dry_run_msg)
-            return status, message, pipeline_id
-        
+            status, dry_run_msg, pipeline_id = self.dry_run(config_dict, yaml_output)
+            return status, dry_run_msg, pipeline_id
+
         # Step 3: Perform pipeline run steps
         #TODO: need to validate if run local
-        #if local:
-        
+        if local:
+            print("Flag --local is set. run pipeline locally.")
+
         # Pseudocode
         # # Step 0: Clone the repo
         # gitrepo = RepoManager()
@@ -372,66 +376,38 @@ class Controller:
         """_summary_
         """
 
-    def dry_run(self, status: bool, message: str, config_dict: dict) -> str:
+    def dry_run(self, config_dict: dict, is_yaml_output:bool) -> tuple[bool, str, str]:
         """dry run methods responsible for the `--dry-run` method for pipelines.
         The function will retrieve any pipeline history from database, then validate
         the configuration file (check hash_commit), and then perform the dry_run
 
         Args:
-            pipeline_name (str): _description_
+            status (bool): _description_
+            config_dict (dict): _description_
+            is_yaml_output (bool): _description_
 
         Returns:
             str: _description_
         """
-        # not successful
-        if not status:
-            return f"[ERROR] {message}"
-        
-        # test_get_db()
+
+        dry_run = DryRun(config_dict)
         mongo = MongoAdapter()
 
-        dry_run_msg = ""
-        # TODO: need to know the order of execution
-        # output_dict #to combine the global and jobs
-        # call methods
-        # global_dict = config_dict.get("global")
-        # jobs_dict = config_dict.get("jobs")
-        # TODO: use this stages to determine the jobs dict I need
-        # stages_dict = config_dict.get("stages")
-        #TODO: formatting
-        # parsed = json.loads(str(config_dict))
-        # print(json.dumps(parsed, indent=2))
-
-        global_dict = config_dict.get("global")
-        jobs_dict = config_dict.get("jobs")
-        stages_order = config_dict.get('stages')
-
-        # Loop through the stages with order
-        for stage in stages_order:
-            dry_run_msg += f"[INFO] Stages: '{stage}'\n" #build, test doc, deploy
-            # to retrieve the job of the stages, need to loop through
-            # the dict and run the job given the defined order.
-            job_groups = stages_order[stage]['job_groups']
-            for job_group in job_groups:
-                for job in job_group:
-                    command = jobs_dict[job]['scripts']
-                    allow_failure = jobs_dict[job]['allow_failure']
-                    job_msg = self._format_job_info_msg(job, command, allow_failure)
-                    dry_run_msg += job_msg
+        dry_run_msg = dry_run.get_plaintext_format()
+        yaml_output_msg = dry_run.get_yaml_format()
 
         #GET TIME
         now = datetime.now()
         time_log = now.strftime("%Y-%m-%d %H:%M:%S")
-        pipeline_history = {"dry_run_message": dry_run_msg, "executed_time": time_log}
+        pipeline_history = {"config_file": yaml_output_msg, "executed_time": time_log}
 
-        #TODO: instead of inserting the the dry_run_msg, make it more useful
         pipeline_id = mongo.insert_pipeline(pipeline_history)
 
-        #get the pipeline_id inserted to mongodb
-        print(f"Insert successfully!\npipeline_id: {pipeline_id}\n")
+        # set yaml format if user specify "--yaml" flag.
+        if is_yaml_output:
+            dry_run_msg = yaml_output_msg
 
-        # return message of the dry_run info
-        return dry_run_msg
+        return True, dry_run_msg, pipeline_id
 
     # #what shall I return?
     # def _run_global(self, global_dict:dict, dry_run:bool = False) -> str:
@@ -443,7 +419,8 @@ class Controller:
     #         pipeline_name = global_dict.get("pipeline_name")
     #         docker_registry = global_dict.get("docker_registry")
 
-    #         global_output = f"pipeline name: {pipeline_name}\ndocker registry: {docker_registry}\n"
+    #         global_output = f"pipeline name: {pipeline_name}\ndocker registry:
+    #  {docker_registry}\n"
 
     #         return global_output
 
@@ -458,19 +435,4 @@ class Controller:
     #     #TODO: implement job run
     #     return "not implemented yet - run jobs"
 
-    
-    def _format_job_info_msg(self, job_name:str, command:list, allow_failure:bool):
-        formatted_msg = f'Running job: "{job_name}"'
-        formatted_msg += f', Command: {command}'
-        formatted_msg += f', Allow Failure: {allow_failure}\n'
-
-        return formatted_msg
-
-    def _test_mongo_db(self) -> str:
-        mongo = MongoAdapter()
-
-        ##INSERT
-        pipeline_history = {"hello": "world"}
-        inserted_id = mongo.insert_pipeline(pipeline_history)
-
-        return inserted_id
+    #job_name:str, command:list, allow_failure:bool

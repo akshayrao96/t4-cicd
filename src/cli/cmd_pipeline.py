@@ -21,12 +21,13 @@ def pipeline():
 #     """Print FILENAME if the file exists."""
 #     click.echo(click.format_filename(filename))
 
-#TODO: add exception when user cancel the pipeline job https://click.palletsprojects.com/en/stable/exceptions/
+#TODO: add exception when user cancel the pipeline job 
+# https://click.palletsprojects.com/en/stable/exceptions/
 @pipeline.command()
 @click.pass_context
-@click.option('--file', 'file_path', default=DEFAULT_CONFIG_FILE_PATH, help='configuration file path.\
-if --file not specified, default to .cicd-pipelines/pipelines.yml')
-@click.option('--pipeline', 'pipeline', default="all", help='pipeline name to run' )
+@click.option('--file', 'file_path', default=DEFAULT_CONFIG_FILE_PATH, help='configuration \
+file path. if --file not specified, default to .cicd-pipelines/pipelines.yml')
+@click.option('--pipeline', 'pipeline', default="valid_pipeline_default", help='pipeline name to run' )
 @click.option('-r', '--repo', 'repo', default='./', help='repository url or \
 local directory path')
 @click.option('-b', '--branch', 'branch', default='main', help='repository branch name')
@@ -34,7 +35,9 @@ local directory path')
 @click.option('--local', 'local', help='run pipeline locally', is_flag=True)
 @click.option('--dry-run', 'dry_run', help='dry-run options to simulate the pipeline\
 process', is_flag=True)
-def run(ctx, file_path:str, pipeline:str, repo:str, branch:str, commit:str, local:bool, dry_run:bool):
+@click.option('--yaml', 'yaml_output', help='print output in yaml format', is_flag=True)
+def run(ctx, file_path:str, pipeline:str, repo:str, branch:str, commit:str, local:bool,
+        dry_run:bool, yaml_output:bool):
     """Run pipeline given the configuration file. 
 
     Command to run `cid pipeline run <config_filename>`
@@ -48,6 +51,7 @@ def run(ctx, file_path:str, pipeline:str, repo:str, branch:str, commit:str, loca
         commit (str): specific commit hash. by default, it is the latest (HEAD).
         local (bool): execute pipeline locally.
         dry_run (bool): plan the pipeline without creating 
+        yaml (bool): print output in yaml format
     """
     source_pipeline = ctx.get_parameter_source("pipeline")
     filepath_pipeline = ctx.get_parameter_source("file_path")
@@ -65,14 +69,14 @@ and can't be both.")
         "commit_hash": commit,
         "remote_repo": local,
     }
-    status, message, pipeline_id = control.run_pipeline(config_file=file_path, dry_run=dry_run,
-                                            git_details=git_details, local=local)
+    status, message, pipeline_id = control.run_pipeline(config_file=file_path, pipeline=pipeline, 
+                    dry_run=dry_run, git_details=git_details, local=local, yaml_output=yaml_output)
 
     logger.debug(f"pipeline run status: {status}")
     logger.debug(f"pipeline_id: {pipeline_id}")
     # TODO: define schema for pipeline logs --
     click.echo(f"{message}")
-    click.echo(f"pipeline_id: {pipeline_id}")
+    click.echo(f"dry run history is stored locally -- pipeline_id: {pipeline_id}")
 
 @pipeline.command()
 @click.option('--repo', default='local', help="Obtain logs for this repo")
