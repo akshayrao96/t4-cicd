@@ -306,9 +306,6 @@ class Controller:
                 str: pipeline_id -- empty string if pipeline is not being run or 
                         failed (dry_run = True)
         """
-        ## TODO: for --pipeline, need to call YamlParser to retrieve the pipeline_name
-        # for every config. Previously it's the file_path.
-
         ## TODO: validate the repo has the valid branch name and commit hash
         # repo_source = git_details.get('repo_source')
         # branch = git_details.get('branch')
@@ -318,13 +315,36 @@ class Controller:
         # remote_repo = git_details.get('remote_repo')
         # repo_manager = RepoManager(repo_source)
         # repo_manager.setup_repo()
+        # TODO: create method in repo_manager to get cloned folder path
 
         ## Step 1: check for valid branch / commit
         ## check for valid git commit / branch to run the pipeline
         ## this is part of usecase 1 a/b
 
-        # validate configuration file
-        status, message, config_dict = self.validate_config(config_file)
+        status = None
+        message = None
+        config_dict = None
+        # for --pipeline, need to call YamlParser to retrieve the pipeline_name
+        # for every config. Currently set default_path to find the config_files
+        # to .cicd-pipelines/
+        if pipeline:
+            parser = YamlParser()
+            default_path = '.cicd-pipelines/'
+            dict_yaml = parser.parse_yaml_directory(default_path)
+            config_dict = dict_yaml.get(pipeline) #get pipeline config
+            # if 'pipeline' name could not be located, return False and
+            # ask user to re-run the command.
+            if config_dict is None:
+                status = False
+                message = f"\ncid: pipeline_name '{pipeline}' is not a valid name."
+                message += " Please re-run the command: cid pipeline run"
+                message += " --pipeline <valid_pipeline_name>"
+                pipeline_id = ""
+                return status, message, pipeline_id
+        else:
+            # perform config validation given the config_file/file_path (not pipeline_name).
+            # by default it is set to '.cicd-pipelines/pipelines.yml'
+            status, message, config_dict = self.validate_config(config_file)
 
         if not status:
             pipeline_id = ""
@@ -399,48 +419,22 @@ class Controller:
         """
 
         dry_run = DryRun(config_dict)
-        mongo = MongoAdapter()
+        #mongo = MongoAdapter()
 
         dry_run_msg = dry_run.get_plaintext_format()
         yaml_output_msg = dry_run.get_yaml_format()
 
         #GET TIME
-        now = datetime.now()
-        time_log = now.strftime("%Y-%m-%d %H:%M:%S")
-        pipeline_history = {"config_file": yaml_output_msg, "executed_time": time_log}
+        #now = datetime.now()
+        #time_log = now.strftime("%Y-%m-%d %H:%M:%S")
+        #pipeline_history = {"config_file": yaml_output_msg, "executed_time": time_log}
 
-        pipeline_id = mongo.insert_pipeline(pipeline_history)
+        # dry-run is not stored to mongo DB
+        #pipeline_id = mongo.insert_pipeline(pipeline_history)
+        empty_pipeline_id = ""
 
         # set yaml format if user specify "--yaml" flag.
         if is_yaml_output:
             dry_run_msg = yaml_output_msg
 
-        return True, dry_run_msg, pipeline_id
-
-    # #what shall I return?
-    # def _run_global(self, global_dict:dict, dry_run:bool = False) -> str:
-
-    #     #Step 1. Parse the dict.
-    #     #Step 2. check if dry_run=True
-    #     if dry_run:
-    #         #parse what you get from the dict...
-    #         pipeline_name = global_dict.get("pipeline_name")
-    #         docker_registry = global_dict.get("docker_registry")
-
-    #         global_output = f"pipeline name: {pipeline_name}\ndocker registry:
-    #  {docker_registry}\n"
-
-    #         return global_output
-
-    #     # TODO; call DockerRunner and perform the execution
-    #     return
-
-    # def _run_job(self, job_name:str, job:dict, dry_run:bool = False) -> str:
-    #     if dry_run:
-    #         return self._format_job_info_msg(job_name,
-    #                         job['scripts'], job['allow_failure'])
-
-    #     #TODO: implement job run
-    #     return "not implemented yet - run jobs"
-
-    #job_name:str, command:list, allow_failure:bool
+        return True, dry_run_msg, empty_pipeline_id

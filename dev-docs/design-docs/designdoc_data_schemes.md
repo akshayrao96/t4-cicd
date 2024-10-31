@@ -49,7 +49,7 @@ Fields required:
 - run_number
 - git commit hash
 - pipeline_config_used
-- success (boolean flag)
+- pipeline_status (success/failed/cancelled)
 - logs - organized by stages
   - stage_name
   - stage_status
