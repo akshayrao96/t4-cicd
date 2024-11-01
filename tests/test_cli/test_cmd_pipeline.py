@@ -21,18 +21,6 @@ def test_pipeline_help():
     # 0 exit code mean successful
     assert result.exit_code == 0
 
-# def test_pipeline_no_argument():
-#     """ Test the main pipeline command (`cid pipeline`) with no argument, which
-#       should perform the dry-run that has the same effect as 
-#       `cid pipeline --check --config-file <config>
-#     """
-#     runner = CliRunner()
-#     result = runner.invoke(cmd_pipeline.pipeline)
-
-#     # 0 exit code mean successful
-#     assert result.exit_code == 0
-#     assert result.output.rstrip() == 'Run pipeline check with default config \
-# file path=.cicd-pipelines/pipeline.yml' 
 
 def test_pipeline_run():
     """Test the `cid pipeline run` command with no argument. This should
@@ -51,6 +39,7 @@ def test_pipeline_dry_run():
     runner = CliRunner()
     result = runner.invoke(cmd_pipeline.pipeline, ['run', '--dry-run'])
 
+    assert result.output.rfind("pipeline_id: dry_run") != -1
     assert result.exit_code == 0
 
 def test_pipeline_multi_flag():
@@ -60,7 +49,7 @@ def test_pipeline_multi_flag():
     runner = CliRunner()
     result = runner.invoke(cmd_pipeline.pipeline, ['run', '--pipeline', 'valid_pipeline_default',
                                                    '--file', '.cicd-pipelines/pipelines.yml'])
-    
+
     assert result.exit_code == 0
     assert result.output.rstrip() == "cid: invalid flag. you can only pass --file or \
 --pipeline and can't be both."

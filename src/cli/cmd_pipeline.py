@@ -77,8 +77,7 @@ and can't be both.")
     logger.debug(f"pipeline run status: {status}, ")
     #logger.debug(f"pipeline_id: {pipeline_id}")
     click.echo(f"{message}")
-    if pipeline_id: #no pipeline_id if dry-run is executed.
-        click.echo(f"pipeline_id: {pipeline_id}")
+    click.echo(f"pipeline_id: {pipeline_id}")
 
 @pipeline.command()
 @click.option('--repo', default='local', help="Obtain logs for this repo")

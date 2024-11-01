@@ -286,7 +286,7 @@ class Controller:
         command: `cid pipeline setup`
         """
 
-    def run_pipeline(self, config_file: str, pipeline: str, dry_run:bool, git_details:dict,
+    def run_pipeline(self, config_file: str, pipeline: str, git_details:dict, dry_run:bool = False,
                      local:bool = False, yaml_output: bool = False) -> tuple[bool, str, str]:
         """Executes the job by coordinating the repository, runner, artifact store, and logger.
 
@@ -321,7 +321,7 @@ class Controller:
         ## check for valid git commit / branch to run the pipeline
         ## this is part of usecase 1 a/b
 
-        status = None
+        status = True
         message = None
         config_dict = None
         # for --pipeline, need to call YamlParser to retrieve the pipeline_name
@@ -341,10 +341,13 @@ class Controller:
                 message += " --pipeline <valid_pipeline_name>"
                 pipeline_id = ""
                 return status, message, pipeline_id
-        else:
-            # perform config validation given the config_file/file_path (not pipeline_name).
-            # by default it is set to '.cicd-pipelines/pipelines.yml'
-            status, message, config_dict = self.validate_config(config_file)
+
+            #get the filename and set the configuration file to be use for validate_config.
+            config_file = default_path + config_dict.get('pipeline_file_name')
+        
+        # perform config validation given the config_file/file_path (not pipeline_name).
+        # by default it is set to '.cicd-pipelines/pipelines.yml'
+        status, message, config_dict = self.validate_config(config_file)
 
         if not status:
             pipeline_id = ""
@@ -356,6 +359,8 @@ class Controller:
 
         # Step 3: Perform pipeline run steps
         #TODO: need to validate if run local
+        #TODO: need to move local to top so dry-run can also be included if we want
+        # to do local execution
         if local:
             print("Flag --local is set. run pipeline locally.")
 
@@ -419,10 +424,9 @@ class Controller:
         """
 
         dry_run = DryRun(config_dict)
-        #mongo = MongoAdapter()
-
         dry_run_msg = dry_run.get_plaintext_format()
         yaml_output_msg = dry_run.get_yaml_format()
+        # mongo = MongoAdapter()
 
         #GET TIME
         #now = datetime.now()
@@ -431,10 +435,11 @@ class Controller:
 
         # dry-run is not stored to mongo DB
         #pipeline_id = mongo.insert_pipeline(pipeline_history)
-        empty_pipeline_id = ""
+        pipeline_id = "dry_run"
 
         # set yaml format if user specify "--yaml" flag.
         if is_yaml_output:
             dry_run_msg = yaml_output_msg
 
-        return True, dry_run_msg, empty_pipeline_id
+        return True, dry_run_msg, pipeline_id
+    
