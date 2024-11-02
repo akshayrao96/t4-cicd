@@ -19,7 +19,6 @@ Next week meeting chairperson -
 
 | Task           | Weight    | Assignee    |
 |----------------|-----------|-------------|
-| sample task    | S - 1 day | Lin -> Chin |
 
 
 # Carry over tasks
@@ -34,6 +33,8 @@ Next week meeting chairperson -
 | [CLI] implement cid pipeline dry - run missing features[  # 89](https://github.com/CS6510-SEA-F24/t4-cicd/issues/89)                                   | M - 2/3 days  | Jason    |
 | [UC3, UC5 CLI] Update cid pipeline run commands[  # 85](https://github.com/CS6510-SEA-F24/t4-cicd/issues/85)                                           | M - 2/3 days  | Jason    |
 | [UC5 - Controller & Docker] Implement the methods required to run, stop, cancel pipeline[  # 17] (https://github.com/CS6510-SEA-F24/t4-cicd/issues/17) | L/XL - 2 week | Chin     |
+| [UC5 - Python Repo Sample] Create Sample Repo with cicd configuration for testing[  # 87](https://github.com/CS6510-SEA-F24/t4-cicd/issues/87)                      | M - 2/3 days | Chin     |
+| [UC5 - Controller & Docker] Implement first version of DockerManager class to run and log the pipeline[# 99] (https://github.com/CS6510-SEA-F24/t4-cicd/issues/99) | L/XL - 2 week | Chin     |
 
 # New tasks / Backlog
 
@@ -45,12 +46,13 @@ Next week meeting chairperson -
 | [UC1, UC2, UC3] Integrate the usecases from set repo, check config, up to dry run[  # 84] (https://github.com/CS6510-SEA-F24/t4-cicd/issues/84)                     | S - 1 day    | Jason    |
 | [UC1, UC2, UC4] Integrate usecases from set repo, check config and override config[  # 88] (https://github.com/CS6510-SEA-F24/t4-cicd/issues/88)                    | S - 1 day    | Akshay   |
 | [UC5 - Java Repo Sample] Create A Sample Repository with Java Project that with the cicd configuration[  # 86](https://github.com/CS6510-SEA-F24/t4-cicd/issues/86) | M - 2/3 days | Akshay   |
-| [UC5 - Python Repo Sample] Create Sample Repo with cicd configuration for testing[  # 87](https://github.com/CS6510-SEA-F24/t4-cicd/issues/87)                      | M - 2/3 days | Chin     |
+
 
 # What worked this week?
 
 - Akshay: Discussions on implementations rather than design. Our team is at the point where we all know what we need to do.
 - Akshay: Shorter meetings
+- Chin: Playing around with Python Docker SDK to get the basis idea of what is required to code the DockerManager class. Plan for future addition of different container run strategy (like Kubernetes) by designing an interface for ContainerManager.
 
 # What did not work this week?
 
