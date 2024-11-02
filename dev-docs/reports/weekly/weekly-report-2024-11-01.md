@@ -25,7 +25,6 @@ Next week meeting chairperson -
 
 | Task                                                                                                                                                   | Weight        | Assignee |
 |--------------------------------------------------------------------------------------------------------------------------------------------------------|---------------| -------- |
-| [CLI] define & implement cid pipeline - -dry - run[  # 33](https://github.com/CS6510-SEA-F24/t4-cicd/issues/33)                                        | M - 2/3 days  | Jason    |
 | [UC1 - CLI & RepoManager] Options for Branch & Commit[  # 83](https://github.com/CS6510-SEA-F24/t4-cicd/issues/83)                                     | M - 2/3 days  | Akshay   |
 | [Pytest] improve test coverage for cmd & controller[  # 82](https://github.com/CS6510-SEA-F24/t4-cicd/issues/82)                                       | M - 2/3 days  | Lin      |
 | [UC5] MongoAdapter methods for docker run operation[  # 90](https://github.com/CS6510-SEA-F24/t4-cicd/issues/90)                                       | M - 2/3 days  | Lin      |
@@ -53,6 +52,7 @@ Next week meeting chairperson -
 - Akshay: Discussions on implementations rather than design. Our team is at the point where we all know what we need to do.
 - Akshay: Shorter meetings
 - Chin: Playing around with Python Docker SDK to get the basis idea of what is required to code the DockerManager class. Plan for future addition of different container run strategy (like Kubernetes) by designing an interface for ContainerManager.
+- Jason: finishing up dry-run features that adheres to stages order and refactoring code.
 
 # What did not work this week?
 
