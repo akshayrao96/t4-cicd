@@ -153,30 +153,33 @@ class Controller:
         """
         # stub response for repo set up
         click.echo("Setting Up Repo")
-        results = self.validate_configs(directory)
+        validation_results = self.validate_configs(directory)
         # stub response for save
         click.echo("Saving into datastore")
-        for pipeline_name, validation_result in results.items():
+        results = {}
+        for pipeline_name, validation_result in validation_results.items():
             status = validation_result.get('valid')
             error_msg = validation_result.get('error_msg')
             pipeline_config = validation_result.get('pipeline_config')
             if status:
-                success = self.mongo_ds.update_pipeline_config(
-                    "sample-repo",
-                    "https://github.com/sample-user/sample-repo",
-                    "main",
-                    pipeline_name,
-                    pipeline_config
+                file_path = os.path.join(directory, f"{pipeline_name}.yml")
+                # Pass the pre-validated config and skip validation
+                status, error_msg, saved_config = self.validate_n_save_config(
+                    file_path, pipeline_config=pipeline_config, skip_validation=True
                 )
-                if not success:
-                    validation_result['valid'] = False
-                    validation_result['error_msg'] = "Error saving to datastore."
+                validation_result.update({
+                    'valid': status,
+                    'error_msg': error_msg,
+                    'pipeline_config': saved_config
+                })
             else:
                 click.echo(f"Validation failed for {pipeline_name}: {error_msg}")
             results[pipeline_name] = validation_result
         return results
 
-    def validate_n_save_config(self, file_name: str) -> tuple[bool, str, dict]:
+    def validate_n_save_config(
+        self, file_name: str, pipeline_config: dict = None, skip_validation: bool = False
+    ) -> tuple[bool, str, dict]:
         """ Set Up repo, validate config, and save the config into datastore
 
         Args:
@@ -187,25 +190,56 @@ class Controller:
         """
         status = True
         error_msg = ""
-        resp_pipeline_config = {}
+        resp_pipeline_config = pipeline_config
         # stub response for repo set up
-        click.echo("Setting Up Repo")
-        status, error_msg, resp_pipeline_config = self.validate_config(
-            file_name)
+        if not skip_validation:
+            status, error_msg, resp_pipeline_config = self.validate_config(file_name)
         # If validation passes, save to datastore
         if status:
-            click.echo("Saving into datastore")
-            success = self.mongo_ds.update_pipeline_config(
-                "sample-repo",
-                "https://github.com/sample-user/sample-repo",
-                "main",
-                resp_pipeline_config.get('pipeline_name'),
-                resp_pipeline_config
+            pipeline_name = resp_pipeline_config['global'].get('pipeline_name')
+            repo_data = self.mongo_ds.get_repo(
+                "sample-repo", "https://github.com/sample-user/sample-repo", "main"
             )
-            if not success:
-                error_msg = "Error saving to datastore."
-                status = False
-            return (status, error_msg, resp_pipeline_config)
+            # Case 1: No Repo Exists - Create New Repo with Pipeline
+            if not repo_data:
+                new_repo_data = {
+                    "repo_name": "sample-repo",
+                    "repo_url": "https://github.com/sample-user/sample-repo",
+                    "branch": "main",
+                    "pipelines": [
+                        self.mongo_ds.create_pipeline_document(
+                            pipeline_name, file_name, resp_pipeline_config
+                        )
+                    ]
+                }
+                repo_id = self.mongo_ds.insert_repo(
+                    new_repo_data, collection_name=MONGO_PIPELINES_TABLE
+                )
+                if not repo_id:
+                    return False, "Error saving repo to datastore.", resp_pipeline_config
+
+            # # Case 2: Existing Repo - Append Pipeline
+            else:
+                existing_pipeline = next(
+                    (p for p in repo_data["pipelines"] if p["pipeline_name"] == pipeline_name),
+                    None
+                )
+                if not existing_pipeline:
+                    new_pipeline_document = self.mongo_ds.create_pipeline_document(
+                        pipeline_name, file_name, resp_pipeline_config
+                    )
+                    repo_data["pipelines"].append(new_pipeline_document)
+                    success = self.mongo_ds.update_pipeline(repo_data)
+                    if not success:
+                        error_msg = f"Error add new '{pipeline_name}' to datastore."
+                        status = False
+                else:
+                    error_msg = (
+                        f"Pipeline '{pipeline_name}' already exists in datastore. "
+                        "Use --override to update."
+                    )
+                    status = False
+        return status, error_msg.strip(), resp_pipeline_config
 
     def validate_configs(self, directory: str) -> dict:
         """ Validate configuration file in a directory

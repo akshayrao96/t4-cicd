@@ -411,3 +411,49 @@ class MongoAdapter:
         except errors.PyMongoError as e:
             logger.warning(f"Error updating pipeline config: {str(e)}")
             return False
+
+    def get_repo(self, repo_name: str, repo_url: str, branch: str) -> dict:
+        """ Retrieve a repo document based on repo_name, repo_url, and branch
+            from the repo_configs collection.
+
+        Args:
+            repo_name (str): The name of the repository.
+            repo_url (str): The URL of the repository.
+            branch (str): The branch of the repository.
+
+        Returns:
+            dict: The repository document if found, otherwise None.
+        """
+        try:
+            with MongoClient(self.mongo_uri) as mongo_client:
+                database = mongo_client[MONGO_DB_NAME]
+                collection = database[MONGO_PIPELINES_TABLE]
+                query_filter = {
+                    "repo_name": repo_name,
+                    "repo_url": repo_url,
+                    "branch": branch
+                }
+                return collection.find_one(query_filter) or {}
+        except errors.PyMongoError:
+            return {}
+
+    def create_pipeline_document(self, pipeline_name: str, file_name: str, pipeline_config: dict) -> dict:
+        """Generate a new pipeline document for insertion into pipelines.
+
+        Args:
+            pipeline_name (str): The name of the pipeline.
+            file_name (str): The name of the YAML file for the pipeline.
+            pipeline_config (dict): The pipeline configuration details.
+
+        Returns:
+            dict: A dictionary representing the new pipeline document.
+        """
+        return {
+            "pipeline_name": pipeline_name,
+            "pipeline_file_name": file_name,
+            "pipeline_config": pipeline_config,
+            "job_run_history": [],
+            "active": False,
+            "running": False,
+            "last_commit_hash": ""
+        }
