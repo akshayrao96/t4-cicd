@@ -13,12 +13,14 @@ Following are notes from meeting:
 
 This week meeting chairperson & report writer - Akshay
 
-Next week meeting chairperson -
+Next week meeting chairperson - Lin
 
 # Completed tasks
 
 | Task           | Weight    | Assignee    |
 |----------------|-----------|-------------|
+| [Config] Enhance Use Case 4 [  # 82](https://github.com/CS6510-SEA-F24/t4-cicd/issues/82)                                       | M - 2/3 days  | Lin      |
+| [UC2 Config] Save validated config to MongoDB [  # 76](https://github.com/CS6510-SEA-F24/t4-cicd/issues/76)                      | M - 3 days    | Lin      |
 
 
 # Carry over tasks
@@ -26,9 +28,7 @@ Next week meeting chairperson -
 | Task                                                                                                                                                   | Weight        | Assignee |
 |--------------------------------------------------------------------------------------------------------------------------------------------------------|---------------| -------- |
 | [UC1 - CLI & RepoManager] Options for Branch & Commit[  # 83](https://github.com/CS6510-SEA-F24/t4-cicd/issues/83)                                     | M - 2/3 days  | Akshay   |
-| [Pytest] improve test coverage for cmd & controller[  # 82](https://github.com/CS6510-SEA-F24/t4-cicd/issues/82)                                       | M - 2/3 days  | Lin      |
 | [UC5] MongoAdapter methods for docker run operation[  # 90](https://github.com/CS6510-SEA-F24/t4-cicd/issues/90)                                       | M - 2/3 days  | Lin      |
-| [UC2 Config] Save validated config to MongoDB[  # 76](https://github.com/CS6510-SEA-F24/t4-cicd/issues/76)                                             | S - 1 days    | Lin      |
 | [CLI] implement cid pipeline dry - run missing features[  # 89](https://github.com/CS6510-SEA-F24/t4-cicd/issues/89)                                   | M - 2/3 days  | Jason    |
 | [UC3, UC5 CLI] Update cid pipeline run commands[  # 85](https://github.com/CS6510-SEA-F24/t4-cicd/issues/85)                                           | M - 2/3 days  | Jason    |
 | [UC5 - Controller & Docker] Implement the methods required to run, stop, cancel pipeline[  # 17] (https://github.com/CS6510-SEA-F24/t4-cicd/issues/17) | L/XL - 2 week | Chin     |
@@ -53,8 +53,10 @@ Next week meeting chairperson -
 - Akshay: Shorter meetings
 - Chin: Playing around with Python Docker SDK to get the basis idea of what is required to code the DockerManager class. Plan for future addition of different container run strategy (like Kubernetes) by designing an interface for ContainerManager.
 - Jason: finishing up dry-run features that adheres to stages order and refactoring code.
+- Lin: Proceeding with the issues as planned. The database design allows for a level of isolation, simplifying my work.
 
 # What did not work this week?
+- Lin: Avoid putting all the code in the Controller class.
 
 
 # Design updates
