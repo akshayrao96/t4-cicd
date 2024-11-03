@@ -36,10 +36,10 @@ def config(
     """
     Command working with pipeline and repo configurations
 
-    This command allows you to manage and validate configuration files used in
-    pipeline executions. You can run this to check the configuration files in
-    default location or pass a custom file/directory to check.
-
+    This command allows you to manage and validate configuration files used in 
+    pipeline executions. You can run this to check the configuration files in 
+    default location or pass a custom file/directory to check. 
+    \f
     Example usage:
 
     To set up repo, check and save the default config file (pipelines.yml):

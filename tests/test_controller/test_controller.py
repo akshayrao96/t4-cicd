@@ -42,6 +42,7 @@ def test_edit_config():
     # controller.edit_config(pipeline_data['pipeline_name'], updates)
 test_edit_config()
 
+
 class TestController(unittest.TestCase):
 
     @patch("controller.controller.Controller.validate_config")
@@ -121,6 +122,26 @@ class TestController(unittest.TestCase):
         self.assertTrue(result['pipeline1']['valid'])
         self.assertFalse(result['pipeline2']['valid'])
         self.assertEqual(result['pipeline2']['error_msg'], 'Invalid config')
+
+
+def test_run_pipeline_invalid_config():
+    """test controller run_pipeline() method using invalid_config.yml file.
+    This should return status == False and pipeline_id == ""
+    """
+    controller = Controller()
+    config_file = '.cicd-pipelines/invalid_config.yml'
+    dry_run = True
+    git_details = {}
+    local = False
+    yaml_output = False
+
+    expected_status = False
+    expected_pipeline_id = ""
+    status, _message, pipeline_id = controller.run_pipeline(config_file, dry_run, git_details,
+                                                           local, yaml_output)
+
+    assert status == expected_status
+    assert pipeline_id == expected_pipeline_id
 
 class TestOverrideConfig(unittest.TestCase):
 

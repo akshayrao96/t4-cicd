@@ -2,8 +2,10 @@
 Provide the common utility functions used by all other modules
 """
 import os
+import re
 import collections
 import logging
+import yaml
 from dotenv import dotenv_values
 
 
@@ -279,3 +281,164 @@ class ConfigOverrides:
             else:
                 config[key] = value
         return config
+
+class DryRun:
+    """DryRun class to handle message output formatting for cid pipeline, to print plain text
+    or YAML format."""
+    def __init__(self, config_dict: dict):
+        self.config = config_dict
+        self.global_dict = config_dict.get("global")
+        self.jobs_dict = config_dict.get("jobs")
+        self.stages_order = config_dict.get('stages')
+        self.dry_run_msg = ""
+        self.yaml_output_msg = ""
+
+        self.global_msg = ""
+        self.stage_msg = ""
+
+        self._build_dry_run_msg()
+
+    def get_plaintext_format(self) -> str:
+        """return dry run message in plain text format.
+
+        Returns:
+            str: dry run message ordered by stages
+        """
+        return self.dry_run_msg
+
+    def get_yaml_format(self) -> str:
+        """return dry run message with yaml format.
+
+        Returns:
+            str: valid yaml dry run message
+        """
+        global_yaml_output = self._parse_global(self.global_msg)
+        jobs_yaml_output = self._parse_jobs(self.stage_msg)
+
+        self.yaml_output_msg = global_yaml_output + jobs_yaml_output
+        return self.yaml_output_msg
+
+    def _parse_global(self, text:str) -> str:
+        """Given the plain text that is build when running the _build_dry_run_msg(),
+        this function purpose is to convert the text into valid yaml. This result
+        will be return as string to get_yaml_format() method.
+
+        Args:
+            text(str): global section of the config file
+
+        Returns:
+            str: yaml format of the global section of the config file
+        """
+        global_dict = {}
+
+        # Find global settings
+        global_match = re.search(r'===== \[INFO\] Global =====\s*(.+?)(?======|\Z)',
+                                 text, re.DOTALL)
+        if global_match:
+            global_text = global_match.group(1)
+
+            # Parse global attributes
+            attr_pairs = re.findall(r'(\w+): (\'[^\']*\'|\[.*?\]|\{.*?\}|[^\s,]+)', global_text)
+
+            for key, value in attr_pairs:
+                if value.startswith("{"):
+                    global_dict[key] = eval(value)
+                else:
+                    global_dict[key] = value.strip("'")
+
+        yaml_output = yaml.dump({'global': global_dict}, sort_keys=False)
+        return yaml_output
+
+    def _parse_jobs(self, text:str) -> str:
+        """Given the plain text that is build when running the _build_dry_run_msg(),
+        this function purpose is to convert the text into valid yaml. This result
+        will be return as string to get_yaml_format() method.
+
+        Args:
+            text(str): jobs section of the config file
+
+        Returns:
+            str: yaml format of the jobs section of the config file
+        """
+        # Initialize dictionary to hold all jobs
+        jobs_dict = {}
+
+        # Split by stages using regex
+        stage_blocks = re.split(r'===== \[INFO\] Stages: \'(.+?)\' =====', text)
+
+        for i in range(1, len(stage_blocks), 2):
+            stage_name = stage_blocks[i]
+            job_text = stage_blocks[i + 1]
+
+            # Split each job line
+            job_lines = re.findall(r'Running job: "(.+?)", (.+)', job_text)
+
+            for job_name, attributes in job_lines:
+                # Dictionary to hold job attributes
+                job_dict = {'stage': stage_name}
+
+                # Parse attributes
+                attr_pairs = re.findall(r'(\w+): (\'[^\']*\'|\[.*?\]|\{.*?\}|[^\s,]+)', attributes)
+
+                for key, value in attr_pairs:
+                    if value.startswith("[") or value.startswith("{"):
+                        job_dict[key] = eval(value)
+                    elif value.lower() == "true":
+                        job_dict[key] = True
+                    elif value.lower() == "false":
+                        job_dict[key] = False
+                    else:
+                        job_dict[key] = value.strip("'")
+
+                # Add job to the jobs dictionary
+                jobs_dict[job_name] = job_dict
+
+        yaml_output = yaml.dump({'jobs': jobs_dict}, sort_keys=False)
+        return yaml_output
+
+
+    def _build_dry_run_msg(self):
+        """The purpose of this function is to convert the config_dict to plain text of
+        the dry_run message. This adheres to the stages order that the config file may have.
+        """
+        # Loop through the keys in the global section
+        global_msg = "\n===== [INFO] Global =====\n"
+        for key in self.global_dict:
+            global_msg += f"{key}: {self.global_dict[key]}, "
+        global_msg += "\n"
+        self.global_msg = global_msg
+       # Loop through the stages with order
+        stage_msg = ""
+        for stage in self.stages_order:
+            stage_msg += f"\n===== [INFO] Stages: '{stage}' =====\n"
+            #build, test doc, deploy, etc..
+            # to retrieve the job of the stages, need to loop through
+            # the dict and run the job given the defined order.
+            job_groups = self.stages_order[stage]['job_groups']
+            for job_group in job_groups:
+                for job in job_group:
+                    job_msg = self._format_job_info_msg(job, self.jobs_dict[job])
+                    stage_msg += job_msg
+
+        self.stage_msg = stage_msg
+
+        self.dry_run_msg += global_msg
+        self.dry_run_msg += stage_msg
+
+    def _format_job_info_msg(self, name:str, job:dict) -> str:
+        """Format the output message for user (plain text version). This function is
+        used by _build_dry_run_msg().
+
+        Args:
+            name (str): job name
+            job (dict): key-value of the job, such as "stages:<value>, scripts:<value>, etc"
+
+        Returns:
+            str: dry run message
+        """
+        formatted_msg = f'Running job: "{name}"'
+        for key, value in job.items():
+            formatted_msg += f', {key}: {value}'
+        formatted_msg += "\n"
+
+        return formatted_msg
