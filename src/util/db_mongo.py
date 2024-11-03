@@ -9,8 +9,8 @@ from util.common_utils import (get_env, get_logger)
 env = get_env()
 logger = get_logger("util.db_mongo")
 MONGO_DB_NAME = "CICDControllerDB"
-MONGO_PIPELINES_TABLE = "pipelines_collection"
-MONGO_JOBS_TABLE = "jobs_collection"
+MONGO_PIPELINES_TABLE = "repo_configs"
+MONGO_JOBS_TABLE = "jobs_history"
 MONGO_REPOS_TABLE = "sessions"
 # pylint: disable=logging-fstring-interpolation
 
@@ -343,15 +343,23 @@ class MongoAdapter:
                 'repo_name': repo_name,
                 'repo_url': repo_url,
                 'branch': branch,
-                'pipeline_name': pipeline_name
+                'pipelines.pipeline_name': pipeline_name
+            }
+            projection = {
+                "_id": 1,
+                "pipelines": {
+                    "$elemMatch": {"pipeline_name": pipeline_name}
+                }
             }
             mongo_client = MongoClient(self.mongo_uri)
             database = mongo_client[MONGO_DB_NAME]
-            collection = database['repo_configs']
-            pipeline_document = collection.find_one(
-                query_filter, {'_id': 1, 'pipeline_config': 1})
-
-            if pipeline_document:
+            collection = database[MONGO_PIPELINES_TABLE]
+            pipeline_document = collection.find_one(query_filter, projection)
+            mongo_client.close()
+            if pipeline_document and "pipelines" in pipeline_document:
+                # Flatten the result to directly access pipeline_config
+                pipeline_document["pipeline_config"] = pipeline_document["pipelines"][0].get("pipeline_config")
+                del pipeline_document["pipelines"]
                 return pipeline_document
             logger.warning(
                 f"No pipeline config found for '{pipeline_name}' "
@@ -386,20 +394,66 @@ class MongoAdapter:
                 'repo_name': repo_name,
                 'repo_url': repo_url,
                 'branch': branch,
-                'pipeline_name': pipeline_name
+                'pipelines.pipeline_name': pipeline_name
             }
 
             update_operation = {
                 '$set': {
-                    'pipeline_config': pipeline_config
+                    'pipelines.$.pipeline_config': pipeline_config
                 }
             }
             mongo_client = MongoClient(self.mongo_uri)
             database = mongo_client[MONGO_DB_NAME]
-            collection = database['repo_configs']
+            collection = database[MONGO_PIPELINES_TABLE]
             result = collection.update_one(query_filter, update_operation)
             mongo_client.close()
             return result.acknowledged
         except errors.PyMongoError as e:
             logger.warning(f"Error updating pipeline config: {str(e)}")
             return False
+
+    def get_repo(self, repo_name: str, repo_url: str, branch: str) -> dict:
+        """ Retrieve a repo document based on repo_name, repo_url, and branch
+            from the repo_configs collection.
+
+        Args:
+            repo_name (str): The name of the repository.
+            repo_url (str): The URL of the repository.
+            branch (str): The branch of the repository.
+
+        Returns:
+            dict: The repository document if found, otherwise None.
+        """
+        try:
+            with MongoClient(self.mongo_uri) as mongo_client:
+                database = mongo_client[MONGO_DB_NAME]
+                collection = database[MONGO_PIPELINES_TABLE]
+                query_filter = {
+                    "repo_name": repo_name,
+                    "repo_url": repo_url,
+                    "branch": branch
+                }
+                return collection.find_one(query_filter) or {}
+        except errors.PyMongoError:
+            return {}
+
+    def create_pipeline_document(self, pipeline_name: str, file_name: str, pipeline_config: dict) -> dict:
+        """Generate a new pipeline document for insertion into pipelines.
+
+        Args:
+            pipeline_name (str): The name of the pipeline.
+            file_name (str): The name of the YAML file for the pipeline.
+            pipeline_config (dict): The pipeline configuration details.
+
+        Returns:
+            dict: A dictionary representing the new pipeline document.
+        """
+        return {
+            "pipeline_name": pipeline_name,
+            "pipeline_file_name": file_name,
+            "pipeline_config": pipeline_config,
+            "job_run_history": [],
+            "active": False,
+            "running": False,
+            "last_commit_hash": ""
+        }
