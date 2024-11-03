@@ -2,7 +2,7 @@
 
 # Summary
 
-This sprint, we continue to focus on integrating different use cases and meeting requirements for our upcoming demo. Brief status updates were discussed on 10 / 29, followed by a detailed meeting on 11 / 1 to cover ongoing work and targets for the 11 / 5 demo.
+This sprint, we continue to focus on integrating different use cases and meeting requirements for our upcoming demo. Brief status updates were discussed on 10/29, followed by a detailed meeting on 11/1 to cover ongoing work and targets for the 11/5 demo.
 
 Following are notes from meeting:
 
@@ -15,6 +15,7 @@ This week meeting chairperson & report writer - Akshay
 
 Next week meeting chairperson - Lin
 
+Lack of completed tasks below are due to making changes to current our current implementation/pull requests, due to different understanding.
 # Completed tasks
 
 | Task           | Weight    | Assignee    |
@@ -57,6 +58,3 @@ Next week meeting chairperson - Lin
 
 # What did not work this week?
 - Lin: Avoid putting all the code in the Controller class.
-
-
-# Design updates
