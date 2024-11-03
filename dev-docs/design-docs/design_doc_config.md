@@ -230,8 +230,9 @@ The ConfigChecker validation method will return a dictionary with the following 
         'stage': '<stage_name>',
         'allow_failure': <True or False(default)>,
         'needs': ['<job_required_1>', '<job_required_2>'], # set to empty list if not supplied
-        'docker_registry': "<'dockerhub' or other registries url prefix>",
-        'docker_image': '<namespace(optional)>/<image>:<tag(optional)>',
+        'docker':
+            'registry': "<'dockerhub' or other registries url prefix>",
+            'image': '<namespace(optional)>/<image>:<tag(optional)>',
         'artifact_upload_path': '<valid upload path>', # set to empty string if not required
         'scripts': ['<command_1>', '<command_2>']
         'artifacts': {
