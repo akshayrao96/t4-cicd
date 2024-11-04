@@ -228,31 +228,37 @@ class MongoAdapter:
         Returns:
             str: ID of the inserted job document.
         """
-        repo = self._retrieve(repo_id, MONGO_DB_NAME, MONGO_PIPELINES_TABLE)
-        all_stages = list(pipeline_config.get("stages", {}).keys())
-        stages_to_initialize = stages_to_run if stages_to_run else all_stages
+        try:
+            repo = self._retrieve(repo_id, MONGO_DB_NAME, MONGO_PIPELINES_TABLE)
+            if not isinstance(repo, dict):
+                repo = {}
+            all_stages = list(pipeline_config.get("stages", {}).keys())
+            stages_to_initialize = stages_to_run if stages_to_run else all_stages
 
-        stage_logs = []
-        for stage_name in stages_to_initialize:
-            if stage_name in all_stages:
-                stage_log = {
-                    "stage_name": stage_name,
-                    "stage_status": "pending",
-                    "jobs": []
-                }
-                stage_logs.append(stage_log)
-        pending_stages = [stage["stage_name"] for stage in stage_logs]
-        logger.info(f"Initialized stages: {', '.join(pending_stages)}")
+            stage_logs = []
+            for stage_name in stages_to_initialize:
+                if stage_name in all_stages:
+                    stage_log = {
+                        "stage_name": stage_name,
+                        "stage_status": "pending",
+                        "jobs": []
+                    }
+                    stage_logs.append(stage_log)
+            pending_stages = [stage["stage_name"] for stage in stage_logs]
+            logger.info(f"Initialized stages: {', '.join(pending_stages)}")
 
-        job_data = {
-            "pipeline_number": bson.ObjectId(),
-            "run_number": len(repo.get("job_run_history", [])) + 1,
-            "git_commit_hash": repo.get("last_commit_hash"),
-            "pipeline_config_used": pipeline_config,
-            "success": None,
-            "logs": stage_logs
-        }
-        return self._insert(job_data, MONGO_DB_NAME, MONGO_JOBS_TABLE)
+            job_data = {
+                "pipeline_number": bson.ObjectId(),
+                "run_number": len(repo.get("job_run_history", [])) + 1,
+                "git_commit_hash": repo.get("last_commit_hash", ""),
+                "pipeline_config_used": pipeline_config,
+                "success": None,
+                "logs": stage_logs
+            }
+            return self._insert(job_data, MONGO_DB_NAME, MONGO_JOBS_TABLE)
+        except errors.PyMongoError as e:
+            logger.warning(f"Error inserting new job: {e}")
+            return None
 
     def update_job(self, jobs_id: str, updates: dict) -> bool:
         """
@@ -265,13 +271,16 @@ class MongoAdapter:
         Returns:
             bool: True if the update succeeded, False otherwise.
         """
-
-        job = self._retrieve(jobs_id, MONGO_DB_NAME, MONGO_JOBS_TABLE)
-        if not job:
-            logger.warning(f"Job with ID {jobs_id} not found.")
+        try:
+            job = self._retrieve(jobs_id, MONGO_DB_NAME, MONGO_JOBS_TABLE)
+            if not job:
+                logger.warning(f"Job with ID {jobs_id} not found.")
+                return False
+            job.update(updates)
+            return self._update(job, MONGO_DB_NAME, MONGO_JOBS_TABLE)
+        except errors.PyMongoError as e:
+            logger.warning(f"Error updating job: {e}")
             return False
-        job.update(updates)
-        return self._update(job, MONGO_DB_NAME, MONGO_JOBS_TABLE)
 
     def update_job_logs(self, jobs_id: str, stage_name: str,
                         stage_status: str, jobs_log: dict) -> bool:
@@ -300,7 +309,7 @@ class MongoAdapter:
             stage_log["stage_status"] = stage_status
             stage_log["jobs"] = jobs_log
             return self._update(jobs, MONGO_DB_NAME, MONGO_JOBS_TABLE)
-        except Exception as e:
+        except errors.PyMongoError as e:
             logger.warning(f"Error updating job log for jobs_id {jobs_id}: {e}")
             return False
 
