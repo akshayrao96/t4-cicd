@@ -6,6 +6,7 @@ import pytest
 from pymongo import (errors)
 from unittest.mock import MagicMock, patch
 from dataclasses import dataclass
+from collections import OrderedDict
 from util.db_mongo import MongoAdapter
 from util.common_utils import get_logger
 logger = get_logger("tests.test_util.test_db_mongo")
@@ -159,18 +160,23 @@ class TestMongoDB:
             'job_run': 1,
             'job_log': {}
         }
+        pipeline_config = {
+            'global': {
+                'stages': OrderedDict([
+                    ('build', {})
+                ])
+            }
+        }
 
         # Test insert and get
-        result_id = mongo_adapter.insert_job(
-            job_log)
-        logger.info(f"log from test mongo adapter:{result_id}")
+        result_id = mongo_adapter.insert_job("672817cdabdfc031a3ff26f4", pipeline_config)
         search_result = mongo_adapter.get_job(result_id)
+        assert search_result['pipeline_config_used'] == pipeline_config
 
         # Test update
-        assert search_result == job_log
         updated_history = copy.deepcopy(search_result)
         updated_history['success'] = True
-        mongo_adapter.update_job(updated_history)
+        mongo_adapter.update_job(result_id, updated_history)
         new_search_result = mongo_adapter.get_job(result_id)
         assert new_search_result == updated_history
 
@@ -191,12 +197,19 @@ class TestMongoDB:
             'job_run': 1,
             'job_log': {}
         }
+        pipeline_config = {
+            'global': {
+                'stages': OrderedDict([
+                    ('build', {})
+                ])
+            }
+        }
         result_id = mongo_adapter.insert_job(
-            job_log)
+            "672817cdabdfc031a3ff26f4", pipeline_config)
         assert result_id is None
         search_result = mongo_adapter.get_job("")
         assert search_result == {}
-        update_result = mongo_adapter.update_job(job_log)
+        update_result = mongo_adapter.update_job(job_log, pipeline_config)
         assert update_result == False
         del_result = mongo_adapter.del_job("")
         assert del_result == False
