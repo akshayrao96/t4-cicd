@@ -1,7 +1,7 @@
 """ Manage connection to MongoDB, and provides functions for relevent CRUD operation
 """
 import copy
-
+from datetime import datetime, timezone
 import bson
 from pymongo import (MongoClient, errors)
 from util.common_utils import (get_env, get_logger)
@@ -216,43 +216,130 @@ class MongoAdapter:
                 f"Error deleting the pipeline history, exception is {e}")
             return False
 
-    def insert_job(self, job_log: dict, db_name: str = MONGO_DB_NAME,
-                   collection_name: str = MONGO_JOBS_TABLE) -> str:
-        """ Insert a new job_log record
+    def insert_job(self, repo_id: str, pipeline_config: dict, stages_to_run: list = None) -> str:
+        """
+        Inserts a new job with initialized stages into the jobs table.
 
         Args:
-            job_log (dict): dictionary of the history record in key=value pairs
-            db_name (str, optional): database to be inserted into. Defaults to MONGO_DB_NAME.
-            collection_name (str, optional): collection(table) to be inserted into.
-                Defaults to MONGO_JOBS_TABLE.
+            repo_id (str): Repository ID for the job.
+            pipeline_config (dict): Configuration of pipeline stages.
+            stages_to_run (list, optional): Stages to initialize; defaults to all.
 
         Returns:
-            str: the inserted_id(converted to str) if successful
+            str: ID of the inserted job document.
         """
         try:
-            return self._insert(job_log, db_name, collection_name)
+            repo = self._retrieve(repo_id, MONGO_DB_NAME, MONGO_PIPELINES_TABLE)
+            if not isinstance(repo, dict):
+                repo = {}
+            all_stages = list(pipeline_config.get("stages", {}).keys())
+            stages_to_initialize = stages_to_run if stages_to_run else all_stages
+
+            stage_logs = []
+            for stage_name in stages_to_initialize:
+                if stage_name in all_stages:
+                    stage_log = {
+                        "stage_name": stage_name,
+                        "stage_status": "pending",
+                        "jobs": []
+                    }
+                    stage_logs.append(stage_log)
+            pending_stages = [stage["stage_name"] for stage in stage_logs]
+            logger.info(f"Initialized stages: {', '.join(pending_stages)}")
+
+            job_data = {
+                "pipeline_number": bson.ObjectId(),
+                "run_number": len(repo.get("job_run_history", [])) + 1,
+                "git_commit_hash": repo.get("last_commit_hash", ""),
+                "pipeline_config_used": pipeline_config,
+                "success": None,
+                "logs": stage_logs
+            }
+            return self._insert(job_data, MONGO_DB_NAME, MONGO_JOBS_TABLE)
         except errors.PyMongoError as e:
-            logger.warning(
-                f"Error inserting new job log, exception is {e}")
+            logger.warning(f"Error inserting new job: {e}")
             return None
 
-    def update_job(self, job_log: dict, db_name: str = MONGO_DB_NAME,
-                   collection_name: str = MONGO_JOBS_TABLE) -> bool:
-        """ Update the job_log based on given dict
+    def update_job(self, jobs_id: str, updates: dict) -> bool:
+        """
+        Updates specified fields in a job document.
 
         Args:
-            job_log (dict): updated job_log
-            db_name (str, optional): database to be updated. Defaults to MONGO_DB_NAME.
-            collection_name (str, optional): collection(table) to be updated.
-                Defaults to MONGO_JOBS_TABLE.
+            jobs_id (str): ID of the job to update.
+            updates (dict): A dictionary of fields and their new values to update.
+
         Returns:
-            bool: if the update is successful or fail
+            bool: True if the update succeeded, False otherwise.
         """
         try:
-            return self._update(job_log, db_name, collection_name)
+            job = self._retrieve(jobs_id, MONGO_DB_NAME, MONGO_JOBS_TABLE)
+            if not job:
+                logger.warning(f"Job with ID {jobs_id} not found.")
+                return False
+            job.update(updates)
+            return self._update(job, MONGO_DB_NAME, MONGO_JOBS_TABLE)
         except errors.PyMongoError as e:
-            logger.warning(f"Error updating the job log, exception is {e}")
+            logger.warning(f"Error updating job: {e}")
             return False
+
+    def update_job_logs(self, jobs_id: str, stage_name: str,
+                        stage_status: str, jobs_log: dict) -> bool:
+        """
+        Updates the status and the jobs log for a specific stage.
+
+        Args:
+            jobs_id (str): ID of the job to update.
+            stage_name (str): Name of the stage to update.
+            stage_status (str): New status of the stage.
+            jobs_log (dict): Log information for the stage.
+
+        Returns:
+            bool: True if the update succeeded, False otherwise.
+        """
+        try:
+            jobs = self._retrieve(jobs_id, MONGO_DB_NAME, MONGO_JOBS_TABLE)
+            if not jobs:
+                logger.warning(f"Jobs with ID {jobs_id} not found.")
+                return False
+            stage_log = next((stage for stage in jobs["logs"] 
+                              if stage["stage_name"] == stage_name), None)
+            if not stage_log:
+                logger.warning(f"Stage '{stage_name}' not initialized. Cannot update job log.")
+                return False
+            stage_log["stage_status"] = stage_status
+            stage_log["jobs"] = jobs_log
+            return self._update(jobs, MONGO_DB_NAME, MONGO_JOBS_TABLE)
+        except errors.PyMongoError as e:
+            logger.warning(f"Error updating job log for jobs_id {jobs_id}: {e}")
+            return False
+
+    def create_job_log(self, job_name: str, job_status: str, allow_failure: bool = False,
+                    logs: list = None, error_output: str = None) -> dict:
+        """
+        Creates a job log entry.
+
+        Args:
+            job_name (str): Name of the job.
+            job_status (str): Current status of the job (e.g., "started" / "completed").
+            allow_failure (bool, optional): the job is allowed to fail or not.
+            logs (list, optional): List of log.
+            error_output (str, optional): Error output.
+
+        Returns:
+            dict: A dictionary representing the job log entry.
+        """
+        job_log = {
+            "job_name": job_name,
+            "job_status": job_status,
+            "allow_failure": allow_failure,
+            "logs": logs or [],
+            "error_output": error_output
+        }
+        if job_status == "started":
+            job_log["start_time"] = datetime.now(timezone.utc)
+        elif job_status == "completed":
+            job_log["completion_time"] = datetime.now(timezone.utc)
+        return job_log
 
     def get_job(self, doc_id: str, db_name: str = MONGO_DB_NAME,
                 collection_name: str = MONGO_JOBS_TABLE) -> dict:
