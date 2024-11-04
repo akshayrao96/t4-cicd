@@ -1,8 +1,8 @@
 [
     {
-      "jobs_id": "1",
+      "_id": "1",
       "pipeline_number": 67890,
-      "run_number": 1234,
+      "run_number": 1,
       "git_commit_hash": "z9y8x7w6v5u4t3s2r1q0",
       "pipeline_config_used": "pipelines.yml",
       "success": true,
@@ -14,7 +14,7 @@
             {
               "job_name": "Checkout",
               "job_status": "success",
-              "allows_failure": false,
+              "allow_failure": false,
               "start_time": "2024-10-28T10:00:00Z",
               "completion_time": "2024-10-28T10:05:00Z",
               "logs": "Checked out the repository.",
@@ -23,7 +23,7 @@
             {
               "job_name": "Compile",
               "job_status": "success",
-              "allows_failure": true,
+              "allow_failure": true,
               "start_time": "2024-10-28T10:10:00Z",
               "completion_time": "2024-10-28T10:15:00Z",
               "logs": "Installed dependencies using Poetry.",
@@ -38,7 +38,7 @@
             {
               "job_name": "Test Checkout",
               "job_status": "success",
-              "allows_failure": false,
+              "allow_failure": false,
               "start_time": "2024-10-28T10:20:00Z",
               "completion_time": "2024-10-28T10:25:00Z",
               "logs": "Checked out the repository for testing.",
@@ -47,7 +47,7 @@
             {
               "job_name": "Pytest",
               "job_status": "success",
-              "allows_failure": false,
+              "allow_failure": false,
               "start_time": "2024-10-28T10:30:00Z",
               "completion_time": "2024-10-28T10:45:00Z",
               "logs": "Ran pytest, all tests passed.",
@@ -56,7 +56,7 @@
             {
               "job_name": "Pylint",
               "job_status": "success",
-              "allows_failure": false,
+              "allow_failure": false,
               "start_time": "2024-10-28T10:50:00Z",
               "completion_time": "2024-10-28T11:00:00Z",
               "logs": "Pylint ran with a score above 9.5.",
@@ -71,7 +71,7 @@
             {
               "job_name": "Pyreverse",
               "job_status": "success",
-              "allows_failure": false,
+              "allow_failure": false,
               "start_time": "2024-10-28T11:05:00Z",
               "completion_time": "2024-10-28T11:15:00Z",
               "logs": "Generated UML diagrams using Pyreverse.",
@@ -86,7 +86,7 @@
             {
               "job_name": "Deploy Checkout",
               "job_status": "success",
-              "allows_failure": false,
+              "allow_failure": false,
               "start_time": "2024-10-28T11:20:00Z",
               "completion_time": "2024-10-28T11:25:00Z",
               "logs": "Checked out the repository for deployment.",
@@ -95,7 +95,7 @@
             {
               "job_name": "Deploy Compile",
               "job_status": "success",
-              "allows_failure": true,
+              "allow_failure": true,
               "start_time": "2024-10-28T11:30:00Z",
               "completion_time": "2024-10-28T11:40:00Z",
               "logs": "Compiled deployment code and generated artifacts.",
@@ -106,9 +106,9 @@
       ]
     },
     {
-      "jobs_id": "2",
+      "_id": "2",
       "pipeline_number": 67891,
-      "run_number": 1235,
+      "run_number": 2,
       "git_commit_hash": "y8x7w6v5u4t3s2r1q0p9",
       "pipeline_config_used": "pipelines.yml",
       "success": false,
@@ -120,7 +120,7 @@
             {
               "job_name": "Checkout",
               "job_status": "success",
-              "allows_failure": false,
+              "allow_failure": false,
               "start_time": "2024-10-29T09:00:00Z",
               "completion_time": "2024-10-29T09:05:00Z",
               "logs": "Checked out the repository.",
@@ -129,7 +129,7 @@
             {
               "job_name": "Compile",
               "job_status": "failed",
-              "allows_failure": true,
+              "allow_failure": true,
               "start_time": "2024-10-29T09:10:00Z",
               "completion_time": "2024-10-29T09:15:00Z",
               "logs": "Attempted to install dependencies, encountered an error.",
@@ -144,7 +144,7 @@
             {
               "job_name": "Pytest",
               "job_status": "failed",
-              "allows_failure": false,
+              "allow_failure": false,
               "start_time": "2024-10-29T09:30:00Z",
               "completion_time": "2024-10-29T09:45:00Z",
               "logs": "Ran pytest, tests failed.",
@@ -153,7 +153,7 @@
             {
               "job_name": "Pylint",
               "job_status": "success",
-              "allows_failure": false,
+              "allow_failure": false,
               "start_time": "2024-10-29T09:50:00Z",
               "completion_time": "2024-10-29T10:00:00Z",
               "logs": "Pylint ran successfully with a score above threshold.",
