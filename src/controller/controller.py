@@ -7,10 +7,12 @@
 from datetime import datetime
 import os
 from typing import Any
-
+import pprint
 import click
 import git.exc
 import util.constant as const
+from util.container import (DockerManager)
+from util.model import (SessionDetail, PipelineConfig, ValidatedStage, PipelineHistory)
 from util.common_utils import (get_logger, ConfigOverrides, DryRun)
 from util.repo_manager import (RepoManager)
 from util.db_mongo import (MongoAdapter)
@@ -21,6 +23,8 @@ REPO_SOURCE = ""
 REPO_TARGET_PATH = ""
 REPO_BRANCH_NAME = "main"
 MONGO_PIPELINES_TABLE = "repo_configs"
+
+# pylint: disable=logging-fstring-interpolation
 # pylint: disable=fixme
 
 
@@ -407,7 +411,7 @@ class Controller:
 
             #get the filename and set the configuration file to be use for validate_config.
             config_file = default_path + config_dict.get('pipeline_file_name')
-        
+
         # perform config validation given the config_file/file_path (not pipeline_name).
         # by default it is set to '.cicd-pipelines/pipelines.yml'
         status, message, config_dict = self.validate_config(config_file)
@@ -453,9 +457,84 @@ class Controller:
 
         return tuple([status, message, pipeline_id])
 
-    # def _start_job(self):
-    #     """_summary_
-    #     """
+    def _actual_pipeline_run(self,
+                             repo_data:SessionDetail,
+                             pipeline_config:PipelineConfig,
+                             local:bool = False) -> tuple[bool, str, str]:
+        """_summary_
+        """
+        # TODO - Process local flag
+        # Check if pipeline is already running
+        pipeline_history = self.mongo_ds.get_pipeline_history(
+            repo_data.repo_name,
+            repo_data.repo_url,
+            repo_data.branch,
+            pipeline_config.global_.pipeline_name
+        )
+        his_obj = PipelineHistory.model_validate(pipeline_history)
+        pprint.pprint(his_obj.model_dump())
+        if pipeline_history['running']:
+            raise ValueError(f"Pipeline {pipeline_config.global_.pipeline_name} Already Running,"+
+                             "Please Stop Before Proceed")
+        # pprint.pprint(pipeline_history)
+        pipeline_config_with_id = self.mongo_ds.get_pipeline_config(
+            repo_data.repo_name,
+            repo_data.repo_url,
+            repo_data.branch,
+            pipeline_config.global_.pipeline_name
+        )
+        # Insert new job record
+        job_id = self.mongo_ds.insert_job(
+            pipeline_config_with_id["_id"],
+            pipeline_config.model_dump(by_alias=True)
+        )
+        # print(job_id)
+        his_obj.job_run_history.append(job_id)
+        updates = {
+            "job_run_history":his_obj.job_run_history,
+            'running':True,
+        }
+        update_success = self.mongo_ds.update_pipeline_history(
+            repo_data.repo_name,
+            repo_data.repo_url,
+            repo_data.branch,
+            pipeline_config.global_.pipeline_name,
+            updates
+        )
+        # TODO - if update unsuccessful, prompt user.
+        # Initialize Docker Manager
+        docker_manager = DockerManager(
+                repo=repo_data.repo_name,
+                pipeline=pipeline_config.global_.pipeline_name,
+                run="1"
+            )
+        # Iterate through all stages, for each jobs
+        for stage_name, stage_config in pipeline_config.stages.items():
+            stage_config = ValidatedStage.model_validate(stage_config)
+            job_logs = {}
+            # run the job, get the record, update job history
+            for job_group in stage_config.job_groups:
+                for job_name in job_group:
+                    job_config = pipeline_config.jobs[job_name]
+                    #print(job_name)
+                    #pprint.pprint(job_config)
+                    job_log = docker_manager.run_job(job_name, job_config)
+                    pprint.pprint(job_log)
+                    job_logs[job_name] = job_log
+            # TODO - Update Success Status
+            self.mongo_ds.update_job_logs(job_id, stage_name, "success", job_logs)
+            #pprint.pprint(job_logs)
+        # Wrap up and return
+        final_updates = {
+            'running':False
+        }
+        update_success = self.mongo_ds.update_pipeline_history(
+            repo_data.repo_name,
+            repo_data.repo_url,
+            repo_data.branch,
+            pipeline_config.global_.pipeline_name,
+            final_updates
+        )
 
 
     # def stop_job(self):
@@ -505,4 +584,3 @@ class Controller:
             dry_run_msg = yaml_output_msg
 
         return True, dry_run_msg, pipeline_id
-    

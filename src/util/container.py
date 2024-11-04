@@ -1,8 +1,9 @@
 """ docker module provide all class and method required to interact with docker engine
 for execution of pipeline job
 """
+from pathlib import Path
 import copy
-import io
+import os
 import tarfile
 import time
 from abc import ABC, abstractmethod
@@ -13,6 +14,7 @@ import util.constant as c
 from util.common_utils import (get_logger)
 from util.model import (JobConfig, JobLog)
 
+# pylint: disable=fixme
 logger = get_logger("util.docker")
 
 DEFAULT_DOCKER_DIR = '/app'
@@ -94,7 +96,7 @@ class DockerManager(ContainerManager):
         # create the vol for the first time
         if self.docker_vol is None:
             self.docker_vol = self.client.volumes.create(self.vol_name)
-            
+
         # Extract important values
         container_name = self.vol_name + '-' + job_name
         # TODO - test different docker_reg
@@ -137,23 +139,23 @@ class DockerManager(ContainerManager):
             print(output)
             print(f"err:{output_stderr}")
 
-            # Note docker container will store some status log in stderr, currently 
+            # Note docker container will store some status log in stderr, currently
             # only way to check if error in execution is to look for the keyword
             # using the custom _check_status_from_log function
             job_success = False
             if self._check_status_from_log(output_stderr):
                 job_success = True
-            
+
             if c.JOB_SUBKEY_ARTIFACT in job_config:
                 upload_config = job_config[c.JOB_SUBKEY_ARTIFACT]
                 if job_success or not upload_config[c.ARTIFACT_SUBKEY_ONSUCCESS]:
                     indicator, msg = self._upload_artifact(container,
-                                                        upload_path, 
+                                                        upload_path,
                                                         upload_config[c.ARTIFACT_SUBKEY_PATH]
                                                         )
                     job_success = job_success and indicator
                     output += msg
-            
+
             if job_success:
                 job_log.job_status = c.STATUS_SUCCESS
             # Clean up container
@@ -182,7 +184,8 @@ class DockerManager(ContainerManager):
             return False
         return True
 
-    def _upload_artifact(self, container:Container, upload_path:str, extract_paths:list[str]) -> tuple[bool,str]:
+    def _upload_artifact(self, container:Container,
+                         upload_path:str, extract_paths:list[str]) -> tuple[bool,str]:
         """ Move the artifacts from container to target upload path
 
         Args:
@@ -198,15 +201,23 @@ class DockerManager(ContainerManager):
             for path in extract_paths:
                 bits, stat = container.get_archive(f"{DEFAULT_DOCKER_DIR}/{path}")
                 # Write the archive to the host filesystem
+                upload_path_obj = Path(upload_path)
+                if not upload_path_obj.is_dir():
+                    parent_path = Path.cwd()
+                    print(parent_path)
+                    upload_path_obj = parent_path.joinpath(upload_path_obj)
+                    print(upload_path_obj)
+                    upload_path_obj.mkdir()
                 with open(f"{upload_path}/volume_contents.tar", "wb") as f:
                     for chunk in bits:
                         f.write(chunk)
                 # Extract the contents of the archive
                 with tarfile.open(f"{upload_path}/volume_contents.tar", "r") as tar:
                     tar.extractall(path=upload_path)
+                os.remove(f"{upload_path}/volume_contents.tar")
             return True, ""
-        except docker.errors.DockerException as de:
-            return False, de.__str__()
+        except (docker.errors.DockerException, FileNotFoundError) as de:
+            return False, str(de)
 
     def stop_job(self, job_name: str) -> str:
         """ stop a job
@@ -223,7 +234,3 @@ class DockerManager(ContainerManager):
         container.wait()
         output = container.logs().decode('utf-8')
         return output
-        
-            
-    
-        

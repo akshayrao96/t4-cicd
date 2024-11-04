@@ -1,0 +1,50 @@
+# Another valid configuration file that will be called when controller's
+# repo is set and cli does not specify repo and yml file by default
+# Pipeline name changed to avoid duplication names
+global:
+    pipeline_name: "cicd_pipeline"
+    docker: 
+        registry: 'dockerhub'
+        image: "sjchin88/python-git-poetry:latest"
+    artifact_upload_path: "temp"
+
+# default stages: [build, test, doc, deploy]
+stages: ['build', 'test']
+
+jobs:
+    # Job for build stage
+    checkout:
+        stage: build
+        scripts: ['git clone https://github.com/sjchin88/cicd-python',
+                  'cd cicd-python',
+                  'ls -la']
+
+    compile:
+        stage: build
+        allow_failure: False
+        needs: ['checkout']
+        scripts: ['ls -la', 
+                'poetry config virtualenvs.path /app/.cache/pypoetry/virtualenvs',
+                'cd cicd-python','poetry install']
+
+    # Job for test stage
+    pytest:
+        stage: test
+        scripts: [
+            'ls -la',
+            'poetry config virtualenvs.path /app/.cache/pypoetry/virtualenvs',
+            'cd cicd-python',
+            'poetry run pytest']
+        artifacts:
+            on_success_only: False
+            paths: 
+                - 'cicd-python/htmlcov'
+    
+    pylint:
+        stage: test
+        scripts: [
+            'poetry config virtualenvs.path /app/.cache/pypoetry/virtualenvs',
+            'cd cicd-python',
+            'poetry run pylint ./src --fail-under=9.5']
+
+    
