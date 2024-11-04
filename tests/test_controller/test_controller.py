@@ -31,15 +31,11 @@ logger = get_logger("tests.test_controller.test_controller")
 #     logger.info(config_dict)
 
 def test_edit_config():
-    current_dir = os.path.dirname(__file__)
-    file_path = os.path.join(current_dir, 'pipeline_data.json')
-    with open(file_path, 'r', encoding='utf-8') as file:
-        pipeline_data = json.load(file)
     db = MongoAdapter()
-    # db.insert_pipeline(pipeline_data, "CICDControllerDB", "repo_configs")
     controller = Controller()
-    updates = {'global': {'docker': {'image': 'gradle:jdk8'}}}
-    # controller.edit_config(pipeline_data['pipeline_name'], updates)
+    # id = db.insert_job("672817cdabdfc031a3ff26f4", pipeline_config)
+    pg = db.create_job_log("checkout", "started")
+    _ = db.update_job_logs("67281a551b30182de9ac740d", "build", "started", pg)
 test_edit_config()
 
 class TestController(unittest.TestCase):
