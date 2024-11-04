@@ -254,7 +254,26 @@ class MongoAdapter:
         }
         return self._insert(job_data, MONGO_DB_NAME, MONGO_JOBS_TABLE)
 
-    def update_job_logs(self, jobs_id: str, stage_name: str, 
+    def update_job(self, jobs_id: str, updates: dict) -> bool:
+        """
+        Updates specified fields in a job document.
+
+        Args:
+            jobs_id (str): ID of the job to update.
+            updates (dict): A dictionary of fields and their new values to update.
+
+        Returns:
+            bool: True if the update succeeded, False otherwise.
+        """
+
+        job = self._retrieve(jobs_id, MONGO_DB_NAME, MONGO_JOBS_TABLE)
+        if not job:
+            logger.warning(f"Job with ID {jobs_id} not found.")
+            return False
+        job.update(updates)
+        return self._update(job, MONGO_DB_NAME, MONGO_JOBS_TABLE)
+
+    def update_job_logs(self, jobs_id: str, stage_name: str,
                         stage_status: str, jobs_log: dict) -> bool:
         """
         Updates the status and the jobs log for a specific stage.
