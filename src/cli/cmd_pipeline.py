@@ -8,7 +8,7 @@ from controller.controller import (Controller)
 
 DEFAULT_CONFIG_FILE_PATH = ".cicd-pipelines/pipelines.yml"
 logger = get_logger('cli.cmd_pipeline')
-
+# pylint: disable=fixme
 @click.group()
 def pipeline():
     """All commands related to pipeline"""
