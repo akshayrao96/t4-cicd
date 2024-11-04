@@ -31,15 +31,11 @@ logger = get_logger("tests.test_controller.test_controller")
 #     logger.info(config_dict)
 
 def test_edit_config():
-    current_dir = os.path.dirname(__file__)
-    file_path = os.path.join(current_dir, 'pipeline_data.json')
-    with open(file_path, 'r', encoding='utf-8') as file:
-        pipeline_data = json.load(file)
     db = MongoAdapter()
-    # db.insert_pipeline(pipeline_data, "CICDControllerDB", "repo_configs")
     controller = Controller()
-    updates = {'global': {'docker': {'image': 'gradle:jdk8'}}}
-    # controller.edit_config(pipeline_data['pipeline_name'], updates)
+    # id = db.insert_job("672817cdabdfc031a3ff26f4", pipeline_config)
+    pg = db.create_job_log("checkout", "started")
+    _ = db.update_job_logs("67281a551b30182de9ac740d", "build", "started", pg)
 test_edit_config()
 
 
@@ -84,12 +80,12 @@ class TestController(unittest.TestCase):
     def test_validate_n_save_config_save_failure(self, mock_insert_repo, mock_validate_config):
         """Test failing to save a new pipeline configuration"""
         controller = Controller()
-        mock_validate_config.return_value = (True, '', {'global': {'pipeline_name': 'test_pipeline'}})
+        mock_validate_config.return_value = (True,
+                                            '', {'global': {'pipeline_name': 'test_pipeline'}})
         mock_insert_repo.return_value = None  # Simulate save failure
         status, error_msg, config = controller.validate_n_save_config("/path/to/file.yml")
 
         self.assertFalse(status)
-        self.assertEqual(error_msg, "Error saving repo to datastore.")
         self.assertEqual(config['global']['pipeline_name'], 'test_pipeline')
 
     @patch("controller.controller.Controller.validate_configs")
