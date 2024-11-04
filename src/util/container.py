@@ -8,11 +8,14 @@ import time
 from abc import ABC, abstractmethod
 import docker
 import docker.errors
+from docker.models.containers import Container
 import util.constant as c
 from util.common_utils import (get_logger)
 from util.model import (JobConfig, JobLog)
 
 logger = get_logger("util.docker")
+
+DEFAULT_DOCKER_DIR = '/app'
 
 class ContainerManager(ABC):
     """ Abstract base class for Container Management
@@ -33,14 +36,14 @@ class ContainerManager(ABC):
         """
 
     @abstractmethod
-    def stop_job(self, job_name:str):
+    def stop_job(self, job_name:str) -> str:
         """ Abstract method to stop a job, to be implemented by subclass
 
         Args:
             job_name (str): name of the job
 
         Returns:
-            _type_: _description_
+            str: latest container log
         """
 
 class DockerManager(ContainerManager):
@@ -65,7 +68,7 @@ class DockerManager(ContainerManager):
         self.client = client
         self.logger = log_tool
         self.vol_name = repo + '-' + pipeline + '-' + run
-        self.docker_vol = self.client.volumes.create(self.vol_name)
+        self.docker_vol = None
 
     def run_job(self, job_name:str, job_config: dict) -> dict:
         """ run a single job and return its output
@@ -88,7 +91,10 @@ class DockerManager(ContainerManager):
         """
         # Validate input data
         JobConfig.model_validate(job_config)
-
+        # create the vol for the first time
+        if self.docker_vol is None:
+            self.docker_vol = self.client.volumes.create(self.vol_name)
+            
         # Extract important values
         container_name = self.vol_name + '-' + job_name
         # TODO - test different docker_reg
@@ -111,7 +117,7 @@ class DockerManager(ContainerManager):
                     detach=True,
                     volumes={
                         self.vol_name:{
-                            'bind': '/app',
+                            'bind': DEFAULT_DOCKER_DIR,
                             'mode': 'rw'
                         }
                     }
@@ -130,15 +136,30 @@ class DockerManager(ContainerManager):
             output_stderr = container.logs(stdout=False).decode('utf-8')
             print(output)
             print(f"err:{output_stderr}")
-            # Clean up container
-            container.remove()
+
             # Note docker container will store some status log in stderr, currently 
             # only way to check if error in execution is to look for the keyword
             # using the custom _check_status_from_log function
+            job_success = False
             if self._check_status_from_log(output_stderr):
-                job_log.job_status=c.STATUS_SUCCESS
+                job_success = True
+            
+            if c.JOB_SUBKEY_ARTIFACT in job_config:
+                upload_config = job_config[c.JOB_SUBKEY_ARTIFACT]
+                if job_success or not upload_config[c.ARTIFACT_SUBKEY_ONSUCCESS]:
+                    indicator, msg = self._upload_artifact(container,
+                                                        upload_path, 
+                                                        upload_config[c.ARTIFACT_SUBKEY_PATH]
+                                                        )
+                    job_success = job_success and indicator
+                    output += msg
+            
+            if job_success:
+                job_log.job_status = c.STATUS_SUCCESS
+            # Clean up container
+            container.remove()
         except docker.errors.DockerException as de:
-            # If caught DockerException, update completion time 
+            # If caught DockerException
             self.logger.warning(f"Job run fail for {job_name}, exception is {de}")
         # Add completion time and log to job_log
         job_log.completion_time = time.asctime()
@@ -160,13 +181,49 @@ class DockerManager(ContainerManager):
         if "error" in stderr:
             return False
         return True
-        
-    def stop_job(self, job_name: str):
+
+    def _upload_artifact(self, container:Container, upload_path:str, extract_paths:list[str]) -> tuple[bool,str]:
+        """ Move the artifacts from container to target upload path
+
+        Args:
+            container (Container): docker container object
+            upload_path (str): target upload_path, can be absolute or relative
+            extract_paths (list[str]): List of paths to extract artifact
+
+        Returns:
+            tuple[bool,str]: tuple of boolean indicator if upload success and 
+            a str for potential error message
+        """
+        try:
+            for path in extract_paths:
+                bits, stat = container.get_archive(f"{DEFAULT_DOCKER_DIR}/{path}")
+                # Write the archive to the host filesystem
+                with open(f"{upload_path}/volume_contents.tar", "wb") as f:
+                    for chunk in bits:
+                        f.write(chunk)
+                # Extract the contents of the archive
+                with tarfile.open(f"{upload_path}/volume_contents.tar", "r") as tar:
+                    tar.extractall(path=upload_path)
+            return True, ""
+        except docker.errors.DockerException as de:
+            return False, de.__str__()
+
+    def stop_job(self, job_name: str) -> str:
         """ stop a job
 
         Args:
             job_name (str): name of the job
+        Returns:
+            str: latest container logs
         """
+        # Reconstruct container name
+        container_name = self.vol_name + '-' + job_name
+        container = self.client.containers.get(container_name)
+        container.stop()
+        container.wait()
+        output = container.logs().decode('utf-8')
+        return output
         
+            
     
         

@@ -53,3 +53,14 @@ class JobLog(BaseModel):
     # If put Optional the default must be supplied
     completion_time:Optional[str] = time.asctime()
     job_logs:Optional[str] = ""
+    
+class GlobalConfig(BaseModel):
+    """ class to hold information for a global section
+
+    Args:
+        BaseModel (BaseModel): Base Pydantic Class
+    """
+    pipeline_name:str
+    docker:DockerConfig
+    artifact_upload_path:str
+    
