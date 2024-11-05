@@ -3,7 +3,7 @@
 import hashlib
 import time
 import click
-from util.common_utils import get_logger
+from util.common_utils import (get_logger,ConfigOverrides)
 from controller.controller import (Controller)
 
 DEFAULT_CONFIG_FILE_PATH = ".cicd-pipelines/pipelines.yml"
@@ -36,8 +36,10 @@ local directory path')
 @click.option('--dry-run', 'dry_run', help='dry-run options to simulate the pipeline\
 process', is_flag=True)
 @click.option('--yaml', 'yaml_output', help='print output in yaml format', is_flag=True)
+@click.option('--override', 'overrides', multiple=True,
+              help="Override configuration in 'key=value' format")
 def run(ctx, file_path:str, pipeline:str, repo:str, branch:str, commit:str, local:bool,
-        dry_run:bool, yaml_output:bool):
+        dry_run:bool, yaml_output:bool, overrides):
     """Run pipeline given the configuration file. 
 
     Command to run `cid pipeline run <config_filename>`
@@ -62,6 +64,14 @@ def run(ctx, file_path:str, pipeline:str, repo:str, branch:str, commit:str, loca
             click.echo("cid: invalid flag. you can only pass --file or --pipeline \
 and can't be both.")
             return
+
+    if overrides:
+        try:
+            overrides = ConfigOverrides.build_nested_dict(overrides)
+            # print(override_configs)
+        except ValueError as e:
+            click.secho(str(e), fg='red')
+            return
     control = Controller()
 
     # TODO - Del 2024-11-04 Update Note and Fix
@@ -77,11 +87,16 @@ and can't be both.")
     }
 
     status, message, pipeline_id = control.run_pipeline(config_file=file_path, pipeline=pipeline,
-                    dry_run=dry_run, git_details=git_details, local=local, yaml_output=yaml_output)
+                    dry_run=dry_run, git_details=git_details,
+                    local=local, yaml_output=yaml_output,
+                    override_configs=overrides)
 
     logger.debug(f"pipeline run status: {status}, ")
     #logger.debug(f"pipeline_id: {pipeline_id}")
-    click.echo(f"{message}")
+    if status:
+        click.secho(f"{message}", fg='green')
+    else:
+        click.secho(f"{message}", fg='red')
     # TODO - To Discuss, why do we need to show pipeline_id to user
     click.echo(f"pipeline_id: {pipeline_id}")
 
