@@ -99,7 +99,7 @@ class PipelineConfig(BaseModel):
     stages : OrderedDict
     jobs:dict
 
-class PipelineHistory(BaseModel):
+class PipelineInfo(BaseModel):
     """ class to hold information for a single pipeline history
     Args:
         BaseModel (BaseModel): Base Pydantic Class

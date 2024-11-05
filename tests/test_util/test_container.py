@@ -7,6 +7,7 @@ from docker.errors import DockerException
 import util.constant as c
 from util.container import (DockerManager)
 from util.common_utils import (get_logger)
+from util.model import (JobLog)
 
 logger = get_logger("tests.test_util.test_container")
 
@@ -87,10 +88,21 @@ class MockContainersApi:
     def get(self, *args, **kwargs):
         return self.container(*args, **kwargs)
 
+class MockVolume:
+    """ Fake Docker Volume"""
+    def __init__(self, *args, **kwargs):
+        self.args = args
+        self.kwargs = kwargs
+    
+    def remove(self):
+        return True
+    
 class MockVolumesApi:
     '''A fake Docker API with volumes calls.'''
+    def __init__(self):
+        self.volume = MockVolume
     def create(self, *args, **kwargs):
-        return "volume created"
+        return self.volume(*args, **kwargs)
     
 class MockDockerApi:
     '''A fake Docker API.'''
@@ -128,6 +140,7 @@ class TestDockerManager(unittest.TestCase):
         docker_manager = DockerManager(client=MockDockerApi())
         test_job_name = "sample_job"
         job_log = docker_manager.run_job(test_job_name, self.sample_job_config)
+        job_log = job_log.model_dump()
         assert job_log[c.REPORT_KEY_JOBNAME] == test_job_name
         assert job_log[c.REPORT_KEY_JOBLOG] == TEST_LOG
         assert job_log[c.REPORT_KEY_JOBSTATUS] == c.STATUS_SUCCESS
@@ -139,6 +152,7 @@ class TestDockerManager(unittest.TestCase):
         docker_manager = DockerManager(client=MockDockerApi(success=False))
         test_job_name = "sample_job"
         job_log = docker_manager.run_job(test_job_name, self.sample_job_config)
+        job_log = job_log.model_dump()
         assert job_log[c.REPORT_KEY_JOBNAME] == test_job_name
         assert job_log[c.REPORT_KEY_JOBLOG] == TEST_LOG_ERROR
         assert job_log[c.REPORT_KEY_JOBSTATUS] == c.STATUS_FAILED
@@ -147,6 +161,7 @@ class TestDockerManager(unittest.TestCase):
         docker_manager = DockerManager(client=MockDockerApi(throw=True))
         test_job_name = "sample_job"
         job_log = docker_manager.run_job(test_job_name, self.sample_job_config)
+        job_log = job_log.model_dump()
         assert job_log[c.REPORT_KEY_JOBNAME] == test_job_name
         assert job_log[c.REPORT_KEY_JOBSTATUS] == c.STATUS_FAILED
     
@@ -160,6 +175,7 @@ class TestDockerManager(unittest.TestCase):
             c.ARTIFACT_SUBKEY_PATH:['cicd-python']
         }
         job_log = docker_manager.run_job(test_job_name, job_config_with_upload)
+        job_log = job_log.model_dump()
         assert job_log[c.REPORT_KEY_JOBSTATUS] == c.STATUS_FAILED
     
     def test_check_status_from_log(self):
@@ -185,6 +201,7 @@ class TestDockerManager(unittest.TestCase):
             c.ARTIFACT_SUBKEY_PATH:['cicd-python']
         }
         job_log = docker_manager.run_job(test_job_name, job_config_with_upload)
+        job_log = job_log.model_dump()
         assert job_log[c.REPORT_KEY_JOBSTATUS] == c.STATUS_FAILED
     
     def test_stop_container(self):

@@ -4,11 +4,14 @@ import copy
 import mongomock
 import pytest
 from pymongo import (errors)
+import unittest
 from unittest.mock import MagicMock, patch
 from dataclasses import dataclass
 from collections import OrderedDict
+import util.constant as c
 from util.db_mongo import MongoAdapter
 from util.common_utils import get_logger
+from util.model import (PipelineInfo)
 logger = get_logger("tests.test_util.test_db_mongo")
 MONGO_DB_NAME = "CICDControllerDB"
 MONGO_PIPELINES_TABLE = "repo_configs"
@@ -86,8 +89,47 @@ MONGO_PIPELINES_TABLE = "repo_configs"
 #     mongo_adapter.update_job(updated_job_log)
 
 
-class TestMongoDB:
-
+class TestMongoDB(unittest.TestCase):
+    def setUp(self):
+        self.pipeline_config = {
+            'global':{
+                c.KEY_PIPE_NAME: "test_pipeline",
+                c.KEY_DOCKER:{
+                        c.KEY_DOCKER_REG: 'dockerhub',
+                        c.KEY_DOCKER_IMG: 'image'
+                    },
+                c.KEY_ARTIFACT_PATH: "/temp"
+            },
+            'stages':{
+                'stage1':{
+                    "job_graph": {
+                        "checkout": [
+                            "compile"
+                        ],
+                        "compile": []
+                    },
+                    "job_groups": [
+                        [
+                            "checkout",
+                            "compile"
+                        ]
+                    ]
+                }
+            },
+            'jobs':{
+                'job1': {
+                c.JOB_SUBKEY_STAGE: 'stage',
+                c.JOB_SUBKEY_ALLOW: True,
+                c.JOB_SUBKEY_NEEDS: [],
+                c.KEY_DOCKER:{
+                    c.KEY_DOCKER_REG: 'dockerhub',
+                    c.KEY_DOCKER_IMG: 'image'
+                },
+                c.KEY_ARTIFACT_PATH: 'path',
+                c.JOB_SUBKEY_SCRIPTS:['sh','ls'],
+                }
+            }
+        }
     _mock_mongo = mongomock.MongoClient()
 
     @patch("util.db_mongo.MongoClient", return_value=_mock_mongo)
@@ -160,18 +202,20 @@ class TestMongoDB:
             'job_run': 1,
             'job_log': {}
         }
-        pipeline_config = {
-            'global': {
-                'stages': OrderedDict([
-                    ('build', {})
-                ])
-            }
-        }
+        
 
         # Test insert and get
-        result_id = mongo_adapter.insert_job("672817cdabdfc031a3ff26f4", pipeline_config)
+        pipeline_history = {
+            "pipeline_name": "sample_pipeline",
+            "pipeline_file_name": "sample_pipeline.yml",
+            "last_commit_hash": "random",
+            "pipeline_config":self.pipeline_config
+        }
+        his_object = PipelineInfo.model_validate(pipeline_history)
+        result_id = mongo_adapter.insert_job(
+            his_object, self.pipeline_config)
         search_result = mongo_adapter.get_job(result_id)
-        assert search_result['pipeline_config_used'] == pipeline_config
+        assert search_result['pipeline_config_used'] == self.pipeline_config
 
         # Test update
         updated_history = copy.deepcopy(search_result)
@@ -197,19 +241,19 @@ class TestMongoDB:
             'job_run': 1,
             'job_log': {}
         }
-        pipeline_config = {
-            'global': {
-                'stages': OrderedDict([
-                    ('build', {})
-                ])
-            }
+        pipeline_history = {
+            "pipeline_name": "sample_pipeline",
+            "pipeline_file_name": "sample_pipeline.yml",
+            "last_commit_hash": "random",
+            "pipeline_config":self.pipeline_config
         }
+        his_object = PipelineInfo.model_validate(pipeline_history)
         result_id = mongo_adapter.insert_job(
-            "672817cdabdfc031a3ff26f4", pipeline_config)
+            his_object, self.pipeline_config)
         assert result_id is None
         search_result = mongo_adapter.get_job("")
         assert search_result == {}
-        update_result = mongo_adapter.update_job(job_log, pipeline_config)
+        update_result = mongo_adapter.update_job(job_log, self.pipeline_config)
         assert update_result == False
         del_result = mongo_adapter.del_job("")
         assert del_result == False

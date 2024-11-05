@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 import bson
 from pymongo import (MongoClient, errors)
 from util.common_utils import (get_env, get_logger)
+from util.model import (PipelineInfo)
 
 env = get_env()
 logger = get_logger("util.db_mongo")
@@ -216,12 +217,14 @@ class MongoAdapter:
                 f"Error deleting the pipeline history, exception is {e}")
             return False
 
-    def insert_job(self, repo_id: str, pipeline_config: dict, stages_to_run: list = None) -> str:
+    def insert_job(self,
+                   pipeline_info:PipelineInfo,
+                   pipeline_config: dict, stages_to_run: list = None) -> str:
         """
         Inserts a new job with initialized stages into the jobs table.
 
         Args:
-            repo_id (str): Repository ID for the job.
+            pipeline_info (PipelineInfo): Information data for target pipeline
             pipeline_config (dict): Configuration of pipeline stages.
             stages_to_run (list, optional): Stages to initialize; defaults to all.
 
@@ -229,9 +232,6 @@ class MongoAdapter:
             str: ID of the inserted job document.
         """
         try:
-            repo = self._retrieve(repo_id, MONGO_DB_NAME, MONGO_PIPELINES_TABLE)
-            if not isinstance(repo, dict):
-                repo = {}
             all_stages = list(pipeline_config.get("stages", {}).keys())
             stages_to_initialize = stages_to_run if stages_to_run else all_stages
 
@@ -248,9 +248,10 @@ class MongoAdapter:
             logger.info(f"Initialized stages: {', '.join(pending_stages)}")
 
             job_data = {
-                "pipeline_number": bson.ObjectId(),
-                "run_number": len(repo.get("job_run_history", [])) + 1,
-                "git_commit_hash": repo.get("last_commit_hash", ""),
+                #"pipeline_number": bson.ObjectId(),
+                "pipeline_name": pipeline_info.pipeline_name,
+                "run_number": len(pipeline_info.job_run_history) + 1,
+                "git_commit_hash": pipeline_info.last_commit_hash,
                 "pipeline_config_used": pipeline_config,
                 "success": None,
                 "logs": stage_logs
@@ -447,7 +448,7 @@ class MongoAdapter:
             mongo_client.close()
             if pipeline_document and "pipelines" in pipeline_document:
                 # Flatten the result to directly access pipeline_config
-                pipeline_document["pipeline_config"] = pipeline_document["pipelines"][0].get("pipeline_config")
+                pipeline_document["pipeline_config"] = pipeline_document["pipelines"][0].get("pipeline_config") # pylint: disable=line-too-long
                 del pipeline_document["pipelines"]
                 return pipeline_document
             logger.warning(
@@ -538,7 +539,7 @@ class MongoAdapter:
         except errors.PyMongoError as e:
             logger.warning(f"Error updating pipeline config: {str(e)}")
             return False
-    
+
     def update_pipeline_history(
             self,
             repo_name: str,

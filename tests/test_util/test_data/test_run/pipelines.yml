@@ -15,36 +15,31 @@ jobs:
     # Job for build stage
     checkout:
         stage: build
-        scripts: ['git clone https://github.com/sjchin88/cicd-python',
-                  'cd cicd-python',
-                  'ls -la']
+        scripts: ['git clone https://github.com/sjchin88/cicd-python .']
 
     compile:
         stage: build
         allow_failure: False
         needs: ['checkout']
-        scripts: ['ls -la', 
-                'poetry config virtualenvs.path /app/.cache/pypoetry/virtualenvs',
-                'cd cicd-python','poetry install']
+        scripts: 
+            - 'poetry config virtualenvs.path /app/.cache/pypoetry/virtualenvs'
+            - 'poetry install'
 
     # Job for test stage
     pytest:
         stage: test
-        scripts: [
-            'ls -la',
-            'poetry config virtualenvs.path /app/.cache/pypoetry/virtualenvs',
-            'cd cicd-python',
-            'poetry run pytest']
+        scripts: 
+            - 'poetry config virtualenvs.path /app/.cache/pypoetry/virtualenvs'
+            - 'poetry run pytest'
         artifacts:
             on_success_only: False
             paths: 
-                - 'cicd-python/htmlcov'
+                - 'htmlcov'
     
     pylint:
         stage: test
-        scripts: [
-            'poetry config virtualenvs.path /app/.cache/pypoetry/virtualenvs',
-            'cd cicd-python',
-            'poetry run pylint ./src --fail-under=9.5']
+        scripts: 
+            - 'poetry config virtualenvs.path /app/.cache/pypoetry/virtualenvs'
+            - 'poetry run pylint ./src --fail-under=9.5'
 
     
