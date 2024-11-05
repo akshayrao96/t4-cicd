@@ -11,6 +11,7 @@ from typing import Any
 import pprint
 import click
 import git.exc
+from pydantic import ValidationError
 import util.constant as const
 from util.container import (DockerManager)
 from util.model import (SessionDetail, PipelineConfig, ValidatedStage, PipelineInfo)
@@ -432,27 +433,47 @@ class Controller:
         if local:
             print("Flag --local is set. run pipeline locally.")
 
-        # pprint.pprint(config_dict)
-        #TODO: update method to update git_detail
-        repo_data = copy.deepcopy(git_details)
-        repo_data["is_remote"] = True
-        repo_data['repo_name'] = "cicd-python"
-        repo_data['user_id'] = os.getlogin()
-        repo_data = SessionDetail.model_validate(repo_data)
-        pprint.pprint(repo_data.model_dump())
-        pipeline_config = PipelineConfig.model_validate(config_dict)
-        self._actual_pipeline_run(repo_data, pipeline_config, local)
         status = True
         message = "Pipeline runs successfully"
-        pipeline_id = "pid_unique_string"
+        pipeline_id = "run_number"
+        #TODO: update method to update git_detail
+        try:
+            repo_data = copy.deepcopy(git_details)
+            repo_data["is_remote"] = True
+            repo_data['repo_name'] = "cicd-python"
+            repo_data['user_id'] = os.getlogin()
+            repo_data = SessionDetail.model_validate(repo_data)
+            # pprint.pprint(repo_data.model_dump())
+            pipeline_config = PipelineConfig.model_validate(config_dict)
+            status, pipeline_id = self._actual_pipeline_run(repo_data, pipeline_config, local)
+        except ValidationError as ve:
+            self.logger.warning(f"validation error occur, error is {ve}")
+            click.secho("Error in running pipeline", fg="red")
+            status = False
+            
+        if not status:
+            message = 'Pipeline runs fail'
 
         return tuple([status, message, pipeline_id])
 
     def _actual_pipeline_run(self,
                              repo_data:SessionDetail,
                              pipeline_config:PipelineConfig,
-                             local:bool = False) -> bool:
-        """_summary_
+                             local:bool = False) -> tuple[bool, str]:
+        """ method to actually run the pipeline
+
+        Args:
+            repo_data (SessionDetail): information required to identify the repo record
+            pipeline_config (PipelineConfig): validated pipeline_configuration
+            local (bool, optional): flag indicate if run to be local(True) or remote(False). 
+                Defaults to False.
+
+        Raises:
+            ValueError: If target pipeline already running
+
+        Returns:
+            tuple(bool, str): first flag indicate whether the overall run is 
+                successful(True) or fail(False). Second str is the actual run number
         """
         # TODO - Process local flag
         if local:
@@ -467,7 +488,12 @@ class Controller:
             repo_data.branch,
             pipeline_config.global_.pipeline_name
         )
-        his_obj = PipelineInfo.model_validate(pipeline_history)
+        try:
+            his_obj = PipelineInfo.model_validate(pipeline_history)
+        except ValidationError as ve:
+            self.logger.warning(f"validation error for pipeline_history:{pipeline_history}, error is {ve}")
+            raise ve
+            
         # pprint.pprint(his_obj.model_dump())
         if pipeline_history['running']:
             raise ValueError(f"Pipeline {pipeline_config.global_.pipeline_name} Already Running,"+
@@ -487,6 +513,8 @@ class Controller:
         )
         # print(job_id)
         his_obj.job_run_history.append(job_id)
+        run_number = len(his_obj.job_run_history)
+        # TODO- Update pipeline config
         updates = {
             "job_run_history":his_obj.job_run_history,
             'running':True,
@@ -521,8 +549,9 @@ class Controller:
                     #print(job_name)
                     #pprint.pprint(job_config)
                     job_log = docker_manager.run_job(job_name, job_config)
-                    click.echo(f"Stage:{stage_name} Job:{job_name} - Streaming Job Logs")
-                    pprint.pprint(job_log.job_logs)
+                    click.secho(f"Stage:{stage_name} Job:{job_name} - Streaming Job Logs", fg='green')
+                    click.echo(job_log.job_logs)
+                    # click.echo("\n")
                     job_logs[job_name] = job_log.model_dump()
                     # single fail job will switch the stage status to fail
                     if job_log.job_status == const.STATUS_FAILED:
@@ -548,7 +577,7 @@ class Controller:
             pipeline_config.global_.pipeline_name,
             final_updates
         )
-        return pipeline_status
+        return pipeline_status, f"run_number:{run_number}"
 
 
     # def stop_job(self):

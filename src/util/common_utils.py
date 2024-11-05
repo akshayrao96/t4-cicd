@@ -25,7 +25,7 @@ def get_logger(logger_name='', log_level=logging.DEBUG, log_file='debug.log') ->
     logger.setLevel(log_level)
     # create console handler and set level to Warning
     ch = logging.StreamHandler()
-    ch.setLevel(logging.WARNING)
+    ch.setLevel(logging.ERROR)
 
     # create formatter
     formatter = logging.Formatter(

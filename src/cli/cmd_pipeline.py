@@ -82,6 +82,7 @@ and can't be both.")
     logger.debug(f"pipeline run status: {status}, ")
     #logger.debug(f"pipeline_id: {pipeline_id}")
     click.echo(f"{message}")
+    # TODO - To Discuss, why do we need to show pipeline_id to user
     click.echo(f"pipeline_id: {pipeline_id}")
 
 @pipeline.command()
