@@ -27,6 +27,7 @@ REPO_BRANCH_NAME = "main"
 MONGO_PIPELINES_TABLE = "repo_configs"
 
 # pylint: disable=logging-fstring-interpolation
+# pylint: disable=logging-not-lazy
 # pylint: disable=fixme
 
 
@@ -356,7 +357,8 @@ class Controller:
         """
 
     def run_pipeline(self, config_file: str, pipeline: str, git_details:dict, dry_run:bool = False,
-                     local:bool = False, yaml_output: bool = False) -> tuple[bool, str, str]:
+                     local:bool = False, yaml_output: bool = False, override_configs:dict=None
+                     ) -> tuple[bool, str, str]:
         """Executes the job by coordinating the repository, runner, artifact store, and logger.
 
         Args:
@@ -367,6 +369,7 @@ class Controller:
             local (bool): True = run pipeline locally, False = run pipeline remotely.
                 By default set to false.
             yaml_output (bool): set output format to yaml
+            override_configs: to override required configs
 
         Returns:
             tuple[bool, str, str]:
@@ -418,6 +421,20 @@ class Controller:
         # by default it is set to '.cicd-pipelines/pipelines.yml'
         status, message, config_dict = self.validate_config(config_file)
 
+        # Process Override if have
+        if override_configs:
+            combined_config = ConfigOverrides.apply_overrides(
+                config_dict,
+                override_configs)
+            # validate the updated pipeline configuration
+            response_dict = self.config_checker.validate_config(
+                config_dict[const.KEY_GLOBAL][const.KEY_PIPE_NAME],
+                combined_config)
+            # Update status and config_dict
+            status = response_dict.get('valid')
+            config_dict = response_dict.get('pipeline_config')
+
+        # Early Return
         if not status:
             pipeline_id = ""
             return status, message, pipeline_id
@@ -539,6 +556,7 @@ class Controller:
         # Iterate through all stages, for each jobs
         # TODO - Update pipeline_status with cancel case
         pipeline_status = const.STATUS_SUCCESS
+        early_break = False
         for stage_name, stage_config in pipeline_config.stages.items():
             stage_status = const.STATUS_SUCCESS
             stage_config = ValidatedStage.model_validate(stage_config)
@@ -558,10 +576,26 @@ class Controller:
                     # single fail job will switch the stage status to fail
                     if job_log.job_status == const.STATUS_FAILED:
                         stage_status = const.STATUS_FAILED
+                        click.secho(f"Job:{job_name} failed\n", fg="red")
+                        # Early break
+                        if job_config[const.JOB_SUBKEY_ALLOW] is False:
+                            early_break = True
+                            break
+                    else:
+                        click.secho(f"Job:{job_name} success\n", fg="green")
+                # If early break, skip next job group execution
+                if early_break:
+                    break
             self.mongo_ds.update_job_logs(job_id, stage_name, stage_status, job_logs)
             # single fail stage will switch the pipeline status to fail
             if stage_status == const.STATUS_FAILED:
                 pipeline_status = const.STATUS_FAILED
+                click.secho(f"Stage:{stage_name} failed\n", fg="red")
+            else:
+                click.secho(f"Stage:{stage_name} success\n", fg="green")
+            # If early break, skip next stages execution
+            if early_break:
+                break
             #pprint.pprint(job_logs)
         # Wrap up and return
         docker_manager.remove_vol()
@@ -579,7 +613,8 @@ class Controller:
             pipeline_config.global_.pipeline_name,
             final_updates
         )
-        return pipeline_status, f"run_number:{run_number}"
+        pipeline_pass = pipeline_status == const.STATUS_SUCCESS
+        return pipeline_pass, f"run_number:{run_number}"
 
 
     # def stop_job(self):

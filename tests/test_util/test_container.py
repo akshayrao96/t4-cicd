@@ -186,6 +186,8 @@ class TestDockerManager(unittest.TestCase):
         assert docker_manager._check_status_from_log(stderr) == False
         stderr = "error"
         assert docker_manager._check_status_from_log(stderr) == False
+        stderr = "sh: 1: poetry: not found"
+        assert docker_manager._check_status_from_log(stderr) == False
     
     def test_upload_artifact_fail(self):
         """ test exception catching of _upload_artifact method

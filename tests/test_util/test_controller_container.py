@@ -230,6 +230,6 @@ class TestRunJob(unittest.TestCase):
         repo_data = SessionDetail.model_validate(self.sample_session)
         pipeline_config = PipelineConfig.model_validate(self.pipeline_config)
         pipeline_status, run_number = controller._actual_pipeline_run(repo_data, pipeline_config)
-        assert pipeline_status == c.STATUS_FAILED
+        assert pipeline_status == False
 
 
