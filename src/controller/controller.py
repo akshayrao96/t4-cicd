@@ -5,13 +5,16 @@
 
 
 from datetime import datetime
+import copy
 import os
-from typing import Tuple, Any
-
+from typing import Any
+import pprint
 import click
 import git.exc
 import util.constant as const
-from util.common_utils import (get_logger, ConfigOverrides)
+from util.container import (DockerManager)
+from util.model import (SessionDetail, PipelineConfig, ValidatedStage, PipelineInfo)
+from util.common_utils import (get_logger, ConfigOverrides, DryRun)
 from util.repo_manager import (RepoManager)
 from util.db_mongo import (MongoAdapter)
 from util.yaml_parser import YamlParser
@@ -20,6 +23,9 @@ from util.config_tools import (ConfigChecker)
 REPO_SOURCE = ""
 REPO_TARGET_PATH = ""
 REPO_BRANCH_NAME = "main"
+MONGO_PIPELINES_TABLE = "repo_configs"
+
+# pylint: disable=logging-fstring-interpolation
 # pylint: disable=fixme
 
 
@@ -152,12 +158,33 @@ class Controller:
         """
         # stub response for repo set up
         click.echo("Setting Up Repo")
-        results = self.validate_configs(directory)
+        validation_results = self.validate_configs(directory)
         # stub response for save
         click.echo("Saving into datastore")
+        results = {}
+        for pipeline_name, validation_result in validation_results.items():
+            status = validation_result.get('valid')
+            error_msg = validation_result.get('error_msg')
+            pipeline_config = validation_result.get('pipeline_config')
+            if status:
+                file_path = os.path.join(directory, f"{pipeline_name}.yml")
+                # Pass the pre-validated config and skip validation
+                status, error_msg, saved_config = self.validate_n_save_config(
+                    file_path, pipeline_config=pipeline_config, skip_validation=True
+                )
+                validation_result.update({
+                    'valid': status,
+                    'error_msg': error_msg,
+                    'pipeline_config': saved_config
+                })
+            else:
+                click.echo(f"Validation failed for {pipeline_name}: {error_msg}")
+            results[pipeline_name] = validation_result
         return results
 
-    def validate_n_save_config(self, file_name: str) -> tuple[bool, str, dict]:
+    def validate_n_save_config(
+        self, file_name: str, pipeline_config: dict = None, skip_validation: bool = False
+    ) -> tuple[bool, str, dict]:
         """ Set Up repo, validate config, and save the config into datastore
 
         Args:
@@ -168,14 +195,56 @@ class Controller:
         """
         status = True
         error_msg = ""
-        resp_pipeline_config = {}
+        resp_pipeline_config = pipeline_config
         # stub response for repo set up
-        click.echo("Setting Up Repo")
-        status, error_msg, resp_pipeline_config = self.validate_config(
-            file_name)
-        # stub response for save
-        click.echo("Saving into datastore")
-        return (status, error_msg, resp_pipeline_config)
+        if not skip_validation:
+            status, error_msg, resp_pipeline_config = self.validate_config(file_name)
+        # If validation passes, save to datastore
+        if status:
+            pipeline_name = resp_pipeline_config['global'].get('pipeline_name')
+            repo_data = self.mongo_ds.get_repo(
+                "sample-repo", "https://github.com/sample-user/sample-repo", "main"
+            )
+            # Case 1: No Repo Exists - Create New Repo with Pipeline
+            if not repo_data:
+                new_repo_data = {
+                    "repo_name": "sample-repo",
+                    "repo_url": "https://github.com/sample-user/sample-repo",
+                    "branch": "main",
+                    "pipelines": [
+                        self.mongo_ds.create_pipeline_document(
+                            pipeline_name, file_name, resp_pipeline_config
+                        )
+                    ]
+                }
+                repo_id = self.mongo_ds.insert_repo(
+                    new_repo_data, collection_name=MONGO_PIPELINES_TABLE
+                )
+                if not repo_id:
+                    return False, "Error saving repo to datastore.", resp_pipeline_config
+
+            # # Case 2: Existing Repo - Append Pipeline
+            else:
+                existing_pipeline = next(
+                    (p for p in repo_data["pipelines"] if p["pipeline_name"] == pipeline_name),
+                    None
+                )
+                if not existing_pipeline:
+                    new_pipeline_document = self.mongo_ds.create_pipeline_document(
+                        pipeline_name, file_name, resp_pipeline_config
+                    )
+                    repo_data["pipelines"].append(new_pipeline_document)
+                    success = self.mongo_ds.update_pipeline(repo_data)
+                    if not success:
+                        error_msg = f"Error add new '{pipeline_name}' to datastore."
+                        status = False
+                else:
+                    error_msg = (
+                        f"Pipeline '{pipeline_name}' already exists in datastore. "
+                        "Use --override to update."
+                    )
+                    status = False
+        return status, error_msg.strip(), resp_pipeline_config
 
     def validate_configs(self, directory: str) -> dict:
         """ Validate configuration file in a directory
@@ -233,9 +302,8 @@ class Controller:
 
         return (status, error_msg, resp_pipeline_config)
 
-    def edit_config(self, pipeline_name: str, overrides: dict) -> bool:
-        """Modify the pipeline configuration. Retrieves the existing configuration from db,
-            applies the given overrides, and then updates to the db.
+    def override_config(self, pipeline_name: str, overrides: dict) -> bool:
+        """Retrieve, apply overrides, validate, and update the pipeline configuration.
 
             Args:
                 pipeline_name (str): The name of the pipeline to update.
@@ -256,16 +324,24 @@ class Controller:
             click.echo(f"No pipeline config found for '{pipeline_name}'.")
             return False
         data = self.mongo_ds.get_pipeline(
-            pipeline.get('_id'), collection_name="repo_configs")
+            pipeline.get('_id'), collection_name=MONGO_PIPELINES_TABLE)
         data['pipeline_config'] = ConfigOverrides.apply_overrides(
             pipeline['pipeline_config'], overrides)
-        # TODO: check if the modified pipeline configuration is valid
+        # validate the updated pipeline configuration
+        response_dict = self.config_checker.validate_config(pipeline_name,
+                                                            data['pipeline_config'],
+                                                            error_lc=True)
+        status = response_dict.get('valid')
+        resp_pipeline_config = response_dict.get('pipeline_config')
+        if not status:
+            click.echo("Override pipeline configuration validation failed.")
+            return False
         success = self.mongo_ds.update_pipeline_config(
             "sample-repo",
             "https://github.com/sample-user/sample-repo",
             "main",
             "valid_pipeline",
-            data['pipeline_config'])
+            resp_pipeline_config)
         if not success:
             click.echo("Error updating pipeline configuration.")
             return False
@@ -278,44 +354,201 @@ class Controller:
         command: `cid pipeline setup`
         """
 
-    def run_pipeline(self, **kwargs) -> tuple:
+    def run_pipeline(self, config_file: str, pipeline: str, git_details:dict, dry_run:bool = False,
+                     local:bool = False, yaml_output: bool = False) -> tuple[bool, str, str]:
         """Executes the job by coordinating the repository, runner, artifact store, and logger.
 
-        Returns:
-            tuple: _description_
-        """
-        # Pseudocode
-        # # Step 0: Clone the repo
-        # gitrepo = RepoManager()
-        # gitrepo.cloneRepo(kwargs)
-        # # Step 1: Initialize pipeline record
-        # mongoadapter = MongoAdapter()
-        # mongoadapter.insert_pipeline(dict)
-        # # Step 2: Run the job in a Docker container
-        # job_runner = DockerInterface()
-        # job_id, job_status = self.job_runner.run_job(job_script)
-        # self.logger.log_job_state(job_id, job_status)
-        # # Step 3: Store the generated artifact
-        # mysql = MySQLAdapter()
-        # mysql.store(artifact)
-        # # Step 4: Log job completion / failure status
-        # # ...
+        Args:
+            config_file (str): file path of the configuration file.
+            pipeline (str): pipeline name to be executed.
+            dry_run (bool): set dry_run = True to simulate pipeline order of execution.
+            git_details (dict): details of the git repository where to use.
+            local (bool): True = run pipeline locally, False = run pipeline remotely.
+                By default set to false.
+            yaml_output (bool): set output format to yaml
 
-        # create mockup data that simulate when the pipeline runs and return
-        # the output to user CLI in tuple
+        Returns:
+            tuple[bool, str, str]:
+                bool: status
+                str: message
+                str: pipeline_id -- empty string if pipeline is not being run or 
+                        failed (dry_run = True)
+        """
+        ## TODO: validate the repo has the valid branch name and commit hash
+        # repo_source = git_details.get('repo_source')
+        # branch = git_details.get('branch')
+        # commit = git_details.get('commit_hash')
+
+        ## Step 0: Clone the repo
+        # remote_repo = git_details.get('remote_repo')
+        # repo_manager = RepoManager(repo_source)
+        # repo_manager.setup_repo()
+        # TODO: create method in repo_manager to get cloned folder path
+
+        ## Step 1: check for valid branch / commit
+        ## check for valid git commit / branch to run the pipeline
+        ## this is part of usecase 1 a/b
+
+        status = True
+        message = None
+        config_dict = None
+        # for --pipeline, need to call YamlParser to retrieve the pipeline_name
+        # for every config. Currently set default_path to find the config_files
+        # to .cicd-pipelines/
+        if pipeline:
+            parser = YamlParser()
+            default_path = '.cicd-pipelines/'
+            dict_yaml = parser.parse_yaml_directory(default_path)
+            config_dict = dict_yaml.get(pipeline) #get pipeline config
+            # if 'pipeline' name could not be located, return False and
+            # ask user to re-run the command.
+            if config_dict is None:
+                status = False
+                message = f"\ncid: pipeline_name '{pipeline}' is not a valid name."
+                message += " Please re-run the command: cid pipeline run"
+                message += " --pipeline <valid_pipeline_name>"
+                pipeline_id = ""
+                return status, message, pipeline_id
+
+            #get the filename and set the configuration file to be use for validate_config.
+            config_file = default_path + config_dict.get('pipeline_file_name')
+
+        # perform config validation given the config_file/file_path (not pipeline_name).
+        # by default it is set to '.cicd-pipelines/pipelines.yml'
+        status, message, config_dict = self.validate_config(config_file)
+
+        if not status:
+            pipeline_id = ""
+            return status, message, pipeline_id
+        # Step 2: check if pipeline is  running dry-run or not
+        if dry_run:
+            status, dry_run_msg, pipeline_id = self.dry_run(config_dict, yaml_output)
+            return status, dry_run_msg, pipeline_id
+
+        # Step 3: Perform pipeline run steps
+        #TODO: need to validate if run local
+        #TODO: need to move local to top so dry-run can also be included if we want
+        # to do local execution
+        if local:
+            print("Flag --local is set. run pipeline locally.")
+
+        # pprint.pprint(config_dict)
+        #TODO: update method to update git_detail
+        repo_data = copy.deepcopy(git_details)
+        repo_data["is_remote"] = True
+        repo_data['repo_name'] = "cicd-python"
+        repo_data['user_id'] = os.getlogin()
+        repo_data = SessionDetail.model_validate(repo_data)
+        pprint.pprint(repo_data.model_dump())
+        pipeline_config = PipelineConfig.model_validate(config_dict)
+        self._actual_pipeline_run(repo_data, pipeline_config, local)
         status = True
         message = "Pipeline runs successfully"
         pipeline_id = "pid_unique_string"
 
-        # This is example how to call RepoManager util class from controller
-        # self.repo_manager.setup_repo()
-        # self.logger.debug("is_remote_repo: %s", remote_repo)
-
         return tuple([status, message, pipeline_id])
 
-    # def _start_job(self):
-    #     """_summary_
-    #     """
+    def _actual_pipeline_run(self,
+                             repo_data:SessionDetail,
+                             pipeline_config:PipelineConfig,
+                             local:bool = False) -> bool:
+        """_summary_
+        """
+        # TODO - Process local flag
+        if local:
+            click.echo("Running pipeline on local")
+        else:
+            click.echo("Should run pipeline on remote, right now still local")
+
+        # Check if pipeline is already running
+        pipeline_history = self.mongo_ds.get_pipeline_history(
+            repo_data.repo_name,
+            repo_data.repo_url,
+            repo_data.branch,
+            pipeline_config.global_.pipeline_name
+        )
+        his_obj = PipelineInfo.model_validate(pipeline_history)
+        # pprint.pprint(his_obj.model_dump())
+        if pipeline_history['running']:
+            raise ValueError(f"Pipeline {pipeline_config.global_.pipeline_name} Already Running,"+
+                             "Please Stop Before Proceed")
+        # pprint.pprint(pipeline_history)
+        # TODO - Delete
+        # pipeline_config_with_id = self.mongo_ds.get_pipeline_config(
+        #     repo_data.repo_name,
+        #     repo_data.repo_url,
+        #     repo_data.branch,
+        #     pipeline_config.global_.pipeline_name
+        # )
+        # Insert new job record
+        job_id = self.mongo_ds.insert_job(
+            his_obj,
+            pipeline_config.model_dump(by_alias=True)
+        )
+        # print(job_id)
+        his_obj.job_run_history.append(job_id)
+        updates = {
+            "job_run_history":his_obj.job_run_history,
+            'running':True,
+        }
+        update_success = self.mongo_ds.update_pipeline_history(
+            repo_data.repo_name,
+            repo_data.repo_url,
+            repo_data.branch,
+            pipeline_config.global_.pipeline_name,
+            updates
+        )
+        # TODO - if update unsuccessful, prompt user.
+        if not update_success:
+            click.confirm('Cannot update into db, do you want to continue?', abort=True)
+        # Initialize Docker Manager
+        docker_manager = DockerManager(
+                repo=repo_data.repo_name,
+                pipeline=pipeline_config.global_.pipeline_name,
+                run=str(len(his_obj.job_run_history))
+            )
+        # Iterate through all stages, for each jobs
+        # TODO - Update pipeline_status with cancel case
+        pipeline_status = const.STATUS_SUCCESS
+        for stage_name, stage_config in pipeline_config.stages.items():
+            stage_status = const.STATUS_SUCCESS
+            stage_config = ValidatedStage.model_validate(stage_config)
+            job_logs = {}
+            # run the job, get the record, update job history
+            for job_group in stage_config.job_groups:
+                for job_name in job_group:
+                    job_config = pipeline_config.jobs[job_name]
+                    #print(job_name)
+                    #pprint.pprint(job_config)
+                    job_log = docker_manager.run_job(job_name, job_config)
+                    click.echo(f"Stage:{stage_name} Job:{job_name} - Streaming Job Logs")
+                    pprint.pprint(job_log.job_logs)
+                    job_logs[job_name] = job_log.model_dump()
+                    # single fail job will switch the stage status to fail
+                    if job_log.job_status == const.STATUS_FAILED:
+                        stage_status = const.STATUS_FAILED
+            self.mongo_ds.update_job_logs(job_id, stage_name, stage_status, job_logs)
+            # single fail stage will switch the pipeline status to fail
+            if stage_status == const.STATUS_FAILED:
+                pipeline_status = const.STATUS_FAILED
+            #pprint.pprint(job_logs)
+        # Wrap up and return
+        docker_manager.remove_vol()
+        run_update = {
+            "success":pipeline_status
+        }
+        self.mongo_ds.update_job(job_id, run_update)
+        final_updates = {
+            'running':False
+        }
+        update_success = self.mongo_ds.update_pipeline_history(
+            repo_data.repo_name,
+            repo_data.repo_url,
+            repo_data.branch,
+            pipeline_config.global_.pipeline_name,
+            final_updates
+        )
+        return pipeline_status
 
 
     # def stop_job(self):
@@ -332,122 +565,36 @@ class Controller:
         """_summary_
         """
 
-    def dry_run(self, config_name: str) -> str:
+    def dry_run(self, config_dict: dict, is_yaml_output:bool) -> tuple[bool, str, str]:
         """dry run methods responsible for the `--dry-run` method for pipelines.
         The function will retrieve any pipeline history from database, then validate
         the configuration file (check hash_commit), and then perform the dry_run
 
         Args:
-            pipeline_name (str): _description_
+            status (bool): _description_
+            config_dict (dict): _description_
+            is_yaml_output (bool): _description_
 
         Returns:
             str: _description_
         """
-        # 1. Usecase 1a/b - call function to check if it's a valid git repo
 
-        # 2. call RepoManager to check_commit whether hash file is modified or git commit is changed
-        # TODO: in a way, pipeline_name means we need to implement repo_manager
-        # to parse the dict
-
-        # 3. call MongoAdapter get_pipeline_record(repo_name:str, pipeline_name:str, branch:str)
-        # what can I do with this?
-
-        # 4. if step #2 sets to True (commit hash different) run usecase 2a (call
-        # validate_config(filename: str))
-        # TODO: check hash commit of current file. can use import hashlib.
-        # then, call method to compare previous_file (mongodb) and current_file
-
-        # current_config_hash = repo_manager.get_config_hash(config_name)
-        # initialize MongoAdapter()
-        status, message, config_dict = self.validate_config(config_name)
-        # print what validate_config() returns
-        # print(f"{status}, {message}")
-
-        # not successful
-        if not status:
-            return f"[ERROR] {message}"
-
-        # test_get_db()
-        mongo = MongoAdapter()
-
-        # Print Dry-Run
-        # 5. Simulate Dry run
-        dry_run_msg = ""
-        # TODO: need to know the order of execution
-        # output_dict #to combine the global and jobs
-        # call methods
-        global_dict = config_dict.get("global")
-        jobs_dict = config_dict.get("jobs")
-        stages_dict = config_dict.get("stages")
-        #print("global\n", global_dict)
-        global_output = self._run_global(global_dict, dry_run=True)
-        #print(global_output)
-        dry_run_msg += global_output
-
-        #self._run_stages(stages_dict, dry_run=True)
-        #print(stages_dict)
-
-        #print("jobs\n", jobs_dict)
-        jobs_output = self._run_jobs(jobs_dict, dry_run=True)
-        dry_run_msg += jobs_output
+        dry_run = DryRun(config_dict)
+        dry_run_msg = dry_run.get_plaintext_format()
+        yaml_output_msg = dry_run.get_yaml_format()
+        # mongo = MongoAdapter()
 
         #GET TIME
-        now = datetime.now()
-        time_log = now.strftime("%Y-%m-%d %H:%M:%S")
-        pipeline_history = {"dry_run_message": dry_run_msg, "executed_time": time_log}
+        #now = datetime.now()
+        #time_log = now.strftime("%Y-%m-%d %H:%M:%S")
+        #pipeline_history = {"config_file": yaml_output_msg, "executed_time": time_log}
 
-        #TODO: instead of inserting the the dry_run_msg, make it more useful
-        pipeline_id = mongo.insert_pipeline(pipeline_history)
+        # dry-run is not stored to mongo DB
+        #pipeline_id = mongo.insert_pipeline(pipeline_history)
+        pipeline_id = "dry_run"
 
-        #get the pipeline_id inserted to mongodb
-        print(f"Insert successfully!\npipeline_id: {pipeline_id}")
+        # set yaml format if user specify "--yaml" flag.
+        if is_yaml_output:
+            dry_run_msg = yaml_output_msg
 
-        # 6. return message of the dry_run info
-        return dry_run_msg
-
-    #what shall I return?
-    def _run_global(self, global_dict:dict, dry_run:bool = False) -> str:
-
-        #Step 1. Parse the dict.
-        #Step 2. check if dry_run=True
-        if dry_run:
-            #parse what you get from the dict...
-            pipeline_name = global_dict.get("pipeline_name")
-            docker_registry = global_dict.get("docker_registry")
-
-            global_output = f"pipeline name: {pipeline_name}\ndocker registry: {docker_registry}\n"
-
-            return global_output
-
-        # TODO; call DockerRunner and perform the execution
-        return
-
-    def _run_jobs(self, jobs:dict, dry_run:bool = False) -> str:
-        if dry_run:
-            jobs_output = ""
-
-            for job in jobs:
-                jobs_output += self._format_job_info_msg(job, jobs[job]['stage'],
-                                jobs[job]['scripts'], jobs[job]['allow_failure'])
-
-            return jobs_output
-
-        #TODO: implement job run
-        return "not implemented yet - run jobs"
-
-    def _format_job_info_msg(self, job_name, stage, command, allow_failure):
-        formatted_msg = f'[INFO] Running job: "{job_name}"\n'
-        formatted_msg += f'  -> Stage: {stage}\n'
-        formatted_msg += f'  -> Command: {command}\n'
-        formatted_msg += f'  -> Allow Failure: {allow_failure}\n'
-
-        return formatted_msg
-
-    def _test_mongo_db(self) -> str:
-        mongo = MongoAdapter()
-
-        ##INSERT
-        pipeline_history = {"hello": "world"}
-        inserted_id = mongo.insert_pipeline(pipeline_history)
-
-        return inserted_id
+        return True, dry_run_msg, pipeline_id

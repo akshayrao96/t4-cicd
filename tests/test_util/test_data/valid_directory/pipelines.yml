@@ -1,8 +1,5 @@
-# Another valid configuration file that will be called when controller's
-# repo is set and cli does not specify repo and yml file by default
-# Pipeline name changed to avoid duplication names
+# Yaml file for test run 
 global:
-
     pipeline_name: valid_pipeline_default
     docker: 
         registry: 'dockerhub'

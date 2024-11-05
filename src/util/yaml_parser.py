@@ -163,7 +163,7 @@ class YamlParser:
                         c.KEY_PIPE_CONFIG:yaml_content
                     }
             except (FileNotFoundError, ruamel.yaml.YAMLError) as e:
-                # We want to continue process rest of the file, so catch the error here. 
+                # We want to continue process rest of the file, so catch the error here.
                 logger.warning("Failed to parse YAML file at %s. Error: %s", yaml_file, e)
             except KeyError as k:
                 logger.warning(f"Failed to parse YAML file at {yaml_file}. No key found for {k}")
