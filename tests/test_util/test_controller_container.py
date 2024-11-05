@@ -63,7 +63,7 @@ def actual_pipeline_run():
     pipeline_config = PipelineConfig.model_validate(load_pipeline()[c.KEY_PIPE_CONFIG])
     controller._actual_pipeline_run(repo_data, pipeline_config)
 # TODO - clean up integeration code
-actual_pipeline_run()
+# actual_pipeline_run()
 
 # Preparing data for mock return 
 pipeline_config = load_pipeline()[c.KEY_PIPE_CONFIG]
