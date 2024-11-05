@@ -107,7 +107,7 @@ class TestModel(unittest.TestCase):
             "last_commit_hash": "random",
             "pipeline_config":self.sample_pipeline_config
         }
-        history = model.PipelineHistory.model_validate(pipeline_history)
+        history = model.PipelineInfo.model_validate(pipeline_history)
         logger.debug(history)
         
         # Test handling of None field
@@ -118,7 +118,7 @@ class TestModel(unittest.TestCase):
             "last_commit_hash": "random",
             "pipeline_config":self.sample_pipeline_config
         }
-        history = model.PipelineHistory.model_validate(pipeline_history)
+        history = model.PipelineInfo.model_validate(pipeline_history)
         logger.debug(history)
         assert True
 # test_job_config()

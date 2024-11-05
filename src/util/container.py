@@ -72,7 +72,7 @@ class DockerManager(ContainerManager):
         self.vol_name = repo + '-' + pipeline + '-' + run
         self.docker_vol = None
 
-    def run_job(self, job_name:str, job_config: dict) -> dict:
+    def run_job(self, job_name:str, job_config: dict) -> JobLog:
         """ run a single job and return its output
 
         Args:
@@ -81,15 +81,8 @@ class DockerManager(ContainerManager):
                 defined in design_doc_config: jobs section, single job
 
         Returns:
-            dict: records of a job run, as specified in designdoc_data_scheme:job. 
-            will contain {
-                    job_name
-                    job_status
-                    allows_failure
-                    start_time
-                    completion_time
-                    logs & error output
-                }
+            JobLog: records of a job run, as specified in designdoc_data_scheme:job
+                and JobLog model.
         """
         # Validate input data
         JobConfig.model_validate(job_config)
@@ -136,8 +129,8 @@ class DockerManager(ContainerManager):
             # stdout and stderr, we want to also check the stderr
             output = container.logs().decode('utf-8')
             output_stderr = container.logs(stdout=False).decode('utf-8')
-            print(output)
-            print(f"err:{output_stderr}")
+            #print(output)
+            #print(f"err:{output_stderr}")
 
             # Note docker container will store some status log in stderr, currently
             # only way to check if error in execution is to look for the keyword
@@ -167,7 +160,7 @@ class DockerManager(ContainerManager):
         job_log.completion_time = time.asctime()
         job_log.job_logs = output
 
-        return job_log.model_dump()
+        return job_log
 
     def _check_status_from_log(self, stderr:str)->bool:
         """ Check the stderr for job status
@@ -216,7 +209,7 @@ class DockerManager(ContainerManager):
                     tar.extractall(path=upload_path)
                 os.remove(f"{upload_path}/volume_contents.tar")
             return True, ""
-        except (docker.errors.DockerException, FileNotFoundError) as de:
+        except (docker.errors.DockerException, FileNotFoundError, AttributeError) as de:
             return False, str(de)
 
     def stop_job(self, job_name: str) -> str:
@@ -234,3 +227,21 @@ class DockerManager(ContainerManager):
         container.wait()
         output = container.logs().decode('utf-8')
         return output
+
+    def remove_vol(self) -> bool:
+        """ Remove the volume associated 
+
+        Returns:
+            bool: if removal is successful
+        """
+        if not self.docker_vol:
+            return True
+        try:
+            self.docker_vol.remove()
+            self.docker_vol = None
+            return True
+        except docker.errors.APIError as ae:
+            error_msg = f"failed to remove volume for {self.vol_name}"
+            error_msg += f"exception is {ae}"
+            self.logger.warning(error_msg)
+            return False
