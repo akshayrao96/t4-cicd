@@ -63,11 +63,11 @@ def run(ctx, file_path:str, pipeline:str, repo:str, branch:str, commit:str, loca
 and can't be both.")
             return
     control = Controller()
-    
+
     # TODO - Del 2024-11-04 Update Note and Fix
     # To follow the key naming in SessionDetail
     # change repo_source to repo_url
-    # local flag is to indicate if the run is local or remote. 
+    # local flag is to indicate if the run is local or remote.
     # remote_repo is indicate if the repo itself is on local and remote,
     git_details = {
         "repo_url": repo,

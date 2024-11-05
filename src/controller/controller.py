@@ -450,7 +450,7 @@ class Controller:
             self.logger.warning(f"validation error occur, error is {ve}")
             click.secho("Error in running pipeline", fg="red")
             status = False
-            
+
         if not status:
             message = 'Pipeline runs fail'
 
@@ -491,9 +491,10 @@ class Controller:
         try:
             his_obj = PipelineInfo.model_validate(pipeline_history)
         except ValidationError as ve:
-            self.logger.warning(f"validation error for pipeline_history:{pipeline_history}, error is {ve}")
+            self.logger.warning(f"validation error for pipeline_history:{pipeline_history}"+
+                                f"error is {ve}")
             raise ve
-            
+
         # pprint.pprint(his_obj.model_dump())
         if pipeline_history['running']:
             raise ValueError(f"Pipeline {pipeline_config.global_.pipeline_name} Already Running,"+
@@ -549,7 +550,8 @@ class Controller:
                     #print(job_name)
                     #pprint.pprint(job_config)
                     job_log = docker_manager.run_job(job_name, job_config)
-                    click.secho(f"Stage:{stage_name} Job:{job_name} - Streaming Job Logs", fg='green')
+                    click.secho(f"Stage:{stage_name} Job:{job_name} - Streaming Job Logs",
+                                fg='green')
                     click.echo(job_log.job_logs)
                     # click.echo("\n")
                     job_logs[job_name] = job_log.model_dump()
