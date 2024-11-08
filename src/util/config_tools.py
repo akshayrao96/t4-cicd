@@ -58,9 +58,9 @@ class ConfigChecker:
         Returns:
             dict: dictionary of {
                     'valid':<True or False>, 
-                    valid flag indicates if the validation passed or failed.\n 
+                    valid flag indicates if the validation passed or failed. 
                     'error_msg': <str of error messages collected>,
-                    If validation passed this will be an empty string \n
+                    If validation passed this will be an empty string 
                     'pipeline_config': dict. pipeline_config is the dictionary of 
                     the pipeline config processed. if validation failed, it will be empty
             }
