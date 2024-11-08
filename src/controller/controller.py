@@ -202,10 +202,12 @@ class Controller:
         # If validation passes, save to datastore
         if status:
             pipeline_name = resp_pipeline_config['global'].get('pipeline_name')
+            #TODO: replace stubs
             repo_data = self.mongo_ds.get_repo(
                 "sample-repo", "https://github.com/sample-user/sample-repo", "main"
             )
             # Case 1: No Repo Exists - Create New Repo with Pipeline
+            #TODO: replace stubs
             if not repo_data:
                 new_repo_data = {
                     "repo_name": "sample-repo",
@@ -687,7 +689,7 @@ class Controller:
             status = False
             return status
 
-        pipeline_dict = self.mongo_ds.get_pipeline_history(repo_name, repo_url, 
+        pipeline_dict = self.mongo_ds.get_pipeline_history(repo_name, repo_url,
                                                            branch, pipeline_name)
 
         #print(pipeline_dict)

@@ -135,13 +135,31 @@ def log(tail:str, repo:str):
 
 @pipeline.command()
 @click.option('-r', '--repo', 'repo_url', default='./', help='url of the repository (https://)')
-# @click.option('--local', 'local', help='retrieve local pipeline history', is_flag=True)
+@click.option('--local', 'local', help='retrieve local pipeline history', is_flag=True)
 @click.option('--pipeline', 'pipeline_name', default='cicd_pipeline', help='pipeline name to get the history')
-def report(repo_url:str, pipeline_name:str): #local:bool, pipeline:str
+@click.option('-b', '--branch', 'branch', default='main', help="branch name of the repository; default is 'main'")
+@click.option('-s', '--stage', 'stage', default='build', help='stage name for report')
+@click.option('-r', '--run', 'run', default='1', help='run number to get the report')
+def report(repo_url:str, local:bool, pipeline_name:str, branch:str, stage:str, ):
 
+    #TODO: if repo location is specify as "--repo .", this needs to get the current $pwd.
+    #           check if this exist.
     ctrl = Controller()
     repo_name = "cicd-python"
-    branch = "main"
+    #branch = "main"
     #pipeline_name = "cicd_pipeline"
     #TODO: get_repo to retrieve repo_name, repo_url, branch
+
+    #TODO: L4.2.Show pipeline run summary
+    # xx report --repo https://github.com/company/project --pipeline code-review --run 2
+    # show summary without specifying the stage. We can use the method and parse the stage summary
+
+    #TODO: L4.3.Show stage summary |
+    # a) --pipeline and --stage |
+    # xx report --repo https://github.com/company/project --pipeline code-review --stage build
+    # if stage is defined, use the repo, pipeline_name, and stage to print the summary
+    # b) --run
+    # xx report --repo https://github.com/company/project --pipeline code-review --stage 
+    #   build --run 2
+
     ctrl.pipeline_history(repo_url, repo_name, branch, pipeline_name)
