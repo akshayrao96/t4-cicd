@@ -85,7 +85,6 @@ and can't be both.")
         "commit_hash": commit,
         "remote_repo": local,
     }
-
     status, message, pipeline_id = control.run_pipeline(config_file=file_path, pipeline=pipeline,
                     dry_run=dry_run, git_details=git_details,
                     local=local, yaml_output=yaml_output,
@@ -134,3 +133,16 @@ def log(tail:str, repo:str):
     click.echo(f"\n[{pipeline_hash}] Pipeline 'Build and Test' completed.\n")
     # Optionally log this action for debugging
     # logger.debug(f"Showing the last {tail} lines of the pipeline log with hash {pipeline_hash}")
+
+@pipeline.command()
+@click.option('-r', '--repo', 'repo_url', default='./', help='url of the repository (https://)')
+# @click.option('--local', 'local', help='retrieve local pipeline history', is_flag=True)
+@click.option('--pipeline', 'pipeline_name', default='cicd_pipeline', help='pipeline name to get the history')
+def report(repo_url:str, pipeline_name:str): #local:bool, pipeline:str
+
+    ctrl = Controller()
+    repo_name = "cicd-python"
+    branch = "main"
+    #pipeline_name = "cicd_pipeline"
+    #TODO: get_repo to retrieve repo_name, repo_url, branch
+    ctrl.pipeline_history(repo_url, repo_name, branch, pipeline_name)

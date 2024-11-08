@@ -631,3 +631,16 @@ class MongoAdapter:
             "running": False,
             "last_commit_hash": ""
         }
+        # this is the new structure where the key is the pipeline_name
+        # TODO: replace other code (such as Controller #240 to adhere to this)
+        # # TODO: schema improvement https://github.com/CS6510-SEA-F24/t4-cicd/issues/105
+        # return {
+        #     pipeline_name: {
+        #         "pipeline_file_name": file_name,
+        #         "pipeline_config": pipeline_config,
+        #         "job_run_history": [],
+        #         "active": False,
+        #         "running": False,
+        #         "last_commit_hash": ""
+        #     }
+        # }

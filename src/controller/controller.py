@@ -14,7 +14,7 @@ import git.exc
 from pydantic import ValidationError
 import util.constant as const
 from util.container import (DockerManager)
-from util.model import (SessionDetail, PipelineConfig, ValidatedStage, PipelineInfo)
+from util.model import (SessionDetail, PipelineConfig, ValidatedStage, PipelineInfo, PipelineHist)
 from util.common_utils import (get_logger, ConfigOverrides, DryRun)
 from util.repo_manager import (RepoManager)
 from util.db_mongo import (MongoAdapter)
@@ -219,6 +219,15 @@ class Controller:
                         )
                     ]
                 }
+                # TODO: schema improvement https://github.com/CS6510-SEA-F24/t4-cicd/issues/105
+                # new_repo_data = {
+                #     "repo_name": "cicd-python",
+                #     "repo_url": "https://github.com/sjchin88/cicd-python",
+                #     "branch": "main",
+                #     "pipelines": self.mongo_ds.create_pipeline_document(
+                #             pipeline_name, file_name, resp_pipeline_config
+                #         )
+                # }
                 repo_id = self.mongo_ds.insert_repo(
                     new_repo_data, collection_name=MONGO_PIPELINES_TABLE
                 )
@@ -228,6 +237,7 @@ class Controller:
             # # Case 2: Existing Repo - Append Pipeline
             else:
                 existing_pipeline = next(
+                    #(p_name for p_name in repo_data["pipelines"] if p_name == pipeline_name),
                     (p for p in repo_data["pipelines"] if p["pipeline_name"] == pipeline_name),
                     None
                 )
@@ -236,6 +246,7 @@ class Controller:
                         pipeline_name, file_name, resp_pipeline_config
                     )
                     repo_data["pipelines"].append(new_pipeline_document)
+                    #repo_data["pipelines"].update(new_pipeline_document)
                     success = self.mongo_ds.update_pipeline(repo_data)
                     if not success:
                         error_msg = f"Error add new '{pipeline_name}' to datastore."
@@ -379,12 +390,12 @@ class Controller:
                         failed (dry_run = True)
         """
         ## TODO: validate the repo has the valid branch name and commit hash
-        # repo_source = git_details.get('repo_source')
+        # repo_source = git_details.get('repo_url')
         # branch = git_details.get('branch')
         # commit = git_details.get('commit_hash')
 
         ## Step 0: Clone the repo
-        # remote_repo = git_details.get('remote_repo')
+        # remote_repo = git_details.get('remote_url')
         # repo_manager = RepoManager(repo_source)
         # repo_manager.setup_repo()
         # TODO: create method in repo_manager to get cloned folder path
@@ -664,3 +675,26 @@ class Controller:
             dry_run_msg = yaml_output_msg
 
         return True, dry_run_msg, pipeline_id
+
+    def pipeline_history(self, repo_url: str, repo_name: str, branch: str = "main",
+                         pipeline_name:str = 'cicd_pipeline') -> bool:
+        query_data = {}
+        try:
+            query_data['repo_url'] = repo_url
+            query_data['repo_name'] = repo_name
+            query_data['pipeline_name'] = pipeline_name
+            #query_data['branch'] = "main" #optional
+            query_data = PipelineHist.model_validate(query_data)
+        except ValidationError as ve:
+            self.logger.warning(f"validation error occur, error is {ve}")
+            click.secho("Error in running pipeline", fg="red")
+            status = False
+            return status
+
+        pipeline_dict = self.mongo_ds.get_pipeline_history(repo_name, repo_url, 
+                                                           branch, pipeline_name)
+
+        #print(pipeline_dict)
+        #TODO from here, you can just go through the keys and format the output accordingly
+        #   if need to format to yaml
+        print(pipeline_dict.keys())

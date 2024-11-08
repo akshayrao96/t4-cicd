@@ -126,3 +126,16 @@ class PipelineInfo(BaseModel):
             list: existing list or new list
         """
         return job_run_history or []
+
+class PipelineHist(BaseModel):
+    """class to hold data to retrieve pipeline history
+
+    Args:
+        BaseModel (BaseModel): Base Pydantic Class
+    """
+    repo_name:str
+    repo_url:str
+    pipeline_name: str
+    branch: Optional[str] = "main"
+    is_remote: Optional[bool] = False
+    # commit_hash: Optional[str] = ""
