@@ -135,11 +135,15 @@ def config(
 
 @config.command()
 @click.argument('repo_url', required=True)
-def set_repo(repo_url: str) -> None:
+@click.option('--branch', default="main", help="Specify the branch to retrieve. If not given, 'main' is used.")
+@click.option('--commit', default=None, help="Specify the commit hash to retrieve. If not given, latest commit is used.")
+def set_repo(repo_url: str, branch: str, commit: str) -> None:
     """Sets a new repository for pipeline checks.
 
     Args:
         repo_url (str): The repository URL or path that must be provided.
+        branch (str): Optional branch name; defaults to 'main'.
+        commit (str): Optional commit hash; if not provided, the latest commit is used.
     """
     if not repo_url:
         click.echo(
@@ -149,9 +153,10 @@ def set_repo(repo_url: str) -> None:
     controller = Controller()
 
     try:
-        success, message = controller.set_repo(repo_url)
+        # Pass the repo_url, branch, and commit to the controller's set_repo method
+        success, message = controller.set_repo(repo_url, branch=branch, commit_hash=commit)
         if success:
-            click.echo(f"Repository set successfully: {repo_url}")
+            click.echo(f"Repository set successfully in current working directory: {repo_url}")
         else:
             click.echo(f"Error: {message}")
 
@@ -178,7 +183,7 @@ def get_repo():
         click.echo(
             "Please navigate to a working directory that is a git repository project")
         click.echo("OR")
-        click.echo("Please set an either remote or local repository using:")
+        click.echo("Please set an either remote or local repository using in an empty current working directory:")
         click.echo("cid config set-repo <REPO NAME>")
 
 

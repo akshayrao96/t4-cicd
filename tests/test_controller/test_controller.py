@@ -223,3 +223,92 @@ class TestOverrideConfig(unittest.TestCase):
         result = controller.override_config("test_pipeline", {"override_key": "override_value"})
         self.assertFalse(result)
         mock_echo.assert_called_once_with("Error updating pipeline configuration.")
+
+
+class TestControllerRepoFunctions(unittest.TestCase):
+
+    @patch("controller.controller.RepoManager")
+    def test_set_repo_in_git_repo(self, mock_repo_manager):
+        """Test set_repo when already in a Git repository."""
+        mock_instance = mock_repo_manager.return_value
+        mock_instance.is_current_repo.return_value = (True, "existing_repo")
+
+        controller = Controller()
+        success, message = controller.set_repo("https://github.com/sample/repo")
+
+        self.assertFalse(success)
+        self.assertIn("Please navigate to an empty directory", message)
+
+    @patch("controller.controller.RepoManager")
+    def test_set_repo_clone_failure(self, mock_repo_manager):
+        """Test set_repo when cloning the repository fails."""
+        mock_instance = mock_repo_manager.return_value
+        mock_instance.is_current_repo.return_value = (False, None)
+        mock_instance.set_repo.return_value = (False, "Failed to clone repository.", {})
+
+        controller = Controller()
+        success, message = controller.set_repo("https://github.com/sample/repo")
+
+        self.assertFalse(success)
+        self.assertEqual(message, "Failed to clone repository.")
+
+    @patch("controller.controller.RepoManager")
+    def test_set_repo_success(self, mock_repo_manager):
+        """Test successful set_repo call."""
+        mock_instance = mock_repo_manager.return_value
+        mock_instance.is_current_repo.return_value = (False, None)
+        mock_instance.set_repo.return_value = (True, "Repository successfully cloned and set up.", {
+            "repo_name": "sample_repo",
+            "branch": "main",
+            "commit_hash": "latest_commit_hash"
+        })
+
+        with patch("os.getlogin", return_value="test_user"), \
+                patch("util.db_mongo.MongoAdapter.insert_repo", return_value="new_repo_id"):
+            controller = Controller()
+            success, message = controller.set_repo("https://github.com/sample/repo")
+
+            self.assertTrue(success)
+            self.assertIn("Repository set successfully", message)
+
+    @patch("controller.controller.RepoManager")
+    @patch("util.db_mongo.MongoAdapter.get_last_set_repo")
+    def test_get_repo_in_git_repo(self, mock_get_last_set_repo, mock_repo_manager):
+        """Test get_repo when in a Git repository."""
+        mock_instance = mock_repo_manager.return_value
+        mock_instance.is_current_repo.return_value = (True, "existing_repo")
+
+        controller = Controller()
+        status, repo_name = controller.get_repo()
+
+        self.assertTrue(status)
+        self.assertEqual(repo_name, "existing_repo")
+        mock_get_last_set_repo.assert_not_called()
+
+    @patch("controller.controller.RepoManager")
+    @patch("util.db_mongo.MongoAdapter.get_last_set_repo")
+    def test_get_repo_with_last_set_repo(self, mock_get_last_set_repo, mock_repo_manager):
+        """Test get_repo when not in a Git repository but a last set repo exists."""
+        mock_instance = mock_repo_manager.return_value
+        mock_instance.is_current_repo.return_value = (False, None)
+        mock_get_last_set_repo.return_value = {"repo_url": "https://github.com/sample/last_repo"}
+
+        controller = Controller()
+        status, repo_url = controller.get_repo()
+
+        self.assertFalse(status)
+        self.assertEqual(repo_url, "https://github.com/sample/last_repo")
+
+    @patch("controller.controller.RepoManager")
+    @patch("util.db_mongo.MongoAdapter.get_last_set_repo")
+    def test_get_repo_no_repo_found(self, mock_get_last_set_repo, mock_repo_manager):
+        """Test get_repo when neither a Git repository nor a last set repo exists."""
+        mock_instance = mock_repo_manager.return_value
+        mock_instance.is_current_repo.return_value = (False, None)
+        mock_get_last_set_repo.return_value = None
+
+        controller = Controller()
+        status, repo_url = controller.get_repo()
+
+        self.assertFalse(status)
+        self.assertIsNone(repo_url)

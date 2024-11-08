@@ -125,41 +125,6 @@ def test_config_check_with_invalid_file():
 #     assert result.exit_code == 0
 #     # result.output will have newline ending, need to strip it
 
-
-@patch("cli.cmd_config.Controller.get_repo", return_value=(True, "./t4-cicd"))
-def test_get_repo_in_git_directory(mock_controller):
-    """ Test when in a Git repo directory """
-    runner = CliRunner()
-    result = runner.invoke(cmd_config.config, ['get-repo'])
-    assert result.exit_code == 0
-    assert "Using current directory." in result.output
-    assert "Current repository configured: ./t4-cicd" in result.output
-
-
-@patch("cli.cmd_config.Controller.set_repo", return_value=(True,
-       "Repository set successfully: https://github.com/github/docs"))
-def test_set_repo(mock_controller):
-    """ Test setting a repository after no repo is configured """
-    runner = CliRunner()
-    result = runner.invoke(
-        cmd_config.config, [
-            'set-repo', 'https://github.com/github/docs'])
-
-    # Ensure the set_repo command was called successfully
-    assert result.exit_code == 0
-    assert "Repository set successfully: https://github.com/github/docs" in result.output
-
-@patch("cli.cmd_config.Controller.get_repo", return_value=(False, "https://github.com/github/docs"))
-def test_get_repo_with_last_set_repo(mock_controller):
-    """ Test when a repository has already been set and retrieved from MongoDB """
-    runner = CliRunner()
-    result = runner.invoke(cmd_config.config, ['get-repo'])
-
-    assert result.exit_code == 0
-    assert "Fetching last set repo..." in result.output
-    assert "Repository configured: https://github.com/github/docs" in result.output
-
-
 @patch("cli.cmd_config.Controller.override_config", return_value=True)
 @patch("cli.cmd_config.ConfigOverrides.build_nested_dict", return_value={"global": {"docker": {"image": "gradle:jdk8"}}})
 def test_override_save_to_db(mock_build_nested_dict, mock_override_config):
@@ -217,3 +182,73 @@ def test_override_save_to_db_failure(mock_build_nested_dict, mock_override_confi
     assert "Failed to update pipeline 'test_pipeline'." in result.output
     mock_build_nested_dict.assert_called_once_with(('global.docker.image=gradle:jdk8',))
     mock_override_config.assert_called_once_with('test_pipeline', {"global": {"docker": {"image": "gradle:jdk8"}}})
+
+
+@patch("cli.cmd_config.Controller.set_repo", return_value=(True, "Repository set successfully"))
+def test_set_repo_success(mock_set_repo):
+    """Test `set-repo` command with successful repository setup."""
+    runner = CliRunner()
+    result = runner.invoke(cmd_config.config, [
+        'set-repo', 'https://github.com/example/repo.git', '--branch', 'main', '--commit', '123abc'
+    ])
+
+    assert result.exit_code == 0
+    assert "Repository set successfully" in result.output
+    mock_set_repo.assert_called_once_with("https://github.com/example/repo.git", branch="main", commit_hash="123abc")
+
+
+@patch("cli.cmd_config.Controller.set_repo", return_value=(False, "Failed to set repository"))
+def test_set_repo_failure(mock_set_repo):
+    """Test `set-repo` command with a failure in repository setup."""
+    runner = CliRunner()
+    result = runner.invoke(cmd_config.config, [
+        'set-repo', 'https://github.com/example/repo.git', '--branch', 'invalid', '--commit', 'unknown_commit'
+    ])
+
+    assert result.exit_code == 0
+    assert "Error: Failed to set repository" in result.output
+    mock_set_repo.assert_called_once_with("https://github.com/example/repo.git", branch="invalid",
+                                          commit_hash="unknown_commit")
+
+
+def test_set_repo_no_repo_given():
+    """Test `set-repo` command when no repository URL is provided."""
+    runner = CliRunner()
+    result = runner.invoke(cmd_config.config, ['set-repo'])
+
+    assert result.exit_code != 0  # Command should fail due to missing argument
+    assert "Error: Missing argument 'REPO_URL'." in result.output
+
+
+@patch("cli.cmd_config.Controller.get_repo", return_value=(True, "https://github.com/example/repo.git"))
+def test_get_repo_success(mock_get_repo):
+    """Test `get-repo` command when a repository is configured in the current directory."""
+    runner = CliRunner()
+    result = runner.invoke(cmd_config.config, ['get-repo'])
+
+    assert result.exit_code == 0
+    assert "Current repository configured: https://github.com/example/repo.git" in result.output
+    mock_get_repo.assert_called_once()
+
+
+@patch("cli.cmd_config.Controller.get_repo", return_value=(False, "https://github.com/example/last-repo.git"))
+def test_get_repo_last_set_repo(mock_get_repo):
+    """Test `get-repo` command retrieving the last set repository."""
+    runner = CliRunner()
+    result = runner.invoke(cmd_config.config, ['get-repo'])
+
+    assert result.exit_code == 0
+    assert "Fetching last set repo..." in result.output
+    assert "Repository configured: https://github.com/example/last-repo.git" in result.output
+    mock_get_repo.assert_called_once()
+
+
+@patch("cli.cmd_config.Controller.get_repo", return_value=(False, None))
+def test_get_repo_no_repo_set(mock_get_repo):
+    """Test `get-repo` command when no repository is configured."""
+    runner = CliRunner()
+    result = runner.invoke(cmd_config.config, ['get-repo'])
+
+    assert result.exit_code == 0
+    assert "No repository currently configured." in result.output
+    mock_get_repo.assert_called_once()
