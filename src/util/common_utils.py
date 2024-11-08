@@ -9,7 +9,7 @@ import yaml
 from dotenv import dotenv_values
 
 
-def get_logger(logger_name='', log_level=logging.DEBUG, log_file='debug.log') -> logging.Logger:
+def get_logger(logger_name='', log_level=logging.DEBUG, log_file='/debug.log') -> logging.Logger:
     """_summary_
 
     Args:
