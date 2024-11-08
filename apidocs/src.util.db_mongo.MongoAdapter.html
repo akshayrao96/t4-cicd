@@ -1,0 +1,1345 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+          "DTD/xhtml1-strict.dtd">
+<html>
+  
+
+  <head>
+    
+    <title>src.util.db_mongo.MongoAdapter</title>
+    <meta name="generator" content="pydoctor 24.3.3"> 
+        
+    </meta>
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1 maximum-scale=1" />
+    <link rel="stylesheet" type="text/css" href="bootstrap.min.css" />
+    <link rel="stylesheet" type="text/css" href="apidocs.css" />
+    <link rel="stylesheet" type="text/css" href="extra.css" />
+</head>
+
+  <body>
+
+    
+
+    <nav class="navbar navbar-default mainnavbar">
+      
+  
+  <div class="container-fluid">
+
+
+    <div class="navbar-header">
+      
+      <div class="navlinks">
+        <span class="navbar-brand">
+          t4-cicd <a href="index.html">API Documentation</a>
+        </span>
+
+        <a href="moduleIndex.html">
+          Modules
+        </a>
+
+        <a href="classIndex.html">
+          Classes
+        </a>
+
+        <a href="nameIndex.html">
+          Names
+        </a>
+
+        <div id="search-box-container">
+          <div class="input-group">
+            <input id="search-box" type="search" name="search-query" placeholder="Search..." aria-label="Search" minlength="2" class="form-control" autocomplete="off" />
+            
+            <span class="input-group-btn">
+              <a style="display: none;" class="btn btn-default" id="search-clear-button" title="Clear" onclick="clearSearch()"><img src="fonts/x-circle.svg" alt="Clear" /></a>
+              <a class="btn btn-default" id="search-help-button" title="Help" onclick="toggleSearchHelpText()"><img src="fonts/info.svg" alt="Help" /></a>
+            </span>
+          </div>
+        </div>
+
+      </div>
+
+      <div id="search-results-container" style="display: none;">
+        
+        <div id="search-buttons">
+          <span class="label label-default" id="search-docstrings-button">
+          <label class="checkbox-inline">
+            <input type="checkbox" id="toggle-search-in-docstrings-checkbox" value="false" onclick="toggleSearchInDocstrings()">
+              search in docstrings
+            </input>
+          </label>
+          </span>
+          
+        </div>
+        
+        <noscript>
+            <h1>Cannot search: JavaScript is not supported/enabled in your browser.</h1>
+        </noscript>
+
+        <div class="hint" id="search-help-box">
+          <p class="rst-last">
+      
+            Search bar offers the following options:
+            <ul>   
+                <li>
+                  <strong>Term presence.</strong> The below example searches for documents that 
+                    must contain “foo”, might contain “bar” and must not contain “baz”: <code>+foo bar -baz</code>
+                </li> 
+
+                <li>
+                  <strong>Wildcards.</strong> The below example searches for documents with words beginning with “foo”: <code>foo*</code>
+                </li> 
+
+                <li>
+                  <strong>Search in specific fields.</strong> The following search matches all objects 
+                  in "twisted.mail" that matches “search”: <code>+qname:twisted.mail.* +search</code>
+
+                  <p>
+                    Possible fields: 'name', 'qname' (fully qualified name), 'docstring', and 'kind'.
+                    Last two fields are only applicable if "search in docstrings" is enabled.
+                  </p>
+                </li>
+
+                <li>
+                  <strong>Fuzzy matches.</strong> The following search matches all documents 
+                  that have a word within 1 edit distance of “foo”: <code>foo~1</code>
+                </li>
+            </ul>
+
+          </p>
+        </div>
+
+        <div id="search-status"> </div>
+
+        <div class="warning" id="search-warn-box" style="display: none;">
+          <p class="rst-last"><span id="search-warn"></span></p>
+        </div>
+
+        <table id="search-results">
+          <!-- Filled dynamically by JS -->
+        </table>
+        
+        <div style="margin-top: 8px;">
+          <p>Results provided by <a href="https://lunrjs.com">Lunr.js</a></p>
+        </div>
+      </div>
+
+    </div>
+
+
+  </div>
+</nav>
+    
+    <div class="container-fluid">
+
+      <!-- Side navigation -->
+      <div class="sidebarcontainer" style="display: none;">
+        
+        <div class="sidebar"><nav class="sidebar">
+  
+
+  <div>
+
+      <div class="thingTitle">
+        <span>Class</span>
+        <code class="thisobject"><a href="src.util.db_mongo.MongoAdapter.html" class="internal-link" title="This class"><wbr></wbr>Mongo<wbr></wbr>Adapter</a></code> 
+      </div>
+      
+      <div>
+        
+
+        
+         
+
+        
+        
+
+        <div class="childrenKindTitle">Methods</div>
+        <ul>
+    
+    <li class="">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="#__init__" class="internal-link" title="src.util.db_mongo.MongoAdapter.__init__">__init__</a></code>
+            </div>
+        
+
+    </li><li class="">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="#create_job_log" class="internal-link" title="src.util.db_mongo.MongoAdapter.create_job_log">create<wbr></wbr>_job<wbr></wbr>_log</a></code>
+            </div>
+        
+
+    </li><li class="">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="#create_pipeline_document" class="internal-link" title="src.util.db_mongo.MongoAdapter.create_pipeline_document">create<wbr></wbr>_pipeline<wbr></wbr>_document</a></code>
+            </div>
+        
+
+    </li><li class="">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="#del_job" class="internal-link" title="src.util.db_mongo.MongoAdapter.del_job">del<wbr></wbr>_job</a></code>
+            </div>
+        
+
+    </li><li class="">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="#del_pipeline" class="internal-link" title="src.util.db_mongo.MongoAdapter.del_pipeline">del<wbr></wbr>_pipeline</a></code>
+            </div>
+        
+
+    </li><li class="">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="#get_controller_history" class="internal-link" title="src.util.db_mongo.MongoAdapter.get_controller_history">get<wbr></wbr>_controller<wbr></wbr>_history</a></code>
+            </div>
+        
+
+    </li><li class="">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="#get_job" class="internal-link" title="src.util.db_mongo.MongoAdapter.get_job">get<wbr></wbr>_job</a></code>
+            </div>
+        
+
+    </li><li class="">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="#get_last_set_repo" class="internal-link" title="src.util.db_mongo.MongoAdapter.get_last_set_repo">get<wbr></wbr>_last<wbr></wbr>_set<wbr></wbr>_repo</a></code>
+            </div>
+        
+
+    </li><li class="">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="#get_pipeline" class="internal-link" title="src.util.db_mongo.MongoAdapter.get_pipeline">get<wbr></wbr>_pipeline</a></code>
+            </div>
+        
+
+    </li><li class="">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="#get_pipeline_config" class="internal-link" title="src.util.db_mongo.MongoAdapter.get_pipeline_config">get<wbr></wbr>_pipeline<wbr></wbr>_config</a></code>
+            </div>
+        
+
+    </li><li class="">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="#get_pipeline_history" class="internal-link" title="src.util.db_mongo.MongoAdapter.get_pipeline_history">get<wbr></wbr>_pipeline<wbr></wbr>_history</a></code>
+            </div>
+        
+
+    </li><li class="">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="#get_repo" class="internal-link" title="src.util.db_mongo.MongoAdapter.get_repo">get<wbr></wbr>_repo</a></code>
+            </div>
+        
+
+    </li><li class="">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="#insert_job" class="internal-link" title="src.util.db_mongo.MongoAdapter.insert_job">insert<wbr></wbr>_job</a></code>
+            </div>
+        
+
+    </li><li class="">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="#insert_pipeline" class="internal-link" title="src.util.db_mongo.MongoAdapter.insert_pipeline">insert<wbr></wbr>_pipeline</a></code>
+            </div>
+        
+
+    </li><li class="">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="#insert_repo" class="internal-link" title="src.util.db_mongo.MongoAdapter.insert_repo">insert<wbr></wbr>_repo</a></code>
+            </div>
+        
+
+    </li><li class="">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="#update_job" class="internal-link" title="src.util.db_mongo.MongoAdapter.update_job">update<wbr></wbr>_job</a></code>
+            </div>
+        
+
+    </li><li class="">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="#update_job_logs" class="internal-link" title="src.util.db_mongo.MongoAdapter.update_job_logs">update<wbr></wbr>_job<wbr></wbr>_logs</a></code>
+            </div>
+        
+
+    </li><li class="">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="#update_pipeline" class="internal-link" title="src.util.db_mongo.MongoAdapter.update_pipeline">update<wbr></wbr>_pipeline</a></code>
+            </div>
+        
+
+    </li><li class="">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="#update_pipeline_config" class="internal-link" title="src.util.db_mongo.MongoAdapter.update_pipeline_config">update<wbr></wbr>_pipeline<wbr></wbr>_config</a></code>
+            </div>
+        
+
+    </li><li class="">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="#update_pipeline_history" class="internal-link" title="src.util.db_mongo.MongoAdapter.update_pipeline_history">update<wbr></wbr>_pipeline<wbr></wbr>_history</a></code>
+            </div>
+        
+
+    </li><li class="private">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="#_delete" class="internal-link" title="src.util.db_mongo.MongoAdapter._delete">_delete</a></code>
+            </div>
+        
+
+    </li><li class="private">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="#_insert" class="internal-link" title="src.util.db_mongo.MongoAdapter._insert">_insert</a></code>
+            </div>
+        
+
+    </li><li class="private">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="#_retrieve" class="internal-link" title="src.util.db_mongo.MongoAdapter._retrieve">_retrieve</a></code>
+            </div>
+        
+
+    </li><li class="private">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="#_update" class="internal-link" title="src.util.db_mongo.MongoAdapter._update">_update</a></code>
+            </div>
+        
+
+    </li>
+</ul> 
+
+        
+         
+
+        <div class="childrenKindTitle">Attributes</div>
+        <ul>
+    
+    <li class="">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="#mongo_uri" class="internal-link" title="src.util.db_mongo.MongoAdapter.mongo_uri">mongo<wbr></wbr>_uri</a></code>
+            </div>
+        
+
+    </li>
+</ul> 
+
+        
+         
+        
+      </div>
+  </div><div>
+
+      <div class="thingTitle">
+        <span>Module</span>
+        <code><a href="src.util.db_mongo.html" class="internal-link" title="The parent of this class">db<wbr></wbr>_mongo</a></code> 
+      </div>
+      
+      <div>
+        
+
+        
+         
+
+        <div class="childrenKindTitle">Classes</div>
+        <ul>
+    
+    <li class=" thisobject">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="src.util.db_mongo.MongoAdapter.html" class="internal-link" title="src.util.db_mongo.MongoAdapter"><wbr></wbr>Mongo<wbr></wbr>Adapter</a></code>
+            </div>
+        
+
+    </li>
+</ul>
+
+        
+         
+
+        
+         
+
+        <div class="childrenKindTitle">Variables</div>
+        <ul>
+    
+    <li class="">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="src.util.db_mongo.html#MONGO_DB_NAME" class="internal-link" title="src.util.db_mongo.MONGO_DB_NAME">MONGO<wbr></wbr>_DB<wbr></wbr>_NAME</a></code>
+            </div>
+        
+
+    </li><li class="">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="src.util.db_mongo.html#MONGO_JOBS_TABLE" class="internal-link" title="src.util.db_mongo.MONGO_JOBS_TABLE">MONGO<wbr></wbr>_JOBS<wbr></wbr>_TABLE</a></code>
+            </div>
+        
+
+    </li><li class="">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="src.util.db_mongo.html#MONGO_PIPELINES_TABLE" class="internal-link" title="src.util.db_mongo.MONGO_PIPELINES_TABLE">MONGO<wbr></wbr>_PIPELINES<wbr></wbr>_TABLE</a></code>
+            </div>
+        
+
+    </li><li class="">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="src.util.db_mongo.html#MONGO_REPOS_TABLE" class="internal-link" title="src.util.db_mongo.MONGO_REPOS_TABLE">MONGO<wbr></wbr>_REPOS<wbr></wbr>_TABLE</a></code>
+            </div>
+        
+
+    </li><li class="">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="src.util.db_mongo.html#env" class="internal-link" title="src.util.db_mongo.env">env</a></code>
+            </div>
+        
+
+    </li><li class="">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="src.util.db_mongo.html#logger" class="internal-link" title="src.util.db_mongo.logger">logger</a></code>
+            </div>
+        
+
+    </li>
+</ul> 
+
+        
+         
+        
+      </div>
+  </div>
+
+</nav>
+        </div>
+        <div id="collapseSideBar">
+          <a class="btn btn-link" onclick="toggleSideBarCollapse()" title="Toggle Sidebar Collapse">
+          </a>
+        </div> 
+        <script src="sidebartoggle.js" type="text/javascript"></script>
+       
+      </div>
+
+      <div id="main" class="">
+        
+
+        
+
+        <div class="page-header">
+          <h1 class="class"><code><code><a href="index.html" class="internal-link">src</a></code><wbr></wbr>.<code><a href="src.util.html" class="internal-link" title="src.util">util</a></code><wbr></wbr>.<code><a href="src.util.db_mongo.html" class="internal-link" title="src.util.db_mongo">db_mongo</a></code><wbr></wbr>.<code><a href="src.util.db_mongo.MongoAdapter.html" class="internal-link" title="src.util.db_mongo.MongoAdapter">MongoAdapter</a></code></code></h1>
+          <div id="showPrivate">
+            <button class="btn btn-link" onclick="togglePrivate()">Toggle Private API</button>
+          </div>
+        </div>
+
+        <div class="categoryHeader">
+          class documentation
+        </div>
+
+        <div class="extrasDocstring">
+          <p class="class-signature"><code><span class="py-keyword">class</span> <span class="py-defname">MongoAdapter</span>:</code></p><p>Constructor: <code><a href="#__init__" class="internal-link" title="src.util.db_mongo.MongoAdapter.__init__">MongoAdapter()</a></code></p>
+          <p><a href="classIndex.html#src.util.db_mongo.MongoAdapter">View In Hierarchy</a></p>
+        </div>
+
+        <div class="moduleDocstring">
+          <div><p>Adapter class to provide standardize queries to mongo db</p></div>
+        </div>
+
+        <div id="splitTables">
+          <table class="children sortable" id="id22">
+  
+  
+  <tr class="method">
+    
+    <td>Method</td>
+    <td><code><a href="#__init__" class="internal-link" title="src.util.db_mongo.MongoAdapter.__init__">__init__</a></code></td>
+    <td>Default Constructor</td>
+  </tr><tr class="method">
+    
+    <td>Method</td>
+    <td><code><a href="#create_job_log" class="internal-link" title="src.util.db_mongo.MongoAdapter.create_job_log">create<wbr></wbr>_job<wbr></wbr>_log</a></code></td>
+    <td>Creates a job log entry.</td>
+  </tr><tr class="method">
+    
+    <td>Method</td>
+    <td><code><a href="#create_pipeline_document" class="internal-link" title="src.util.db_mongo.MongoAdapter.create_pipeline_document">create<wbr></wbr>_pipeline<wbr></wbr>_document</a></code></td>
+    <td>Generate a new pipeline document for insertion into pipelines.</td>
+  </tr><tr class="method">
+    
+    <td>Method</td>
+    <td><code><a href="#del_job" class="internal-link" title="src.util.db_mongo.MongoAdapter.del_job">del<wbr></wbr>_job</a></code></td>
+    <td>Delete the job log based on given id</td>
+  </tr><tr class="method">
+    
+    <td>Method</td>
+    <td><code><a href="#del_pipeline" class="internal-link" title="src.util.db_mongo.MongoAdapter.del_pipeline">del<wbr></wbr>_pipeline</a></code></td>
+    <td>Delete the pipeline history based on given id</td>
+  </tr><tr class="method">
+    
+    <td>Method</td>
+    <td><code><a href="#get_controller_history" class="internal-link" title="src.util.db_mongo.MongoAdapter.get_controller_history">get<wbr></wbr>_controller<wbr></wbr>_history</a></code></td>
+    <td>Retrieve all pipeline history for the controller</td>
+  </tr><tr class="method">
+    
+    <td>Method</td>
+    <td><code><a href="#get_job" class="internal-link" title="src.util.db_mongo.MongoAdapter.get_job">get<wbr></wbr>_job</a></code></td>
+    <td>retrieve the job based on given id</td>
+  </tr><tr class="method">
+    
+    <td>Method</td>
+    <td><code><a href="#get_last_set_repo" class="internal-link" title="src.util.db_mongo.MongoAdapter.get_last_set_repo">get<wbr></wbr>_last<wbr></wbr>_set<wbr></wbr>_repo</a></code></td>
+    <td>Retrieve the last set repository from the user</td>
+  </tr><tr class="method">
+    
+    <td>Method</td>
+    <td><code><a href="#get_pipeline" class="internal-link" title="src.util.db_mongo.MongoAdapter.get_pipeline">get<wbr></wbr>_pipeline</a></code></td>
+    <td>Retrieve the pipeline history based on given id</td>
+  </tr><tr class="method">
+    
+    <td>Method</td>
+    <td><code><a href="#get_pipeline_config" class="internal-link" title="src.util.db_mongo.MongoAdapter.get_pipeline_config">get<wbr></wbr>_pipeline<wbr></wbr>_config</a></code></td>
+    <td>Retrieve the _id and pipeline_config based on the given args.</td>
+  </tr><tr class="method">
+    
+    <td>Method</td>
+    <td><code><a href="#get_pipeline_history" class="internal-link" title="src.util.db_mongo.MongoAdapter.get_pipeline_history">get<wbr></wbr>_pipeline<wbr></wbr>_history</a></code></td>
+    <td>Retrieve the pipeline history based on the given args.</td>
+  </tr><tr class="method">
+    
+    <td>Method</td>
+    <td><code><a href="#get_repo" class="internal-link" title="src.util.db_mongo.MongoAdapter.get_repo">get<wbr></wbr>_repo</a></code></td>
+    <td>from the repo_configs collection.</td>
+  </tr><tr class="method">
+    
+    <td>Method</td>
+    <td><code><a href="#insert_job" class="internal-link" title="src.util.db_mongo.MongoAdapter.insert_job">insert<wbr></wbr>_job</a></code></td>
+    <td>Inserts a new job with initialized stages into the jobs table.</td>
+  </tr><tr class="method">
+    
+    <td>Method</td>
+    <td><code><a href="#insert_pipeline" class="internal-link" title="src.util.db_mongo.MongoAdapter.insert_pipeline">insert<wbr></wbr>_pipeline</a></code></td>
+    <td>Insert a new pipeline history record for new repository</td>
+  </tr><tr class="method">
+    
+    <td>Method</td>
+    <td><code><a href="#insert_repo" class="internal-link" title="src.util.db_mongo.MongoAdapter.insert_repo">insert<wbr></wbr>_repo</a></code></td>
+    <td>Insert a new repository session record into repos_collection</td>
+  </tr><tr class="method">
+    
+    <td>Method</td>
+    <td><code><a href="#update_job" class="internal-link" title="src.util.db_mongo.MongoAdapter.update_job">update<wbr></wbr>_job</a></code></td>
+    <td>Updates specified fields in a job document.</td>
+  </tr><tr class="method">
+    
+    <td>Method</td>
+    <td><code><a href="#update_job_logs" class="internal-link" title="src.util.db_mongo.MongoAdapter.update_job_logs">update<wbr></wbr>_job<wbr></wbr>_logs</a></code></td>
+    <td>Updates the status and the jobs log for a specific stage.</td>
+  </tr><tr class="method">
+    
+    <td>Method</td>
+    <td><code><a href="#update_pipeline" class="internal-link" title="src.util.db_mongo.MongoAdapter.update_pipeline">update<wbr></wbr>_pipeline</a></code></td>
+    <td>Update the pipeline history based on given dict</td>
+  </tr><tr class="method">
+    
+    <td>Method</td>
+    <td><code><a href="#update_pipeline_config" class="internal-link" title="src.util.db_mongo.MongoAdapter.update_pipeline_config">update<wbr></wbr>_pipeline<wbr></wbr>_config</a></code></td>
+    <td>Update the pipeline_config field in the repo_configs collection for a specific pipeline.</td>
+  </tr><tr class="method">
+    
+    <td>Method</td>
+    <td><code><a href="#update_pipeline_history" class="internal-link" title="src.util.db_mongo.MongoAdapter.update_pipeline_history">update<wbr></wbr>_pipeline<wbr></wbr>_history</a></code></td>
+    <td>Update the fields in the repo_configs collection for a specific pipeline.</td>
+  </tr><tr class="instancevariable">
+    
+    <td>Instance Variable</td>
+    <td><code><a href="#mongo_uri" class="internal-link" title="src.util.db_mongo.MongoAdapter.mongo_uri">mongo<wbr></wbr>_uri</a></code></td>
+    <td><span class="undocumented">Undocumented</span></td>
+  </tr><tr class="method private">
+    
+    <td>Method</td>
+    <td><code><a href="#_delete" class="internal-link" title="src.util.db_mongo.MongoAdapter._delete">_delete</a></code></td>
+    <td>Delete the first found record based on given id</td>
+  </tr><tr class="method private">
+    
+    <td>Method</td>
+    <td><code><a href="#_insert" class="internal-link" title="src.util.db_mongo.MongoAdapter._insert">_insert</a></code></td>
+    <td>Generic Helper method to insert the data</td>
+  </tr><tr class="method private">
+    
+    <td>Method</td>
+    <td><code><a href="#_retrieve" class="internal-link" title="src.util.db_mongo.MongoAdapter._retrieve">_retrieve</a></code></td>
+    <td>Retrieve the first found record based on given id</td>
+  </tr><tr class="method private">
+    
+    <td>Method</td>
+    <td><code><a href="#_update" class="internal-link" title="src.util.db_mongo.MongoAdapter._update">_update</a></code></td>
+    <td>Generic Helper method to update the data</td>
+  </tr>
+</table>
+          
+
+            
+        </div>
+
+        <div id="childList">
+          <div class="basemethod">
+  
+  
+  <a name="src.util.db_mongo.MongoAdapter.__init__">
+    
+  </a>
+  <a name="__init__">
+    
+  </a>
+  <div class="functionHeader">
+    
+    
+    <span class="py-keyword">def</span> <span class="py-defname">__init__</span><span class="function-signature">(self)</span>:
+    
+    <a class="headerLink" href="#__init__" title="src.util.db_mongo.MongoAdapter.__init__">
+      
+      
+      ¶
+    </a>
+  </div>
+  <div class="docstring functionBody">
+    
+    <div><p>Default Constructor</p></div>
+  </div>
+</div><div class="basemethod">
+  
+  
+  <a name="src.util.db_mongo.MongoAdapter.create_job_log">
+    
+  </a>
+  <a name="create_job_log">
+    
+  </a>
+  <div class="functionHeader">
+    
+    
+    <span class="py-keyword">def</span> <span class="py-defname">create_job_log</span><span class="function-signature">(self, job_name: <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code>, job_status: <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code>, allow_failure: <code><a href="https://docs.python.org/3/library/functions.html#bool" class="intersphinx-link">bool</a></code> = <a href="https://docs.python.org/3/library/constants.html#False" class="intersphinx-link">False</a>, logs: <code><a href="https://docs.python.org/3/library/stdtypes.html#list" class="intersphinx-link">list</a></code> = <a href="https://docs.python.org/3/library/constants.html#None" class="intersphinx-link">None</a>, error_output: <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code> = <a href="https://docs.python.org/3/library/constants.html#None" class="intersphinx-link">None</a>) -&gt; <code><a href="https://docs.python.org/3/library/stdtypes.html#dict" class="intersphinx-link">dict</a></code></span>:
+    
+    <a class="headerLink" href="#create_job_log" title="src.util.db_mongo.MongoAdapter.create_job_log">
+      
+      
+      ¶
+    </a>
+  </div>
+  <div class="docstring functionBody">
+    
+    <div><p>Creates a job log entry.</p><table class="fieldTable"><tr class="fieldStart"><td class="fieldName" colspan="2">Parameters</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">job<wbr></wbr>_name:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code></td><td class="fieldArgDesc">Name of the job.</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">job<wbr></wbr>_status:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code></td><td class="fieldArgDesc">Current status of the job (e.g., "started" / "completed").</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">allow<wbr></wbr>_failure:</span><code><a href="https://docs.python.org/3/library/functions.html#bool" class="intersphinx-link">bool</a></code>, <em>optional</em></td><td class="fieldArgDesc">the job is allowed to fail or not.</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">logs:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#list" class="intersphinx-link">list</a></code>, <em>optional</em></td><td class="fieldArgDesc">List of log.</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">error<wbr></wbr>_output:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code>, <em>optional</em></td><td class="fieldArgDesc">Error output.</td></tr><tr class="fieldStart"><td class="fieldName" colspan="2">Returns</td></tr><tr><td class="fieldArgContainer"><code><a href="https://docs.python.org/3/library/stdtypes.html#dict" class="intersphinx-link">dict</a></code></td><td class="fieldArgDesc">A dictionary representing the job log entry.</td></tr></table></div>
+  </div>
+</div><div class="basemethod">
+  
+  
+  <a name="src.util.db_mongo.MongoAdapter.create_pipeline_document">
+    
+  </a>
+  <a name="create_pipeline_document">
+    
+  </a>
+  <div class="functionHeader">
+    
+    
+    <span class="py-keyword">def</span> <span class="py-defname">create_pipeline_document</span><span class="function-signature">(self, pipeline_name: <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code>, file_name: <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code>, pipeline_config: <code><a href="https://docs.python.org/3/library/stdtypes.html#dict" class="intersphinx-link">dict</a></code>) -&gt; <code><a href="https://docs.python.org/3/library/stdtypes.html#dict" class="intersphinx-link">dict</a></code></span>:
+    
+    <a class="headerLink" href="#create_pipeline_document" title="src.util.db_mongo.MongoAdapter.create_pipeline_document">
+      
+      
+      ¶
+    </a>
+  </div>
+  <div class="docstring functionBody">
+    
+    <div><p>Generate a new pipeline document for insertion into pipelines.</p><table class="fieldTable"><tr class="fieldStart"><td class="fieldName" colspan="2">Parameters</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">pipeline<wbr></wbr>_name:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code></td><td class="fieldArgDesc">The name of the pipeline.</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">file<wbr></wbr>_name:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code></td><td class="fieldArgDesc">The name of the YAML file for the pipeline.</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">pipeline<wbr></wbr>_config:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#dict" class="intersphinx-link">dict</a></code></td><td class="fieldArgDesc">The pipeline configuration details.</td></tr><tr class="fieldStart"><td class="fieldName" colspan="2">Returns</td></tr><tr><td class="fieldArgContainer"><code><a href="https://docs.python.org/3/library/stdtypes.html#dict" class="intersphinx-link">dict</a></code></td><td class="fieldArgDesc">A dictionary representing the new pipeline document.</td></tr></table></div>
+  </div>
+</div><div class="basemethod">
+  
+  
+  <a name="src.util.db_mongo.MongoAdapter.del_job">
+    
+  </a>
+  <a name="del_job">
+    
+  </a>
+  <div class="functionHeader">
+    
+    
+    <span class="py-keyword">def</span> <span class="py-defname">del_job</span><span class="function-signature">(self, job_id: <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code>, db_name: <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code> = <a href="src.util.db_mongo.html#MONGO_DB_NAME" class="internal-link" title="src.util.db_mongo.MONGO_DB_NAME">MONGO_DB_NAME</a>, collection_name: <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code> = <a href="src.util.db_mongo.html#MONGO_JOBS_TABLE" class="internal-link" title="src.util.db_mongo.MONGO_JOBS_TABLE">MONGO_JOBS_TABLE</a>) -&gt; <code><a href="https://docs.python.org/3/library/stdtypes.html#dict" class="intersphinx-link">dict</a></code></span>:
+    
+    <a class="headerLink" href="#del_job" title="src.util.db_mongo.MongoAdapter.del_job">
+      
+      
+      ¶
+    </a>
+  </div>
+  <div class="docstring functionBody">
+    
+    <div><p>Delete the job log based on given id</p><table class="fieldTable"><tr class="fieldStart"><td class="fieldName" colspan="2">Parameters</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">job<wbr></wbr>_id:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code></td><td class="fieldArgDesc">id of target job</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">db<wbr></wbr>_name:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code>, <em>optional</em></td><td class="fieldArgDesc">target database. Defaults to MONGO_DB_NAME.</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">collection<wbr></wbr>_name:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code>, <em>optional</em></td><td class="fieldArgDesc">target collection. Defaults to MONGO_JOBS_TABLE.</td></tr><tr class="fieldStart"><td class="fieldName" colspan="2">Returns</td></tr><tr><td class="fieldArgContainer"><code><a href="https://docs.python.org/3/library/stdtypes.html#dict" class="intersphinx-link">dict</a></code></td><td class="fieldArgDesc">target job in dict form</td></tr></table></div>
+  </div>
+</div><div class="basemethod">
+  
+  
+  <a name="src.util.db_mongo.MongoAdapter.del_pipeline">
+    
+  </a>
+  <a name="del_pipeline">
+    
+  </a>
+  <div class="functionHeader">
+    
+    
+    <span class="py-keyword">def</span> <span class="py-defname">del_pipeline</span><span class="function-signature">(self, pipeline_id: <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code>, db_name: <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code> = <a href="src.util.db_mongo.html#MONGO_DB_NAME" class="internal-link" title="src.util.db_mongo.MONGO_DB_NAME">MONGO_DB_NAME</a>, collection_name: <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code> = <a href="src.util.db_mongo.html#MONGO_PIPELINES_TABLE" class="internal-link" title="src.util.db_mongo.MONGO_PIPELINES_TABLE">MONGO_PIPELINES_TABLE</a>) -&gt; <code><a href="https://docs.python.org/3/library/stdtypes.html#dict" class="intersphinx-link">dict</a></code></span>:
+    
+    <a class="headerLink" href="#del_pipeline" title="src.util.db_mongo.MongoAdapter.del_pipeline">
+      
+      
+      ¶
+    </a>
+  </div>
+  <div class="docstring functionBody">
+    
+    <div><p>Delete the pipeline history based on given id</p><table class="fieldTable"><tr class="fieldStart"><td class="fieldName" colspan="2">Parameters</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">pipeline<wbr></wbr>_id:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code></td><td class="fieldArgDesc">id of the given pipeline</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">db<wbr></wbr>_name:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code>, <em>optional</em></td><td class="fieldArgDesc">target database. Defaults to MONGO_DB_NAME.</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">collection<wbr></wbr>_name:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code>, <em>optional</em></td><td class="fieldArgDesc">target collection table.
+Defaults to MONGO_PIPELINES_TABLE.</td></tr><tr class="fieldStart"><td class="fieldName" colspan="2">Returns</td></tr><tr><td class="fieldArgContainer"><code><a href="https://docs.python.org/3/library/stdtypes.html#dict" class="intersphinx-link">dict</a></code></td><td class="fieldArgDesc">given pipeline in dict form</td></tr></table></div>
+  </div>
+</div><div class="basemethod">
+  
+  
+  <a name="src.util.db_mongo.MongoAdapter.get_controller_history">
+    
+  </a>
+  <a name="get_controller_history">
+    
+  </a>
+  <div class="functionHeader">
+    
+    
+    <span class="py-keyword">def</span> <span class="py-defname">get_controller_history</span><span class="function-signature">(self) -&gt; <code><a href="https://docs.python.org/3/library/stdtypes.html#dict" class="intersphinx-link">dict</a></code></span>:
+    
+    <a class="headerLink" href="#get_controller_history" title="src.util.db_mongo.MongoAdapter.get_controller_history">
+      
+      
+      ¶
+    </a>
+  </div>
+  <div class="docstring functionBody">
+    
+    <div><p>Retrieve all pipeline history for the controller</p><table class="fieldTable"><tr class="fieldStart"><td class="fieldName" colspan="2">Returns</td></tr><tr><td class="fieldArgContainer"><code><a href="https://docs.python.org/3/library/stdtypes.html#dict" class="intersphinx-link">dict</a></code></td><td class="fieldArgDesc"><dl class="rst-docutils">
+<dt>dictionary contains all pipelines set up before,</dt>
+<dd>identified by pipeline['_id'] value</dd>
+</dl>
+</td></tr></table></div>
+  </div>
+</div><div class="basemethod">
+  
+  
+  <a name="src.util.db_mongo.MongoAdapter.get_job">
+    
+  </a>
+  <a name="get_job">
+    
+  </a>
+  <div class="functionHeader">
+    
+    
+    <span class="py-keyword">def</span> <span class="py-defname">get_job</span><span class="function-signature">(self, doc_id: <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code>, db_name: <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code> = <a href="src.util.db_mongo.html#MONGO_DB_NAME" class="internal-link" title="src.util.db_mongo.MONGO_DB_NAME">MONGO_DB_NAME</a>, collection_name: <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code> = <a href="src.util.db_mongo.html#MONGO_JOBS_TABLE" class="internal-link" title="src.util.db_mongo.MONGO_JOBS_TABLE">MONGO_JOBS_TABLE</a>) -&gt; <code><a href="https://docs.python.org/3/library/stdtypes.html#dict" class="intersphinx-link">dict</a></code></span>:
+    
+    <a class="headerLink" href="#get_job" title="src.util.db_mongo.MongoAdapter.get_job">
+      
+      
+      ¶
+    </a>
+  </div>
+  <div class="docstring functionBody">
+    
+    <div><p>retrieve the job based on given id</p><table class="fieldTable"><tr class="fieldStart"><td class="fieldName" colspan="2">Parameters</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">doc<wbr></wbr>_id:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code></td><td class="fieldArgDesc">id of target job</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">db<wbr></wbr>_name:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code>, <em>optional</em></td><td class="fieldArgDesc">target database. Defaults to MONGO_DB_NAME.</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">collection<wbr></wbr>_name:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code>, <em>optional</em></td><td class="fieldArgDesc">target collection. Defaults to MONGO_JOBS_TABLE.</td></tr><tr class="fieldStart"><td class="fieldName" colspan="2">Returns</td></tr><tr><td class="fieldArgContainer"><code><a href="https://docs.python.org/3/library/stdtypes.html#dict" class="intersphinx-link">dict</a></code></td><td class="fieldArgDesc">target job in dict form</td></tr></table></div>
+  </div>
+</div><div class="basemethod">
+  
+  
+  <a name="src.util.db_mongo.MongoAdapter.get_last_set_repo">
+    
+  </a>
+  <a name="get_last_set_repo">
+    
+  </a>
+  <div class="functionHeader">
+    
+    
+    <span class="py-keyword">def</span> <span class="py-defname">get_last_set_repo</span><span class="function-signature">(self, db_name: <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code> = <a href="src.util.db_mongo.html#MONGO_DB_NAME" class="internal-link" title="src.util.db_mongo.MONGO_DB_NAME">MONGO_DB_NAME</a>, collection_name: <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code> = <a href="src.util.db_mongo.html#MONGO_REPOS_TABLE" class="internal-link" title="src.util.db_mongo.MONGO_REPOS_TABLE">MONGO_REPOS_TABLE</a>) -&gt; <code><a href="https://docs.python.org/3/library/stdtypes.html#dict" class="intersphinx-link">dict</a></code></span>:
+    
+    <a class="headerLink" href="#get_last_set_repo" title="src.util.db_mongo.MongoAdapter.get_last_set_repo">
+      
+      
+      ¶
+    </a>
+  </div>
+  <div class="docstring functionBody">
+    
+    <div><p>Retrieve the last set repository from the user</p><table class="fieldTable"><tr class="fieldStart"><td class="fieldName" colspan="2">Parameters</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">db<wbr></wbr>_name:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code>, <em>optional</em></td><td class="fieldArgDesc">target database. Defaults to MONGO_DB_NAME.</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">collection<wbr></wbr>_name:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code>, <em>optional</em></td><td class="fieldArgDesc">collection(table) to retrieve from.
+Defaults to MONGO_REPOS_TABLE.</td></tr><tr class="fieldStart"><td class="fieldName" colspan="2">Returns</td></tr><tr><td class="fieldArgContainer"><code><a href="https://docs.python.org/3/library/stdtypes.html#dict" class="intersphinx-link">dict</a></code></td><td class="fieldArgDesc">last repository entry in dict form, or None if not found</td></tr></table></div>
+  </div>
+</div><div class="basemethod">
+  
+  
+  <a name="src.util.db_mongo.MongoAdapter.get_pipeline">
+    
+  </a>
+  <a name="get_pipeline">
+    
+  </a>
+  <div class="functionHeader">
+    
+    
+    <span class="py-keyword">def</span> <span class="py-defname">get_pipeline</span><span class="function-signature">(self, pipeline_id: <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code>, db_name: <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code> = <a href="src.util.db_mongo.html#MONGO_DB_NAME" class="internal-link" title="src.util.db_mongo.MONGO_DB_NAME">MONGO_DB_NAME</a>, collection_name: <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code> = <a href="src.util.db_mongo.html#MONGO_PIPELINES_TABLE" class="internal-link" title="src.util.db_mongo.MONGO_PIPELINES_TABLE">MONGO_PIPELINES_TABLE</a>) -&gt; <code><a href="https://docs.python.org/3/library/stdtypes.html#dict" class="intersphinx-link">dict</a></code></span>:
+    
+    <a class="headerLink" href="#get_pipeline" title="src.util.db_mongo.MongoAdapter.get_pipeline">
+      
+      
+      ¶
+    </a>
+  </div>
+  <div class="docstring functionBody">
+    
+    <div><p>Retrieve the pipeline history based on given id</p><table class="fieldTable"><tr class="fieldStart"><td class="fieldName" colspan="2">Parameters</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">pipeline<wbr></wbr>_id:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code></td><td class="fieldArgDesc">id of the given pipeline</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">db<wbr></wbr>_name:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code>, <em>optional</em></td><td class="fieldArgDesc">target database. Defaults to MONGO_DB_NAME.</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">collection<wbr></wbr>_name:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code>, <em>optional</em></td><td class="fieldArgDesc">target collection table.
+Defaults to MONGO_PIPELINES_TABLE.</td></tr><tr class="fieldStart"><td class="fieldName" colspan="2">Returns</td></tr><tr><td class="fieldArgContainer"><code><a href="https://docs.python.org/3/library/stdtypes.html#dict" class="intersphinx-link">dict</a></code></td><td class="fieldArgDesc">given pipeline in dict form</td></tr></table></div>
+  </div>
+</div><div class="basemethod">
+  
+  
+  <a name="src.util.db_mongo.MongoAdapter.get_pipeline_config">
+    
+  </a>
+  <a name="get_pipeline_config">
+    
+  </a>
+  <div class="functionHeader">
+    
+    
+    <span class="py-keyword">def</span> <span class="py-defname">get_pipeline_config</span><span class="function-signature">(self, repo_name: <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code>, repo_url: <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code>, branch: <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code>, pipeline_name: <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code>) -&gt; <code><a href="https://docs.python.org/3/library/stdtypes.html#dict" class="intersphinx-link">dict</a></code></span>:
+    
+    <a class="headerLink" href="#get_pipeline_config" title="src.util.db_mongo.MongoAdapter.get_pipeline_config">
+      
+      
+      ¶
+    </a>
+  </div>
+  <div class="docstring functionBody">
+    
+    <div><p>Retrieve the _id and pipeline_config based on the given args.</p><table class="fieldTable"><tr class="fieldStart"><td class="fieldName" colspan="2">Returns</td></tr><tr><td class="fieldArgContainer"><code><a href="https://docs.python.org/3/library/stdtypes.html#dict" class="intersphinx-link">dict</a></code></td><td class="fieldArgDesc">the _id and pipeline_config fields.</td></tr></table></div>
+  </div>
+</div><div class="basemethod">
+  
+  
+  <a name="src.util.db_mongo.MongoAdapter.get_pipeline_history">
+    
+  </a>
+  <a name="get_pipeline_history">
+    
+  </a>
+  <div class="functionHeader">
+    
+    
+    <span class="py-keyword">def</span> <span class="py-defname">get_pipeline_history</span><span class="function-signature">(self, repo_name: <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code>, repo_url: <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code>, branch: <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code>, pipeline_name: <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code>) -&gt; <code><a href="https://docs.python.org/3/library/stdtypes.html#dict" class="intersphinx-link">dict</a></code></span>:
+    
+    <a class="headerLink" href="#get_pipeline_history" title="src.util.db_mongo.MongoAdapter.get_pipeline_history">
+      
+      
+      ¶
+    </a>
+  </div>
+  <div class="docstring functionBody">
+    
+    <div><p>Retrieve the pipeline history based on the given args.</p><table class="fieldTable"><tr class="fieldStart"><td class="fieldName" colspan="2">Returns</td></tr><tr><td class="fieldArgContainer"><code><a href="https://docs.python.org/3/library/stdtypes.html#dict" class="intersphinx-link">dict</a></code></td><td class="fieldArgDesc">the _id and pipeline_config fields.</td></tr></table></div>
+  </div>
+</div><div class="basemethod">
+  
+  
+  <a name="src.util.db_mongo.MongoAdapter.get_repo">
+    
+  </a>
+  <a name="get_repo">
+    
+  </a>
+  <div class="functionHeader">
+    
+    
+    <span class="py-keyword">def</span> <span class="py-defname">get_repo</span><span class="function-signature">(self, repo_name: <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code>, repo_url: <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code>, branch: <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code>) -&gt; <code><a href="https://docs.python.org/3/library/stdtypes.html#dict" class="intersphinx-link">dict</a></code></span>:
+    
+    <a class="headerLink" href="#get_repo" title="src.util.db_mongo.MongoAdapter.get_repo">
+      
+      
+      ¶
+    </a>
+  </div>
+  <div class="docstring functionBody">
+    
+    <div><p><dl class="rst-docutils">
+<dt>Retrieve a repo document based on repo_name, repo_url, and branch</dt>
+<dd>from the repo_configs collection.</dd>
+</dl>
+</p><table class="fieldTable"><tr class="fieldStart"><td class="fieldName" colspan="2">Parameters</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">repo<wbr></wbr>_name:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code></td><td class="fieldArgDesc">The name of the repository.</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">repo<wbr></wbr>_url:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code></td><td class="fieldArgDesc">The URL of the repository.</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">branch:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code></td><td class="fieldArgDesc">The branch of the repository.</td></tr><tr class="fieldStart"><td class="fieldName" colspan="2">Returns</td></tr><tr><td class="fieldArgContainer"><code><a href="https://docs.python.org/3/library/stdtypes.html#dict" class="intersphinx-link">dict</a></code></td><td class="fieldArgDesc">The repository document if found, otherwise None.</td></tr></table></div>
+  </div>
+</div><div class="basemethod">
+  
+  
+  <a name="src.util.db_mongo.MongoAdapter.insert_job">
+    
+  </a>
+  <a name="insert_job">
+    
+  </a>
+  <div class="functionHeader">
+    
+    
+    <span class="py-keyword">def</span> <span class="py-defname">insert_job</span><span class="function-signature">(self, pipeline_info: <code>PipelineInfo</code>, pipeline_config: <code><a href="https://docs.python.org/3/library/stdtypes.html#dict" class="intersphinx-link">dict</a></code>, stages_to_run: <code><a href="https://docs.python.org/3/library/stdtypes.html#list" class="intersphinx-link">list</a></code> = <a href="https://docs.python.org/3/library/constants.html#None" class="intersphinx-link">None</a>) -&gt; <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code></span>:
+    
+    <a class="headerLink" href="#insert_job" title="src.util.db_mongo.MongoAdapter.insert_job">
+      
+      
+      ¶
+    </a>
+  </div>
+  <div class="docstring functionBody">
+    
+    <div><p>Inserts a new job with initialized stages into the jobs table.</p><table class="fieldTable"><tr class="fieldStart"><td class="fieldName" colspan="2">Parameters</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">pipeline<wbr></wbr>_info:</span><code><a href="src.util.model.PipelineInfo.html" class="internal-link" title="src.util.model.PipelineInfo">PipelineInfo</a></code></td><td class="fieldArgDesc">Information data for target pipeline</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">pipeline<wbr></wbr>_config:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#dict" class="intersphinx-link">dict</a></code></td><td class="fieldArgDesc">Configuration of pipeline stages.</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">stages<wbr></wbr>_to<wbr></wbr>_run:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#list" class="intersphinx-link">list</a></code>, <em>optional</em></td><td class="fieldArgDesc">Stages to initialize; defaults to all.</td></tr><tr class="fieldStart"><td class="fieldName" colspan="2">Returns</td></tr><tr><td class="fieldArgContainer"><code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code></td><td class="fieldArgDesc">ID of the inserted job document.</td></tr></table></div>
+  </div>
+</div><div class="basemethod">
+  
+  
+  <a name="src.util.db_mongo.MongoAdapter.insert_pipeline">
+    
+  </a>
+  <a name="insert_pipeline">
+    
+  </a>
+  <div class="functionHeader">
+    
+    
+    <span class="py-keyword">def</span> <span class="py-defname">insert_pipeline</span><span class="function-signature">(self, pipeline_history: <code><a href="https://docs.python.org/3/library/stdtypes.html#dict" class="intersphinx-link">dict</a></code>, db_name: <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code> = <a href="src.util.db_mongo.html#MONGO_DB_NAME" class="internal-link" title="src.util.db_mongo.MONGO_DB_NAME">MONGO_DB_NAME</a>, collection_name: <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code> = <a href="src.util.db_mongo.html#MONGO_PIPELINES_TABLE" class="internal-link" title="src.util.db_mongo.MONGO_PIPELINES_TABLE">MONGO_PIPELINES_TABLE</a>) -&gt; <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code></span>:
+    
+    <a class="headerLink" href="#insert_pipeline" title="src.util.db_mongo.MongoAdapter.insert_pipeline">
+      
+      
+      ¶
+    </a>
+  </div>
+  <div class="docstring functionBody">
+    
+    <div><p>Insert a new pipeline history record for new repository</p><table class="fieldTable"><tr class="fieldStart"><td class="fieldName" colspan="2">Parameters</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">pipeline<wbr></wbr>_history:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#dict" class="intersphinx-link">dict</a></code></td><td class="fieldArgDesc">dictionary of the history record in key=value pairs</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">db<wbr></wbr>_name:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code>, <em>optional</em></td><td class="fieldArgDesc">database to be inserted into. Defaults to MONGO_DB_NAME.</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">collection<wbr></wbr>_name:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code>, <em>optional</em></td><td class="fieldArgDesc">collection(table) to be inserted into.
+Defaults to MONGO_PIPELINES_TABLE.</td></tr><tr class="fieldStart"><td class="fieldName" colspan="2">Returns</td></tr><tr><td class="fieldArgContainer"><code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code></td><td class="fieldArgDesc">the inserted_id(converted to str) if successful</td></tr></table></div>
+  </div>
+</div><div class="basemethod">
+  
+  
+  <a name="src.util.db_mongo.MongoAdapter.insert_repo">
+    
+  </a>
+  <a name="insert_repo">
+    
+  </a>
+  <div class="functionHeader">
+    
+    
+    <span class="py-keyword">def</span> <span class="py-defname">insert_repo</span><span class="function-signature">(self, repo_data: <code><a href="https://docs.python.org/3/library/stdtypes.html#dict" class="intersphinx-link">dict</a></code>, db_name: <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code> = <a href="src.util.db_mongo.html#MONGO_DB_NAME" class="internal-link" title="src.util.db_mongo.MONGO_DB_NAME">MONGO_DB_NAME</a>, collection_name: <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code> = <a href="src.util.db_mongo.html#MONGO_REPOS_TABLE" class="internal-link" title="src.util.db_mongo.MONGO_REPOS_TABLE">MONGO_REPOS_TABLE</a>) -&gt; <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code></span>:
+    
+    <a class="headerLink" href="#insert_repo" title="src.util.db_mongo.MongoAdapter.insert_repo">
+      
+      
+      ¶
+    </a>
+  </div>
+  <div class="docstring functionBody">
+    
+    <div><p>Insert a new repository session record into repos_collection</p><table class="fieldTable"><tr class="fieldStart"><td class="fieldName" colspan="2">Parameters</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">repo<wbr></wbr>_data:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#dict" class="intersphinx-link">dict</a></code></td><td class="fieldArgDesc">dictionary of the repository data</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">db<wbr></wbr>_name:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code>, <em>optional</em></td><td class="fieldArgDesc">database to be inserted into. Defaults to MONGO_DB_NAME.</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">collection<wbr></wbr>_name:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code>, <em>optional</em></td><td class="fieldArgDesc">collection(table) to be inserted into.
+Defaults to MONGO_REPOS_TABLE.</td></tr><tr class="fieldStart"><td class="fieldName" colspan="2">Returns</td></tr><tr><td class="fieldArgContainer"><code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code></td><td class="fieldArgDesc">the inserted_id (converted to str) if successful</td></tr></table></div>
+  </div>
+</div><div class="basemethod">
+  
+  
+  <a name="src.util.db_mongo.MongoAdapter.update_job">
+    
+  </a>
+  <a name="update_job">
+    
+  </a>
+  <div class="functionHeader">
+    
+    
+    <span class="py-keyword">def</span> <span class="py-defname">update_job</span><span class="function-signature">(self, jobs_id: <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code>, updates: <code><a href="https://docs.python.org/3/library/stdtypes.html#dict" class="intersphinx-link">dict</a></code>) -&gt; <code><a href="https://docs.python.org/3/library/functions.html#bool" class="intersphinx-link">bool</a></code></span>:
+    
+    <a class="headerLink" href="#update_job" title="src.util.db_mongo.MongoAdapter.update_job">
+      
+      
+      ¶
+    </a>
+  </div>
+  <div class="docstring functionBody">
+    
+    <div><p>Updates specified fields in a job document.</p><table class="fieldTable"><tr class="fieldStart"><td class="fieldName" colspan="2">Parameters</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">jobs<wbr></wbr>_id:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code></td><td class="fieldArgDesc">ID of the job to update.</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">updates:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#dict" class="intersphinx-link">dict</a></code></td><td class="fieldArgDesc">A dictionary of fields and their new values to update.</td></tr><tr class="fieldStart"><td class="fieldName" colspan="2">Returns</td></tr><tr><td class="fieldArgContainer"><code><a href="https://docs.python.org/3/library/functions.html#bool" class="intersphinx-link">bool</a></code></td><td class="fieldArgDesc">True if the update succeeded, False otherwise.</td></tr></table></div>
+  </div>
+</div><div class="basemethod">
+  
+  
+  <a name="src.util.db_mongo.MongoAdapter.update_job_logs">
+    
+  </a>
+  <a name="update_job_logs">
+    
+  </a>
+  <div class="functionHeader">
+    
+    
+    <span class="py-keyword">def</span> <span class="py-defname">update_job_logs</span><span class="function-signature">(self, jobs_id: <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code>, stage_name: <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code>, stage_status: <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code>, jobs_log: <code><a href="https://docs.python.org/3/library/stdtypes.html#dict" class="intersphinx-link">dict</a></code>) -&gt; <code><a href="https://docs.python.org/3/library/functions.html#bool" class="intersphinx-link">bool</a></code></span>:
+    
+    <a class="headerLink" href="#update_job_logs" title="src.util.db_mongo.MongoAdapter.update_job_logs">
+      
+      
+      ¶
+    </a>
+  </div>
+  <div class="docstring functionBody">
+    
+    <div><p>Updates the status and the jobs log for a specific stage.</p><table class="fieldTable"><tr class="fieldStart"><td class="fieldName" colspan="2">Parameters</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">jobs<wbr></wbr>_id:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code></td><td class="fieldArgDesc">ID of the job to update.</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">stage<wbr></wbr>_name:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code></td><td class="fieldArgDesc">Name of the stage to update.</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">stage<wbr></wbr>_status:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code></td><td class="fieldArgDesc">New status of the stage.</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">jobs<wbr></wbr>_log:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#dict" class="intersphinx-link">dict</a></code></td><td class="fieldArgDesc">Log information for the stage.</td></tr><tr class="fieldStart"><td class="fieldName" colspan="2">Returns</td></tr><tr><td class="fieldArgContainer"><code><a href="https://docs.python.org/3/library/functions.html#bool" class="intersphinx-link">bool</a></code></td><td class="fieldArgDesc">True if the update succeeded, False otherwise.</td></tr></table></div>
+  </div>
+</div><div class="basemethod">
+  
+  
+  <a name="src.util.db_mongo.MongoAdapter.update_pipeline">
+    
+  </a>
+  <a name="update_pipeline">
+    
+  </a>
+  <div class="functionHeader">
+    
+    
+    <span class="py-keyword">def</span> <span class="py-defname">update_pipeline</span><span class="function-signature">(self, pipeline_history: <code><a href="https://docs.python.org/3/library/stdtypes.html#dict" class="intersphinx-link">dict</a></code>, db_name: <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code> = <a href="src.util.db_mongo.html#MONGO_DB_NAME" class="internal-link" title="src.util.db_mongo.MONGO_DB_NAME">MONGO_DB_NAME</a>, collection_name: <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code> = <a href="src.util.db_mongo.html#MONGO_PIPELINES_TABLE" class="internal-link" title="src.util.db_mongo.MONGO_PIPELINES_TABLE">MONGO_PIPELINES_TABLE</a>) -&gt; <code><a href="https://docs.python.org/3/library/functions.html#bool" class="intersphinx-link">bool</a></code></span>:
+    
+    <a class="headerLink" href="#update_pipeline" title="src.util.db_mongo.MongoAdapter.update_pipeline">
+      
+      
+      ¶
+    </a>
+  </div>
+  <div class="docstring functionBody">
+    
+    <div><p>Update the pipeline history based on given dict</p><table class="fieldTable"><tr class="fieldStart"><td class="fieldName" colspan="2">Parameters</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">pipeline<wbr></wbr>_history:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#dict" class="intersphinx-link">dict</a></code></td><td class="fieldArgDesc">updated pipeline_history</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">db<wbr></wbr>_name:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code>, <em>optional</em></td><td class="fieldArgDesc">database to be updated Defaults to MONGO_DB_NAME.</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">collection<wbr></wbr>_name:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code>, <em>optional</em></td><td class="fieldArgDesc">collection(table) to be updated.
+Defaults to MONGO_PIPELINES_TABLE.</td></tr><tr class="fieldStart"><td class="fieldName" colspan="2">Returns</td></tr><tr><td class="fieldArgContainer"><code><a href="https://docs.python.org/3/library/functions.html#bool" class="intersphinx-link">bool</a></code></td><td class="fieldArgDesc">if the update is successful or fail</td></tr></table></div>
+  </div>
+</div><div class="basemethod">
+  
+  
+  <a name="src.util.db_mongo.MongoAdapter.update_pipeline_config">
+    
+  </a>
+  <a name="update_pipeline_config">
+    
+  </a>
+  <div class="functionHeader">
+    
+    
+    <span class="py-keyword">def</span> <span class="py-defname">update_pipeline_config</span><span class="function-signature">(self, repo_name: <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code>, repo_url: <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code>, branch: <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code>, pipeline_name: <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code>, pipeline_config: <code><a href="https://docs.python.org/3/library/stdtypes.html#dict" class="intersphinx-link">dict</a></code>) -&gt; <code><a href="https://docs.python.org/3/library/functions.html#bool" class="intersphinx-link">bool</a></code></span>:
+    
+    <a class="headerLink" href="#update_pipeline_config" title="src.util.db_mongo.MongoAdapter.update_pipeline_config">
+      
+      
+      ¶
+    </a>
+  </div>
+  <div class="docstring functionBody">
+    
+    <div><p>Update the pipeline_config field in the repo_configs collection for a specific pipeline.</p><table class="fieldTable"><tr class="fieldStart"><td class="fieldName" colspan="2">Parameters</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">repo<wbr></wbr>_name:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code></td><td class="fieldArgDesc">The repository name.</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">repo<wbr></wbr>_url:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code></td><td class="fieldArgDesc">The URL of the repository.</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">branch:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code></td><td class="fieldArgDesc">The branch of the repository.</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">pipeline<wbr></wbr>_name:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code></td><td class="fieldArgDesc">The name of the pipeline to update.</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">pipeline<wbr></wbr>_config:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#dict" class="intersphinx-link">dict</a></code></td><td class="fieldArgDesc">The new pipeline configuration to be updated.</td></tr><tr class="fieldStart"><td class="fieldName" colspan="2">Returns</td></tr><tr><td class="fieldArgContainer"><code><a href="https://docs.python.org/3/library/functions.html#bool" class="intersphinx-link">bool</a></code></td><td class="fieldArgDesc">True if the update was successful, False otherwise.</td></tr></table></div>
+  </div>
+</div><div class="basemethod">
+  
+  
+  <a name="src.util.db_mongo.MongoAdapter.update_pipeline_history">
+    
+  </a>
+  <a name="update_pipeline_history">
+    
+  </a>
+  <div class="functionHeader">
+    
+    
+    <span class="py-keyword">def</span> <span class="py-defname">update_pipeline_history</span><span class="function-signature">(self, repo_name: <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code>, repo_url: <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code>, branch: <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code>, pipeline_name: <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code>, updates: <code><a href="https://docs.python.org/3/library/stdtypes.html#dict" class="intersphinx-link">dict</a></code>) -&gt; <code><a href="https://docs.python.org/3/library/functions.html#bool" class="intersphinx-link">bool</a></code></span>:
+    
+    <a class="headerLink" href="#update_pipeline_history" title="src.util.db_mongo.MongoAdapter.update_pipeline_history">
+      
+      
+      ¶
+    </a>
+  </div>
+  <div class="docstring functionBody">
+    
+    <div><p>Update the fields in the repo_configs collection for a specific pipeline.</p><table class="fieldTable"><tr class="fieldStart"><td class="fieldName" colspan="2">Parameters</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">repo<wbr></wbr>_name:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code></td><td class="fieldArgDesc">The repository name.</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">repo<wbr></wbr>_url:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code></td><td class="fieldArgDesc">The URL of the repository.</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">branch:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code></td><td class="fieldArgDesc">The branch of the repository.</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">pipeline<wbr></wbr>_name:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code></td><td class="fieldArgDesc">The name of the pipeline to update.</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">updates:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#dict" class="intersphinx-link">dict</a></code></td><td class="fieldArgDesc">key:value pair of new pipeline configuration to be updated</td></tr><tr class="fieldStart"><td class="fieldName" colspan="2">Returns</td></tr><tr><td class="fieldArgContainer"><code><a href="https://docs.python.org/3/library/functions.html#bool" class="intersphinx-link">bool</a></code></td><td class="fieldArgDesc">True if the update was successful, False otherwise.</td></tr></table></div>
+  </div>
+</div><div class="baseinstancevariable">
+  
+  
+  <a name="src.util.db_mongo.MongoAdapter.mongo_uri">
+    
+  </a>
+  <a name="mongo_uri">
+    
+  </a>
+  <div class="functionHeader">
+    
+    <span class="py-defname">mongo_uri</span> =
+    
+    <a class="headerLink" href="#mongo_uri" title="src.util.db_mongo.MongoAdapter.mongo_uri">
+      
+      
+      ¶
+    </a>
+  </div>
+  <div class="functionBody">
+    
+    <div><p class="undocumented">Undocumented</p></div>
+    
+  </div>
+</div><div class="basemethod private">
+  
+  
+  <a name="src.util.db_mongo.MongoAdapter._delete">
+    
+  </a>
+  <a name="_delete">
+    
+  </a>
+  <div class="functionHeader">
+    
+    
+    <span class="py-keyword">def</span> <span class="py-defname">_delete</span><span class="function-signature">(self, doc_id: <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code>, db_name: <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code>, collection_name: <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code>) -&gt; <code><a href="https://docs.python.org/3/library/functions.html#bool" class="intersphinx-link">bool</a></code></span>:
+    
+    <a class="headerLink" href="#_delete" title="src.util.db_mongo.MongoAdapter._delete">
+      
+      
+      ¶
+    </a>
+  </div>
+  <div class="docstring functionBody">
+    
+    <div><p>Delete the first found record based on given id</p><table class="fieldTable"><tr class="fieldStart"><td class="fieldName" colspan="2">Parameters</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">doc<wbr></wbr>_id:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code></td><td class="fieldArgDesc">id of target record</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">db<wbr></wbr>_name:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code></td><td class="fieldArgDesc">targeted database</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">collection<wbr></wbr>_name:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code></td><td class="fieldArgDesc">targeted collection(table)</td></tr><tr class="fieldStart"><td class="fieldName" colspan="2">Returns</td></tr><tr><td class="fieldArgContainer"><code><a href="https://docs.python.org/3/library/functions.html#bool" class="intersphinx-link">bool</a></code></td><td class="fieldArgDesc">boolean indicator if successful</td></tr></table></div>
+  </div>
+</div><div class="basemethod private">
+  
+  
+  <a name="src.util.db_mongo.MongoAdapter._insert">
+    
+  </a>
+  <a name="_insert">
+    
+  </a>
+  <div class="functionHeader">
+    
+    
+    <span class="py-keyword">def</span> <span class="py-defname">_insert</span><span class="function-signature">(self, data: <code><a href="https://docs.python.org/3/library/stdtypes.html#dict" class="intersphinx-link">dict</a></code>, db_name: <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code>, collection_name: <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code>) -&gt; <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code></span>:
+    
+    <a class="headerLink" href="#_insert" title="src.util.db_mongo.MongoAdapter._insert">
+      
+      
+      ¶
+    </a>
+  </div>
+  <div class="docstring functionBody">
+    
+    <div><p>Generic Helper method to insert the data</p><table class="fieldTable"><tr class="fieldStart"><td class="fieldName" colspan="2">Parameters</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">data:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#dict" class="intersphinx-link">dict</a></code></td><td class="fieldArgDesc">data to be inserted, in key=value pairs</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">db<wbr></wbr>_name:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code></td><td class="fieldArgDesc">database to be inserted into</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">collection<wbr></wbr>_name:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code></td><td class="fieldArgDesc">collection(table) to be inserted into</td></tr><tr class="fieldStart"><td class="fieldName" colspan="2">Returns</td></tr><tr><td class="fieldArgContainer"><code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code></td><td class="fieldArgDesc">the inserted_id(converted to str) if successful</td></tr></table></div>
+  </div>
+</div><div class="basemethod private">
+  
+  
+  <a name="src.util.db_mongo.MongoAdapter._retrieve">
+    
+  </a>
+  <a name="_retrieve">
+    
+  </a>
+  <div class="functionHeader">
+    
+    
+    <span class="py-keyword">def</span> <span class="py-defname">_retrieve</span><span class="function-signature">(self, doc_id: <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code>, db_name: <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code>, collection_name: <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code>) -&gt; <code><a href="https://docs.python.org/3/library/stdtypes.html#dict" class="intersphinx-link">dict</a></code></span>:
+    
+    <a class="headerLink" href="#_retrieve" title="src.util.db_mongo.MongoAdapter._retrieve">
+      
+      
+      ¶
+    </a>
+  </div>
+  <div class="docstring functionBody">
+    
+    <div><p>Retrieve the first found record based on given id</p><table class="fieldTable"><tr class="fieldStart"><td class="fieldName" colspan="2">Parameters</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">doc<wbr></wbr>_id:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code></td><td class="fieldArgDesc">id of target record</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">db<wbr></wbr>_name:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code></td><td class="fieldArgDesc">database to be searched into</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">collection<wbr></wbr>_name:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code></td><td class="fieldArgDesc">collection(table) to be searched into</td></tr><tr class="fieldStart"><td class="fieldName" colspan="2">Returns</td></tr><tr><td class="fieldArgContainer"><code><a href="https://docs.python.org/3/library/stdtypes.html#dict" class="intersphinx-link">dict</a></code></td><td class="fieldArgDesc">target record in dict form</td></tr></table></div>
+  </div>
+</div><div class="basemethod private">
+  
+  
+  <a name="src.util.db_mongo.MongoAdapter._update">
+    
+  </a>
+  <a name="_update">
+    
+  </a>
+  <div class="functionHeader">
+    
+    
+    <span class="py-keyword">def</span> <span class="py-defname">_update</span><span class="function-signature">(self, data: <code><a href="https://docs.python.org/3/library/stdtypes.html#dict" class="intersphinx-link">dict</a></code>, db_name: <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code>, collection_name: <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code>) -&gt; <code><a href="https://docs.python.org/3/library/functions.html#bool" class="intersphinx-link">bool</a></code></span>:
+    
+    <a class="headerLink" href="#_update" title="src.util.db_mongo.MongoAdapter._update">
+      
+      
+      ¶
+    </a>
+  </div>
+  <div class="docstring functionBody">
+    
+    <div><p>Generic Helper method to update the data</p><table class="fieldTable"><tr class="fieldStart"><td class="fieldName" colspan="2">Parameters</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">data:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#dict" class="intersphinx-link">dict</a></code></td><td class="fieldArgDesc">data to be inserted, in key=value pairs</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">db<wbr></wbr>_name:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code></td><td class="fieldArgDesc">database to be updated</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">collection<wbr></wbr>_name:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code></td><td class="fieldArgDesc">collection(table) to be updated</td></tr><tr class="fieldStart"><td class="fieldName" colspan="2">Returns</td></tr><tr><td class="fieldArgContainer"><code><a href="https://docs.python.org/3/library/functions.html#bool" class="intersphinx-link">bool</a></code></td><td class="fieldArgDesc">boolean indicator if successful</td></tr></table></div>
+  </div>
+</div>
+        </div>
+      
+      </div>
+    </div>
+
+    <footer class="navbar navbar-default">
+
+  
+  <div class="container">
+    <a href="index.html">API Documentation</a> for t4-cicd,
+  generated by <a href="https://github.com/twisted/pydoctor/">pydoctor</a>
+    24.3.3 at 2024-11-07 20:48:54.
+  </div>
+
+  <!-- Search related scripts needs to be loaded at the end of HTML 
+    parsing not to introduce overhead and display HTML data asap -->
+  <script src="ajax.js" type="text/javascript"></script>
+  <script src="searchlib.js" type="text/javascript"></script>
+  <script src="search.js" type="text/javascript"></script>
+
+</footer>
+  
+    <script src="pydoctor.js" type="text/javascript"></script>
+
+  </body>
+</html>

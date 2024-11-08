@@ -43,6 +43,7 @@ build-backend = "poetry.core.masonry.api"
 cid = "cli.__main__:cid"
 
 [tool.pydoctor]
+project-name= "t4-cicd"
 add-package = ["src"]
 intersphinx = ["https://docs.python.org/3/objects.inv",
                "https://twistedmatrix.com/documents/current/api/objects.inv"]

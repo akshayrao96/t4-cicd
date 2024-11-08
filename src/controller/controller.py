@@ -154,9 +154,7 @@ class Controller:
             directory (str): valid directory containing pipeline configuration
 
         Returns:
-            dict: dictionary of {
-                <pipeline_name>:<single validation results>
-            }
+            dict: dictionary of {<pipeline_name>:<single validation results>}
         """
         # stub response for repo set up
         click.echo("Setting Up Repo")
@@ -255,9 +253,7 @@ class Controller:
             directory (str): valid directory containing pipeline configuration
 
         Returns:
-            dict: dictionary of {
-                <pipeline_name>:<single validation results>
-            }
+            dict: dictionary of {<pipeline_name>:<single validation results>}
         """
         # stub response
         parser = YamlParser()
@@ -375,8 +371,8 @@ class Controller:
             tuple[bool, str, str]:
                 bool: status
                 str: message
-                str: pipeline_id -- empty string if pipeline is not being run or 
-                        failed (dry_run = True)
+                str: pipeline_id -- empty string if pipeline is not being run 
+                or failed (dry_run = True)
         """
         ## TODO: validate the repo has the valid branch name and commit hash
         # repo_source = git_details.get('repo_source')

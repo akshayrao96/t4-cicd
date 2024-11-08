@@ -62,8 +62,7 @@ class ConfigChecker:
                     'error_msg': <str of error messages collected>,
                     If validation passed this will be an empty string 
                     'pipeline_config': dict. pipeline_config is the dictionary of 
-                    the pipeline config processed. if validation failed, it will be empty
-            }
+                    the pipeline config processed. if validation failed, it will be empty}
         """
         self.pipeline_name = pipeline_name
         self.file_name = file_name
@@ -328,11 +327,7 @@ class ConfigChecker:
             first indicate if the check passed or failed
             second is a list of error message
             third is the resulting list of stage dictionary of format 
-            [
-                {stage1}:{job sets},
-                ...
-                {stagen}:{job sets},
-            ]
+            [{stage1}:{job sets},... {stagen}:{job sets},]
         """
         try:
             result_flag = True
@@ -396,19 +391,8 @@ class ConfigChecker:
             tuple[bool, str, dict]: tuple of three return value
             first indicate if the check passed or failed
             second is a list of error message
-            third is the resulting job dependency of format 
-            {
-                # job_graph is the adjancy list representation of the graph
-                'job_graph':{
-                    'job_1':['<required_by>'],
-                    # rest of dependencies
-                },
-                # job_group is the topological sorted list of job
-                'job_groups':[
-                    ['<job_1>'],
-                    ['<job_2>', '<job_3>'],
-                ]
-            }
+            third is the resulting job dependency 
+
         """
         try:
             result_flag = True

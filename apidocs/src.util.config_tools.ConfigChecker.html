@@ -1,0 +1,899 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+          "DTD/xhtml1-strict.dtd">
+<html>
+  
+
+  <head>
+    
+    <title>src.util.config_tools.ConfigChecker</title>
+    <meta name="generator" content="pydoctor 24.3.3"> 
+        
+    </meta>
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1 maximum-scale=1" />
+    <link rel="stylesheet" type="text/css" href="bootstrap.min.css" />
+    <link rel="stylesheet" type="text/css" href="apidocs.css" />
+    <link rel="stylesheet" type="text/css" href="extra.css" />
+</head>
+
+  <body>
+
+    
+
+    <nav class="navbar navbar-default mainnavbar">
+      
+  
+  <div class="container-fluid">
+
+
+    <div class="navbar-header">
+      
+      <div class="navlinks">
+        <span class="navbar-brand">
+          t4-cicd <a href="index.html">API Documentation</a>
+        </span>
+
+        <a href="moduleIndex.html">
+          Modules
+        </a>
+
+        <a href="classIndex.html">
+          Classes
+        </a>
+
+        <a href="nameIndex.html">
+          Names
+        </a>
+
+        <div id="search-box-container">
+          <div class="input-group">
+            <input id="search-box" type="search" name="search-query" placeholder="Search..." aria-label="Search" minlength="2" class="form-control" autocomplete="off" />
+            
+            <span class="input-group-btn">
+              <a style="display: none;" class="btn btn-default" id="search-clear-button" title="Clear" onclick="clearSearch()"><img src="fonts/x-circle.svg" alt="Clear" /></a>
+              <a class="btn btn-default" id="search-help-button" title="Help" onclick="toggleSearchHelpText()"><img src="fonts/info.svg" alt="Help" /></a>
+            </span>
+          </div>
+        </div>
+
+      </div>
+
+      <div id="search-results-container" style="display: none;">
+        
+        <div id="search-buttons">
+          <span class="label label-default" id="search-docstrings-button">
+          <label class="checkbox-inline">
+            <input type="checkbox" id="toggle-search-in-docstrings-checkbox" value="false" onclick="toggleSearchInDocstrings()">
+              search in docstrings
+            </input>
+          </label>
+          </span>
+          
+        </div>
+        
+        <noscript>
+            <h1>Cannot search: JavaScript is not supported/enabled in your browser.</h1>
+        </noscript>
+
+        <div class="hint" id="search-help-box">
+          <p class="rst-last">
+      
+            Search bar offers the following options:
+            <ul>   
+                <li>
+                  <strong>Term presence.</strong> The below example searches for documents that 
+                    must contain “foo”, might contain “bar” and must not contain “baz”: <code>+foo bar -baz</code>
+                </li> 
+
+                <li>
+                  <strong>Wildcards.</strong> The below example searches for documents with words beginning with “foo”: <code>foo*</code>
+                </li> 
+
+                <li>
+                  <strong>Search in specific fields.</strong> The following search matches all objects 
+                  in "twisted.mail" that matches “search”: <code>+qname:twisted.mail.* +search</code>
+
+                  <p>
+                    Possible fields: 'name', 'qname' (fully qualified name), 'docstring', and 'kind'.
+                    Last two fields are only applicable if "search in docstrings" is enabled.
+                  </p>
+                </li>
+
+                <li>
+                  <strong>Fuzzy matches.</strong> The following search matches all documents 
+                  that have a word within 1 edit distance of “foo”: <code>foo~1</code>
+                </li>
+            </ul>
+
+          </p>
+        </div>
+
+        <div id="search-status"> </div>
+
+        <div class="warning" id="search-warn-box" style="display: none;">
+          <p class="rst-last"><span id="search-warn"></span></p>
+        </div>
+
+        <table id="search-results">
+          <!-- Filled dynamically by JS -->
+        </table>
+        
+        <div style="margin-top: 8px;">
+          <p>Results provided by <a href="https://lunrjs.com">Lunr.js</a></p>
+        </div>
+      </div>
+
+    </div>
+
+
+  </div>
+</nav>
+    
+    <div class="container-fluid">
+
+      <!-- Side navigation -->
+      <div class="sidebarcontainer" style="display: none;">
+        
+        <div class="sidebar"><nav class="sidebar">
+  
+
+  <div>
+
+      <div class="thingTitle">
+        <span>Class</span>
+        <code class="thisobject"><a href="src.util.config_tools.ConfigChecker.html" class="internal-link" title="This class"><wbr></wbr>Config<wbr></wbr>Checker</a></code> 
+      </div>
+      
+      <div>
+        
+
+        
+         
+
+        
+        
+
+        <div class="childrenKindTitle">Methods</div>
+        <ul>
+    
+    <li class="">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="#__init__" class="internal-link" title="src.util.config_tools.ConfigChecker.__init__">__init__</a></code>
+            </div>
+        
+
+    </li><li class="">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="#validate_config" class="internal-link" title="src.util.config_tools.ConfigChecker.validate_config">validate<wbr></wbr>_config</a></code>
+            </div>
+        
+
+    </li><li class="private">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="#_check_global_section" class="internal-link" title="src.util.config_tools.ConfigChecker._check_global_section">_check<wbr></wbr>_global<wbr></wbr>_section</a></code>
+            </div>
+        
+
+    </li><li class="private">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="#_check_individual_config" class="internal-link" title="src.util.config_tools.ConfigChecker._check_individual_config">_check<wbr></wbr>_individual<wbr></wbr>_config</a></code>
+            </div>
+        
+
+    </li><li class="private">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="#_check_jobs_dependencies" class="internal-link" title="src.util.config_tools.ConfigChecker._check_jobs_dependencies">_check<wbr></wbr>_jobs<wbr></wbr>_dependencies</a></code>
+            </div>
+        
+
+    </li><li class="private">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="#_check_jobs_section" class="internal-link" title="src.util.config_tools.ConfigChecker._check_jobs_section">_check<wbr></wbr>_jobs<wbr></wbr>_section</a></code>
+            </div>
+        
+
+    </li><li class="private">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="#_check_stages_jobs_relationship" class="internal-link" title="src.util.config_tools.ConfigChecker._check_stages_jobs_relationship">_check<wbr></wbr>_stages<wbr></wbr>_jobs<wbr></wbr>_relationship</a></code>
+            </div>
+        
+
+    </li><li class="private">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="#_check_stages_section" class="internal-link" title="src.util.config_tools.ConfigChecker._check_stages_section">_check<wbr></wbr>_stages<wbr></wbr>_section</a></code>
+            </div>
+        
+
+    </li><li class="private">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="#_group_n_sort" class="internal-link" title="src.util.config_tools.ConfigChecker._group_n_sort">_group<wbr></wbr>_n<wbr></wbr>_sort</a></code>
+            </div>
+        
+
+    </li>
+</ul> 
+
+        
+         
+
+        <div class="childrenKindTitle">Attributes</div>
+        <ul>
+    
+    <li class="">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="#file_name" class="internal-link" title="src.util.config_tools.ConfigChecker.file_name">file<wbr></wbr>_name</a></code>
+            </div>
+        
+
+    </li><li class="">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="#logger" class="internal-link" title="src.util.config_tools.ConfigChecker.logger">logger</a></code>
+            </div>
+        
+
+    </li><li class="">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="#pipeline_name" class="internal-link" title="src.util.config_tools.ConfigChecker.pipeline_name">pipeline<wbr></wbr>_name</a></code>
+            </div>
+        
+
+    </li>
+</ul> 
+
+        
+         
+        
+      </div>
+  </div><div>
+
+      <div class="thingTitle">
+        <span>Module</span>
+        <code><a href="src.util.config_tools.html" class="internal-link" title="The parent of this class">config<wbr></wbr>_tools</a></code> 
+      </div>
+      
+      <div>
+        
+
+        
+         
+
+        <div class="childrenKindTitle">Classes</div>
+        <ul>
+    
+    <li class=" thisobject">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="src.util.config_tools.ConfigChecker.html" class="internal-link" title="src.util.config_tools.ConfigChecker"><wbr></wbr>Config<wbr></wbr>Checker</a></code>
+            </div>
+        
+
+    </li>
+</ul>
+
+        
+         
+
+        
+         
+
+        <div class="childrenKindTitle">Variables</div>
+        <ul>
+    
+    <li class="">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="src.util.config_tools.html#DEFAULT_DICT" class="internal-link" title="src.util.config_tools.DEFAULT_DICT">DEFAULT<wbr></wbr>_DICT</a></code>
+            </div>
+        
+
+    </li><li class="">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="src.util.config_tools.html#DEFAULT_DOCKER_REGISTRY" class="internal-link" title="src.util.config_tools.DEFAULT_DOCKER_REGISTRY">DEFAULT<wbr></wbr>_DOCKER<wbr></wbr>_REGISTRY</a></code>
+            </div>
+        
+
+    </li><li class="">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="src.util.config_tools.html#DEFAULT_FLAG_ARTIFACT_UPLOAD_ONSUCCESS" class="internal-link" title="src.util.config_tools.DEFAULT_FLAG_ARTIFACT_UPLOAD_ONSUCCESS">DEFAULT<wbr></wbr>_FLAG<wbr></wbr>_ARTIFACT<wbr></wbr>_UPLOAD<wbr></wbr>_ONSUCCESS</a></code>
+            </div>
+        
+
+    </li><li class="">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="src.util.config_tools.html#DEFAULT_FLAG_JOB_ALLOW_FAIL" class="internal-link" title="src.util.config_tools.DEFAULT_FLAG_JOB_ALLOW_FAIL">DEFAULT<wbr></wbr>_FLAG<wbr></wbr>_JOB<wbr></wbr>_ALLOW<wbr></wbr>_FAIL</a></code>
+            </div>
+        
+
+    </li><li class="">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="src.util.config_tools.html#DEFAULT_LIST" class="internal-link" title="src.util.config_tools.DEFAULT_LIST">DEFAULT<wbr></wbr>_LIST</a></code>
+            </div>
+        
+
+    </li><li class="">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="src.util.config_tools.html#DEFAULT_STAGES" class="internal-link" title="src.util.config_tools.DEFAULT_STAGES">DEFAULT<wbr></wbr>_STAGES</a></code>
+            </div>
+        
+
+    </li><li class="">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="src.util.config_tools.html#DEFAULT_STR" class="internal-link" title="src.util.config_tools.DEFAULT_STR">DEFAULT<wbr></wbr>_STR</a></code>
+            </div>
+        
+
+    </li><li class="">
+        
+        
+        
+
+        
+            <div class="itemName"><code><a href="src.util.config_tools.html#logger" class="internal-link" title="src.util.config_tools.logger">logger</a></code>
+            </div>
+        
+
+    </li>
+</ul> 
+
+        
+         
+        
+      </div>
+  </div>
+
+</nav>
+        </div>
+        <div id="collapseSideBar">
+          <a class="btn btn-link" onclick="toggleSideBarCollapse()" title="Toggle Sidebar Collapse">
+          </a>
+        </div> 
+        <script src="sidebartoggle.js" type="text/javascript"></script>
+       
+      </div>
+
+      <div id="main" class="">
+        
+
+        
+
+        <div class="page-header">
+          <h1 class="class"><code><code><a href="index.html" class="internal-link">src</a></code><wbr></wbr>.<code><a href="src.util.html" class="internal-link" title="src.util">util</a></code><wbr></wbr>.<code><a href="src.util.config_tools.html" class="internal-link" title="src.util.config_tools">config_tools</a></code><wbr></wbr>.<code><a href="src.util.config_tools.ConfigChecker.html" class="internal-link" title="src.util.config_tools.ConfigChecker">ConfigChecker</a></code></code></h1>
+          <div id="showPrivate">
+            <button class="btn btn-link" onclick="togglePrivate()">Toggle Private API</button>
+          </div>
+        </div>
+
+        <div class="categoryHeader">
+          class documentation
+        </div>
+
+        <div class="extrasDocstring">
+          <p class="class-signature"><code><span class="py-keyword">class</span> <span class="py-defname">ConfigChecker</span>:</code></p><p>Constructor: <code><a href="#__init__" class="internal-link" title="src.util.config_tools.ConfigChecker.__init__">ConfigChecker(pipeline_name, file_name, log_tool)</a></code></p>
+          <p><a href="classIndex.html#src.util.config_tools.ConfigChecker">View In Hierarchy</a></p>
+        </div>
+
+        <div class="moduleDocstring">
+          <div><p>ConfigChecker class performing validation and processing for
+pipeline configurations.</p></div>
+        </div>
+
+        <div id="splitTables">
+          <table class="children sortable" id="id16">
+  
+  
+  <tr class="method">
+    
+    <td>Method</td>
+    <td><code><a href="#__init__" class="internal-link" title="src.util.config_tools.ConfigChecker.__init__">__init__</a></code></td>
+    <td>Default Constructor</td>
+  </tr><tr class="method">
+    
+    <td>Method</td>
+    <td><code><a href="#validate_config" class="internal-link" title="src.util.config_tools.ConfigChecker.validate_config">validate<wbr></wbr>_config</a></code></td>
+    <td>validate the pipeline configuration file.</td>
+  </tr><tr class="instancevariable">
+    
+    <td>Instance Variable</td>
+    <td><code><a href="#file_name" class="internal-link" title="src.util.config_tools.ConfigChecker.file_name">file<wbr></wbr>_name</a></code></td>
+    <td><span class="undocumented">Undocumented</span></td>
+  </tr><tr class="instancevariable">
+    
+    <td>Instance Variable</td>
+    <td><code><a href="#logger" class="internal-link" title="src.util.config_tools.ConfigChecker.logger">logger</a></code></td>
+    <td><span class="undocumented">Undocumented</span></td>
+  </tr><tr class="instancevariable">
+    
+    <td>Instance Variable</td>
+    <td><code><a href="#pipeline_name" class="internal-link" title="src.util.config_tools.ConfigChecker.pipeline_name">pipeline<wbr></wbr>_name</a></code></td>
+    <td><span class="undocumented">Undocumented</span></td>
+  </tr><tr class="method private">
+    
+    <td>Method</td>
+    <td><code><a href="#_check_global_section" class="internal-link" title="src.util.config_tools.ConfigChecker._check_global_section">_check<wbr></wbr>_global<wbr></wbr>_section</a></code></td>
+    <td>check global section for valid inputs according to the design doc</td>
+  </tr><tr class="method private">
+    
+    <td>Method</td>
+    <td><code><a href="#_check_individual_config" class="internal-link" title="src.util.config_tools.ConfigChecker._check_individual_config">_check<wbr></wbr>_individual<wbr></wbr>_config</a></code></td>
+    <td>Helper method to check individual config</td>
+  </tr><tr class="method private">
+    
+    <td>Method</td>
+    <td><code><a href="#_check_jobs_dependencies" class="internal-link" title="src.util.config_tools.ConfigChecker._check_jobs_dependencies">_check<wbr></wbr>_jobs<wbr></wbr>_dependencies</a></code></td>
+    <td>no jobs should depends on jobs not defined in current stage no cycle allowed for the group of jobs</td>
+  </tr><tr class="method private">
+    
+    <td>Method</td>
+    <td><code><a href="#_check_jobs_section" class="internal-link" title="src.util.config_tools.ConfigChecker._check_jobs_section">_check<wbr></wbr>_jobs<wbr></wbr>_section</a></code></td>
+    <td>check jobs section, validate and filled the required field for each job</td>
+  </tr><tr class="method private">
+    
+    <td>Method</td>
+    <td><code><a href="#_check_stages_jobs_relationship" class="internal-link" title="src.util.config_tools.ConfigChecker._check_stages_jobs_relationship">_check<wbr></wbr>_stages<wbr></wbr>_jobs<wbr></wbr>_relationship</a></code></td>
+    <td>check the stages jobs relationship to ensure each stages have at least one job and each job are assigned to a valid stages</td>
+  </tr><tr class="method private">
+    
+    <td>Method</td>
+    <td><code><a href="#_check_stages_section" class="internal-link" title="src.util.config_tools.ConfigChecker._check_stages_section">_check<wbr></wbr>_stages<wbr></wbr>_section</a></code></td>
+    <td>check stages section. validate the stages and jobs relationship are valid as per design doc</td>
+  </tr><tr class="method private">
+    
+    <td>Method</td>
+    <td><code><a href="#_group_n_sort" class="internal-link" title="src.util.config_tools.ConfigChecker._group_n_sort">_group<wbr></wbr>_n<wbr></wbr>_sort</a></code></td>
+    <td>performed topological sort based on the nodes in adjacency_list and entire_list</td>
+  </tr>
+</table>
+          
+
+            
+        </div>
+
+        <div id="childList">
+          <div class="basemethod">
+  
+  
+  <a name="src.util.config_tools.ConfigChecker.__init__">
+    
+  </a>
+  <a name="__init__">
+    
+  </a>
+  <div class="functionHeader">
+    
+    
+    <span class="py-keyword">def</span> <span class="py-defname">__init__</span><span class="function-signature">(self, pipeline_name: <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code> = <a href="src.util.config_tools.html#DEFAULT_STR" class="internal-link" title="src.util.config_tools.DEFAULT_STR">DEFAULT_STR</a>, file_name: <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code> = <a href="src.util.config_tools.html#DEFAULT_STR" class="internal-link" title="src.util.config_tools.DEFAULT_STR">DEFAULT_STR</a>, log_tool=<a href="#logger" class="internal-link" title="src.util.config_tools.ConfigChecker.logger">logger</a>)</span>:
+    
+    <a class="headerLink" href="#__init__" title="src.util.config_tools.ConfigChecker.__init__">
+      
+      
+      ¶
+    </a>
+  </div>
+  <div class="docstring functionBody">
+    
+    <div><p>Default Constructor</p><table class="fieldTable"><tr class="fieldStart"><td class="fieldName" colspan="2">Parameters</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">pipeline<wbr></wbr>_name:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code>, <em>optional</em></td><td class="fieldArgDesc">pipeline_name to identify the config.
+Can be changed later by validate_config method. Defaults to empty string.</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">file<wbr></wbr>_name:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code>, <em>optional</em></td><td class="fieldArgDesc">file_name to where the config is loaded from.
+Can be changed later by validate_config method. Defaults to empty string.</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">log<wbr></wbr>_tool:</span><code><a href="https://docs.python.org/3/library/logging.html#logging.Logger" class="intersphinx-link">logging.Logger</a></code>, <em>optional</em></td><td class="fieldArgDesc">log tool to be used by this class.
+Defaults to logger.</td></tr></table></div>
+  </div>
+</div><div class="basemethod">
+  
+  
+  <a name="src.util.config_tools.ConfigChecker.validate_config">
+    
+  </a>
+  <a name="validate_config">
+    
+  </a>
+  <div class="functionHeader">
+    
+    
+    <span class="py-keyword">def</span> <span class="py-defname">validate_config</span><span class="function-signature">(self, pipeline_name: <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code>, pipeline_config: <code><a href="https://docs.python.org/3/library/stdtypes.html#dict" class="intersphinx-link">dict</a></code>, file_name: <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code> = <a href="src.util.config_tools.html#DEFAULT_STR" class="internal-link" title="src.util.config_tools.DEFAULT_STR">DEFAULT_STR</a>, error_lc: <code><a href="https://docs.python.org/3/library/functions.html#bool" class="intersphinx-link">bool</a></code> = <a href="https://docs.python.org/3/library/constants.html#False" class="intersphinx-link">False</a>) -&gt; <code><a href="https://docs.python.org/3/library/stdtypes.html#dict" class="intersphinx-link">dict</a></code></span>:
+    
+    <a class="headerLink" href="#validate_config" title="src.util.config_tools.ConfigChecker.validate_config">
+      
+      
+      ¶
+    </a>
+  </div>
+  <div class="docstring functionBody">
+    
+    <div><p>validate the pipeline configuration file.</p><table class="fieldTable"><tr class="fieldStart"><td class="fieldName" colspan="2">Parameters</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">pipeline<wbr></wbr>_name:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code></td><td class="fieldArgDesc">pipeline_name to identify the config</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">pipeline<wbr></wbr>_config:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#dict" class="intersphinx-link">dict</a></code></td><td class="fieldArgDesc">pipeline_configuration to be validated</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">file<wbr></wbr>_name:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code>, <em>optional</em></td><td class="fieldArgDesc">file_name to where the config is loaded from.
+Defaults to empty string.</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">error<wbr></wbr>_lc:</span><code><a href="https://docs.python.org/3/library/functions.html#bool" class="intersphinx-link">bool</a></code>, <em>optional</em></td><td class="fieldArgDesc">boolean flag indicate if lines and columns
+information available for error tracking, Defaults to False</td></tr><tr class="fieldStart"><td class="fieldName" colspan="2">Returns</td></tr><tr><td class="fieldArgContainer"><code><a href="https://docs.python.org/3/library/stdtypes.html#dict" class="intersphinx-link">dict</a></code></td><td class="fieldArgDesc"><dl class="rst-docutils">
+<dt>dictionary of {</dt>
+<dd>'valid':&lt;True or False&gt;,
+valid flag indicates if the validation passed or failed.
+'error_msg': &lt;str of error messages collected&gt;,
+If validation passed this will be an empty string
+'pipeline_config': dict. pipeline_config is the dictionary of
+the pipeline config processed. if validation failed, it will be empty}</dd>
+</dl>
+</td></tr></table></div>
+  </div>
+</div><div class="baseinstancevariable">
+  
+  
+  <a name="src.util.config_tools.ConfigChecker.file_name">
+    
+  </a>
+  <a name="file_name">
+    
+  </a>
+  <div class="functionHeader">
+    
+    <span class="py-defname">file_name</span> =
+    
+    <a class="headerLink" href="#file_name" title="src.util.config_tools.ConfigChecker.file_name">
+      
+      
+      ¶
+    </a>
+  </div>
+  <div class="functionBody">
+    
+    <div><p class="undocumented">Undocumented</p></div>
+    
+  </div>
+</div><div class="baseinstancevariable">
+  
+  
+  <a name="src.util.config_tools.ConfigChecker.logger">
+    
+  </a>
+  <a name="logger">
+    
+  </a>
+  <div class="functionHeader">
+    
+    <span class="py-defname">logger</span> =
+    
+    <a class="headerLink" href="#logger" title="src.util.config_tools.ConfigChecker.logger">
+      
+      
+      ¶
+    </a>
+  </div>
+  <div class="functionBody">
+    
+    <div><p class="undocumented">Undocumented</p></div>
+    
+  </div>
+</div><div class="baseinstancevariable">
+  
+  
+  <a name="src.util.config_tools.ConfigChecker.pipeline_name">
+    
+  </a>
+  <a name="pipeline_name">
+    
+  </a>
+  <div class="functionHeader">
+    
+    <span class="py-defname">pipeline_name</span> =
+    
+    <a class="headerLink" href="#pipeline_name" title="src.util.config_tools.ConfigChecker.pipeline_name">
+      
+      
+      ¶
+    </a>
+  </div>
+  <div class="functionBody">
+    
+    <div><p class="undocumented">Undocumented</p></div>
+    
+  </div>
+</div><div class="basemethod private">
+  
+  
+  <a name="src.util.config_tools.ConfigChecker._check_global_section">
+    
+  </a>
+  <a name="_check_global_section">
+    
+  </a>
+  <div class="functionHeader">
+    
+    
+    <span class="py-keyword">def</span> <span class="py-defname">_check_global_section</span><span class="function-signature">(self, pipeline_config: <code><a href="https://docs.python.org/3/library/stdtypes.html#dict" class="intersphinx-link">dict</a></code>, processed_config: <code><a href="https://docs.python.org/3/library/stdtypes.html#dict" class="intersphinx-link">dict</a></code>, error_lc: <code><a href="https://docs.python.org/3/library/functions.html#bool" class="intersphinx-link">bool</a></code> = <a href="https://docs.python.org/3/library/constants.html#False" class="intersphinx-link">False</a>) -&gt; <code><a href="https://docs.python.org/3/library/stdtypes.html#tuple" class="intersphinx-link">tuple</a>[<wbr></wbr><a href="https://docs.python.org/3/library/functions.html#bool" class="intersphinx-link">bool</a>, <wbr></wbr><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a>]</code></span>:
+    
+    <a class="headerLink" href="#_check_global_section" title="src.util.config_tools.ConfigChecker._check_global_section">
+      
+      
+      ¶
+    </a>
+  </div>
+  <div class="docstring functionBody">
+    
+    <div><p>check global section for valid inputs according to the design doc</p><table class="fieldTable"><tr class="fieldStart"><td class="fieldName" colspan="2">Parameters</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">pipeline<wbr></wbr>_config:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#dict" class="intersphinx-link">dict</a></code></td><td class="fieldArgDesc">given pipeline_config</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">processed<wbr></wbr>_config:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#dict" class="intersphinx-link">dict</a></code></td><td class="fieldArgDesc">processed pipeline config. Will be modified in-place</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">error<wbr></wbr>_lc:</span><code><a href="https://docs.python.org/3/library/functions.html#bool" class="intersphinx-link">bool</a></code>, <em>optional</em></td><td class="fieldArgDesc">boolean flag indicate if lines and columns
+information available for error tracking, Defaults to False</td></tr><tr class="fieldStart"><td class="fieldName" colspan="2">Returns</td></tr><tr><td class="fieldArgContainer"><code><a href="https://docs.python.org/3/library/stdtypes.html#tuple" class="intersphinx-link">tuple</a>[<a href="https://docs.python.org/3/library/functions.html#bool" class="intersphinx-link">bool</a></code>, <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a>]</code></td><td class="fieldArgDesc"><dl class="rst-docutils">
+<dt>first variable is a boolean indicator if the check passed,</dt>
+<dd>second variable is the str of the error message combined.</dd>
+</dl>
+</td></tr></table></div>
+  </div>
+</div><div class="basemethod private">
+  
+  
+  <a name="src.util.config_tools.ConfigChecker._check_individual_config">
+    
+  </a>
+  <a name="_check_individual_config">
+    
+  </a>
+  <div class="functionHeader">
+    
+    
+    <span class="py-keyword">def</span> <span class="py-defname">_check_individual_config</span><span class="function-signature">(self, sub_key: <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code>, config_dict: <code><a href="https://docs.python.org/3/library/stdtypes.html#dict" class="intersphinx-link">dict</a></code>, res_dict: <code><a href="https://docs.python.org/3/library/stdtypes.html#dict" class="intersphinx-link">dict</a></code>, default_if_absent: <code><a href="https://docs.python.org/3/library/functions.html#any" class="intersphinx-link">any</a></code> = <a href="https://docs.python.org/3/library/constants.html#None" class="intersphinx-link">None</a>, expected_type: <code><a href="https://docs.python.org/3/library/functions.html#any" class="intersphinx-link">any</a></code> = <a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a>, error_prefix: <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code> = <a href="src.util.config_tools.html#DEFAULT_STR" class="internal-link" title="src.util.config_tools.DEFAULT_STR">DEFAULT_STR</a>, error_lc: <code><a href="https://docs.python.org/3/library/functions.html#bool" class="intersphinx-link">bool</a></code> = <a href="https://docs.python.org/3/library/constants.html#False" class="intersphinx-link">False</a>) -&gt; <code><a href="https://docs.python.org/3/library/stdtypes.html#tuple" class="intersphinx-link">tuple</a>[<wbr></wbr><a href="https://docs.python.org/3/library/functions.html#bool" class="intersphinx-link">bool</a>, <wbr></wbr><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a>]</code></span>:
+    
+    <a class="headerLink" href="#_check_individual_config" title="src.util.config_tools.ConfigChecker._check_individual_config">
+      
+      
+      ¶
+    </a>
+  </div>
+  <div class="docstring functionBody">
+    
+    <div><p>Helper method to check individual config</p><table class="fieldTable"><tr class="fieldStart"><td class="fieldName" colspan="2">Parameters</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">sub<wbr></wbr>_key:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code></td><td class="fieldArgDesc">subsection key to look for</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">config<wbr></wbr>_dict:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#dict" class="intersphinx-link">dict</a></code></td><td class="fieldArgDesc">dictionary to check for</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">res<wbr></wbr>_dict:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#dict" class="intersphinx-link">dict</a></code></td><td class="fieldArgDesc">dictionary to store the result. will be modified in-place</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">default<wbr></wbr>_if<wbr></wbr>_absent:</span><code><a href="https://docs.python.org/3/library/functions.html#any" class="intersphinx-link">any</a></code>, <em>optional</em></td><td class="fieldArgDesc">default value if the corresponding key not found,
+if not supplied will report error when key not found. Defaults to None.</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">expected<wbr></wbr>_type:</span><code><a href="https://docs.python.org/3/library/functions.html#any" class="intersphinx-link">any</a></code>, <em>optional</em></td><td class="fieldArgDesc">expected type of corresponding value. Defaults to str.</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">error<wbr></wbr>_prefix:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code>, <em>optional</em></td><td class="fieldArgDesc">prefix for error message for further identification.
+Defaults to empty str</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">error<wbr></wbr>_lc:</span><code><a href="https://docs.python.org/3/library/functions.html#bool" class="intersphinx-link">bool</a></code>, <em>optional</em></td><td class="fieldArgDesc">boolean flag indicate if lines and columns
+information available for error tracking, Defaults to False</td></tr><tr class="fieldStart"><td class="fieldName" colspan="2">Returns</td></tr><tr><td class="fieldArgContainer"><code><a href="https://docs.python.org/3/library/stdtypes.html#tuple" class="intersphinx-link">tuple</a>[<a href="https://docs.python.org/3/library/functions.html#bool" class="intersphinx-link">bool</a></code>, <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a>]</code></td><td class="fieldArgDesc"><dl class="rst-docutils">
+<dt>First boolean indicates if the individual config check is successful</dt>
+<dd>Second string return error message if any</dd>
+</dl>
+</td></tr></table></div>
+  </div>
+</div><div class="basemethod private">
+  
+  
+  <a name="src.util.config_tools.ConfigChecker._check_jobs_dependencies">
+    
+  </a>
+  <a name="_check_jobs_dependencies">
+    
+  </a>
+  <div class="functionHeader">
+    
+    
+    <span class="py-keyword">def</span> <span class="py-defname">_check_jobs_dependencies</span><span class="function-signature">(self, stage_name: <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code>, job_list: <code><a href="https://docs.python.org/3/library/stdtypes.html#list" class="intersphinx-link">list</a> | <a href="https://docs.python.org/3/library/stdtypes.html#set" class="intersphinx-link">set</a></code>, jobs_dict: <code><a href="https://docs.python.org/3/library/stdtypes.html#dict" class="intersphinx-link">dict</a></code>, error_lc: <code><a href="https://docs.python.org/3/library/functions.html#bool" class="intersphinx-link">bool</a></code> = <a href="https://docs.python.org/3/library/constants.html#False" class="intersphinx-link">False</a>) -&gt; <code><a href="https://docs.python.org/3/library/stdtypes.html#tuple" class="intersphinx-link">tuple</a>[<wbr></wbr><a href="https://docs.python.org/3/library/functions.html#bool" class="intersphinx-link">bool</a>, <wbr></wbr><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a>, <wbr></wbr><a href="https://docs.python.org/3/library/stdtypes.html#dict" class="intersphinx-link">dict</a>]</code></span>:
+    
+    <a class="headerLink" href="#_check_jobs_dependencies" title="src.util.config_tools.ConfigChecker._check_jobs_dependencies">
+      
+      
+      ¶
+    </a>
+  </div>
+  <div class="docstring functionBody">
+    
+    <div><p><dl class="rst-docutils">
+<dt>check dependencies for the jobs within the same stage.</dt>
+<dd>no jobs should depends on jobs not defined in current stage
+no cycle allowed for the group of jobs</dd>
+</dl>
+</p><table class="fieldTable"><tr class="fieldStart"><td class="fieldName" colspan="2">Parameters</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">stage<wbr></wbr>_name:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code></td><td class="fieldArgDesc">str name of the stage checking on</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">job<wbr></wbr>_list:</span>list|<blockquote>
+set</blockquote>
+</td><td class="fieldArgDesc">iterable of jobs within same stage</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">jobs<wbr></wbr>_dict:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#dict" class="intersphinx-link">dict</a></code></td><td class="fieldArgDesc">dictionary of jobs(key) and jobs config(value)
+will have lc property if passed directly from yaml</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">error<wbr></wbr>_lc:</span><code><a href="https://docs.python.org/3/library/functions.html#bool" class="intersphinx-link">bool</a></code>, <em>optional</em></td><td class="fieldArgDesc">boolean flag indicate if lines and columns
+information available for error tracking, Defaults to False</td></tr><tr class="fieldStart"><td class="fieldName" colspan="2">Returns</td></tr><tr><td class="fieldArgContainer"><code><a href="https://docs.python.org/3/library/stdtypes.html#tuple" class="intersphinx-link">tuple</a>[<a href="https://docs.python.org/3/library/functions.html#bool" class="intersphinx-link">bool</a></code>, <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code>, <code><a href="https://docs.python.org/3/library/stdtypes.html#dict" class="intersphinx-link">dict</a>]</code></td><td class="fieldArgDesc">tuple of three return value
+first indicate if the check passed or failed
+second is a list of error message
+third is the resulting job dependency</td></tr></table></div>
+  </div>
+</div><div class="basemethod private">
+  
+  
+  <a name="src.util.config_tools.ConfigChecker._check_jobs_section">
+    
+  </a>
+  <a name="_check_jobs_section">
+    
+  </a>
+  <div class="functionHeader">
+    
+    
+    <span class="py-keyword">def</span> <span class="py-defname">_check_jobs_section</span><span class="function-signature">(self, pipeline_config: <code><a href="https://docs.python.org/3/library/stdtypes.html#dict" class="intersphinx-link">dict</a></code>, processed_config: <code><a href="https://docs.python.org/3/library/stdtypes.html#dict" class="intersphinx-link">dict</a></code>, error_lc: <code><a href="https://docs.python.org/3/library/functions.html#bool" class="intersphinx-link">bool</a></code> = <a href="https://docs.python.org/3/library/constants.html#False" class="intersphinx-link">False</a>) -&gt; <code><a href="https://docs.python.org/3/library/stdtypes.html#tuple" class="intersphinx-link">tuple</a>[<wbr></wbr><a href="https://docs.python.org/3/library/functions.html#bool" class="intersphinx-link">bool</a>, <wbr></wbr><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a>]</code></span>:
+    
+    <a class="headerLink" href="#_check_jobs_section" title="src.util.config_tools.ConfigChecker._check_jobs_section">
+      
+      
+      ¶
+    </a>
+  </div>
+  <div class="docstring functionBody">
+    
+    <div><p>check jobs section, validate and filled the required field for each job</p><table class="fieldTable"><tr class="fieldStart"><td class="fieldName" colspan="2">Parameters</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">pipeline<wbr></wbr>_config:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#dict" class="intersphinx-link">dict</a></code></td><td class="fieldArgDesc">given pipeline_config</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">processed<wbr></wbr>_config:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#dict" class="intersphinx-link">dict</a></code></td><td class="fieldArgDesc">processed pipeline config. Will be modified in-place</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">error<wbr></wbr>_lc:</span><code><a href="https://docs.python.org/3/library/functions.html#bool" class="intersphinx-link">bool</a></code>, <em>optional</em></td><td class="fieldArgDesc">boolean flag indicate if lines and columns
+information available for error tracking, Defaults to False</td></tr><tr class="fieldStart"><td class="fieldName" colspan="2">Returns</td></tr><tr><td class="fieldArgContainer"><code><a href="https://docs.python.org/3/library/stdtypes.html#tuple" class="intersphinx-link">tuple</a>[<a href="https://docs.python.org/3/library/functions.html#bool" class="intersphinx-link">bool</a></code>, <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a>]</code></td><td class="fieldArgDesc">first variable is a boolean indicator if the check passed,
+second variable is the str of the error message combined.</td></tr></table></div>
+  </div>
+</div><div class="basemethod private">
+  
+  
+  <a name="src.util.config_tools.ConfigChecker._check_stages_jobs_relationship">
+    
+  </a>
+  <a name="_check_stages_jobs_relationship">
+    
+  </a>
+  <div class="functionHeader">
+    
+    
+    <span class="py-keyword">def</span> <span class="py-defname">_check_stages_jobs_relationship</span><span class="function-signature">(self, stage_list: <code><a href="https://docs.python.org/3/library/stdtypes.html#list" class="intersphinx-link">list</a>[<wbr></wbr><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a>]</code>, jobs_dict: <code><a href="https://docs.python.org/3/library/stdtypes.html#dict" class="intersphinx-link">dict</a></code>, error_lc: <code><a href="https://docs.python.org/3/library/functions.html#bool" class="intersphinx-link">bool</a></code> = <a href="https://docs.python.org/3/library/constants.html#False" class="intersphinx-link">False</a>) -&gt; <code><a href="https://docs.python.org/3/library/stdtypes.html#tuple" class="intersphinx-link">tuple</a>[<wbr></wbr><a href="https://docs.python.org/3/library/functions.html#bool" class="intersphinx-link">bool</a>, <wbr></wbr><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a>, <wbr></wbr><a href="https://docs.python.org/3/library/collections.html#collections.OrderedDict" class="intersphinx-link">collections.OrderedDict</a>]</code></span>:
+    
+    <a class="headerLink" href="#_check_stages_jobs_relationship" title="src.util.config_tools.ConfigChecker._check_stages_jobs_relationship">
+      
+      
+      ¶
+    </a>
+  </div>
+  <div class="docstring functionBody">
+    
+    <div><p>check the stages jobs relationship to ensure each stages have at least one job
+and each job are assigned to a valid stages</p><table class="fieldTable"><tr class="fieldStart"><td class="fieldName" colspan="2">Parameters</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">stage<wbr></wbr>_list:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#list" class="intersphinx-link">list</a>[<a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a>]</code></td><td class="fieldArgDesc">list of stage name</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">jobs<wbr></wbr>_dict:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#dict" class="intersphinx-link">dict</a></code></td><td class="fieldArgDesc">dictionary of jobs(key) and jobs config(value),
+will have lc property if passed directly from yaml</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">error<wbr></wbr>_lc:</span><code><a href="https://docs.python.org/3/library/functions.html#bool" class="intersphinx-link">bool</a></code>, <em>optional</em></td><td class="fieldArgDesc">boolean flag indicate if lines and columns
+information available for error tracking, Defaults to False</td></tr><tr class="fieldStart"><td class="fieldName" colspan="2">Returns</td></tr><tr><td class="fieldArgContainer"><code><a href="https://docs.python.org/3/library/stdtypes.html#tuple" class="intersphinx-link">tuple</a>[<a href="https://docs.python.org/3/library/functions.html#bool" class="intersphinx-link">bool</a></code>, <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code>, <code><a href="https://docs.python.org/3/library/stdtypes.html#list" class="intersphinx-link">list</a>[<a href="https://docs.python.org/3/library/stdtypes.html#dict" class="intersphinx-link">dict</a>]]</code></td><td class="fieldArgDesc">tuple of three return value
+first indicate if the check passed or failed
+second is a list of error message
+third is the resulting list of stage dictionary of format
+[{stage1}:{job sets},... {stagen}:{job sets},]</td></tr></table></div>
+  </div>
+</div><div class="basemethod private">
+  
+  
+  <a name="src.util.config_tools.ConfigChecker._check_stages_section">
+    
+  </a>
+  <a name="_check_stages_section">
+    
+  </a>
+  <div class="functionHeader">
+    
+    
+    <span class="py-keyword">def</span> <span class="py-defname">_check_stages_section</span><span class="function-signature">(self, pipeline_config: <code><a href="https://docs.python.org/3/library/stdtypes.html#dict" class="intersphinx-link">dict</a></code>, processed_config: <code><a href="https://docs.python.org/3/library/stdtypes.html#dict" class="intersphinx-link">dict</a></code>, error_lc: <code><a href="https://docs.python.org/3/library/functions.html#bool" class="intersphinx-link">bool</a></code> = <a href="https://docs.python.org/3/library/constants.html#False" class="intersphinx-link">False</a>) -&gt; <code><a href="https://docs.python.org/3/library/stdtypes.html#tuple" class="intersphinx-link">tuple</a>[<wbr></wbr><a href="https://docs.python.org/3/library/functions.html#bool" class="intersphinx-link">bool</a>, <wbr></wbr><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a>]</code></span>:
+    
+    <a class="headerLink" href="#_check_stages_section" title="src.util.config_tools.ConfigChecker._check_stages_section">
+      
+      
+      ¶
+    </a>
+  </div>
+  <div class="docstring functionBody">
+    
+    <div><p>check stages section. validate the stages and jobs relationship are
+valid as per design doc</p><table class="fieldTable"><tr class="fieldStart"><td class="fieldName" colspan="2">Parameters</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">pipeline<wbr></wbr>_config:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#dict" class="intersphinx-link">dict</a></code></td><td class="fieldArgDesc">given pipeline_config</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">processed<wbr></wbr>_config:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#dict" class="intersphinx-link">dict</a></code></td><td class="fieldArgDesc">processed pipeline config. Will be modified in-place</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">error<wbr></wbr>_lc:</span><code><a href="https://docs.python.org/3/library/functions.html#bool" class="intersphinx-link">bool</a></code>, <em>optional</em></td><td class="fieldArgDesc">boolean flag indicate if lines and columns
+information available for error tracking, Defaults to False</td></tr><tr class="fieldStart"><td class="fieldName" colspan="2">Returns</td></tr><tr><td class="fieldArgContainer"><code><a href="https://docs.python.org/3/library/stdtypes.html#tuple" class="intersphinx-link">tuple</a>[<a href="https://docs.python.org/3/library/functions.html#bool" class="intersphinx-link">bool</a></code>, <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a>]</code></td><td class="fieldArgDesc">first variable is a boolean indicator if the check passed,
+second variable is the str of the error message combined.</td></tr></table></div>
+  </div>
+</div><div class="basemethod private">
+  
+  
+  <a name="src.util.config_tools.ConfigChecker._group_n_sort">
+    
+  </a>
+  <a name="_group_n_sort">
+    
+  </a>
+  <div class="functionHeader">
+    
+    
+    <span class="py-keyword">def</span> <span class="py-defname">_group_n_sort</span><span class="function-signature">(self, stage_name: <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code>, adjacency_list: <code><a href="https://docs.python.org/3/library/stdtypes.html#dict" class="intersphinx-link">dict</a></code>, entire_list: <code><a href="https://docs.python.org/3/library/stdtypes.html#list" class="intersphinx-link">list</a></code> = []) -&gt; <code><a href="https://docs.python.org/3/library/stdtypes.html#tuple" class="intersphinx-link">tuple</a>[<wbr></wbr><a href="https://docs.python.org/3/library/functions.html#bool" class="intersphinx-link">bool</a>, <wbr></wbr><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a>, <wbr></wbr><a href="https://docs.python.org/3/library/stdtypes.html#list" class="intersphinx-link">list</a>]</code></span>:
+    
+    <a class="headerLink" href="#_group_n_sort" title="src.util.config_tools.ConfigChecker._group_n_sort">
+      
+      
+      ¶
+    </a>
+  </div>
+  <div class="docstring functionBody">
+    
+    <div><p>performed topological sort based on the nodes in adjacency_list and entire_list</p><table class="fieldTable"><tr class="fieldStart"><td class="fieldName" colspan="2">Parameters</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">stage<wbr></wbr>_name:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code></td><td class="fieldArgDesc">str name of the stage checking on</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">adjacency<wbr></wbr>_list:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#dict" class="intersphinx-link">dict</a></code></td><td class="fieldArgDesc">graph representation of given nodes</td></tr><tr><td class="fieldArgContainer"><span class="fieldArg">entire<wbr></wbr>_list:</span><code><a href="https://docs.python.org/3/library/stdtypes.html#list" class="intersphinx-link">list</a></code>, <em>optional</em></td><td class="fieldArgDesc">List of all nodes to be sorted,
+if provided will use this. Defaults to empty list.</td></tr><tr class="fieldStart"><td class="fieldName" colspan="2">Returns</td></tr><tr><td class="fieldArgContainer"><code><a href="https://docs.python.org/3/library/stdtypes.html#tuple" class="intersphinx-link">tuple</a>[<a href="https://docs.python.org/3/library/functions.html#bool" class="intersphinx-link">bool</a></code>, <code><a href="https://docs.python.org/3/library/stdtypes.html#str" class="intersphinx-link">str</a></code>, <code><a href="https://docs.python.org/3/library/stdtypes.html#list" class="intersphinx-link">list</a>]</code></td><td class="fieldArgDesc">tuple of three return value
+first indicate if the sort passed or failed
+second is a list of error message
+third is resulted sorted list</td></tr></table></div>
+  </div>
+</div>
+        </div>
+      
+      </div>
+    </div>
+
+    <footer class="navbar navbar-default">
+
+  
+  <div class="container">
+    <a href="index.html">API Documentation</a> for t4-cicd,
+  generated by <a href="https://github.com/twisted/pydoctor/">pydoctor</a>
+    24.3.3 at 2024-11-07 20:48:54.
+  </div>
+
+  <!-- Search related scripts needs to be loaded at the end of HTML 
+    parsing not to introduce overhead and display HTML data asap -->
+  <script src="ajax.js" type="text/javascript"></script>
+  <script src="searchlib.js" type="text/javascript"></script>
+  <script src="search.js" type="text/javascript"></script>
+
+</footer>
+  
+    <script src="pydoctor.js" type="text/javascript"></script>
+
+  </body>
+</html>
