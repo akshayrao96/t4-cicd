@@ -44,8 +44,7 @@ def run(ctx, file_path:str, pipeline:str, repo:str, branch:str, commit:str, loca
 
     Command to run `cid pipeline run <config_filename>`
     Command for dry-run `cid pipeline run --dry-run --repo <repo> --branch <branch_name> 
---commit <commit_hash>
-    \f
+    --commit <commit_hash>`
     Args:
         name (str): configuration file name
         repo (str): repository url or local directory path

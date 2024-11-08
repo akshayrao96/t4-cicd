@@ -30,6 +30,7 @@ pylint = "^3.3.1"
 pytest = "^8.3.3"
 pytest-cov = "^5.0.0"
 mongomock = "^4.2.0.post1"
+pydoctor = "^24.3.3"
 
 [tool.pytest.ini_options]
 addopts = "--cov=src --cov-report html --cov-fail-under=50"
@@ -40,3 +41,14 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
 cid = "cli.__main__:cid"
+
+[tool.pydoctor]
+project-name= "t4-cicd"
+add-package = ["src"]
+docformat = "google"
+verbose = 1
+intersphinx = ["https://docs.python.org/3/objects.inv",
+               "https://docs.twistedmatrix.com/en/stable/api/objects.inv"]
+warnings-as-errors = false
+privacy = ["HIDDEN:pydoctor.test",
+           "PUBLIC:pydoctor._configparser",]
