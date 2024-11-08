@@ -140,7 +140,7 @@ def log(tail:str, repo:str):
 @click.option('-b', '--branch', 'branch', default='main', help="branch name of the repository; default is 'main'")
 @click.option('-s', '--stage', 'stage', default='build', help='stage name for report')
 @click.option('-r', '--run', 'run', default='1', help='run number to get the report')
-def report(repo_url:str, local:bool, pipeline_name:str, branch:str, stage:str, ):
+def report(repo_url:str, local:bool, pipeline_name:str, branch:str, stage:str, run:str):
 
     #TODO: if repo location is specify as "--repo .", this needs to get the current $pwd.
     #           check if this exist.
