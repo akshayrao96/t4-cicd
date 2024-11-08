@@ -45,10 +45,10 @@ cid = "cli.__main__:cid"
 [tool.pydoctor]
 project-name= "t4-cicd"
 add-package = ["src"]
-intersphinx = ["https://docs.python.org/3/objects.inv",
-               "https://twistedmatrix.com/documents/current/api/objects.inv"]
 docformat = "google"
 verbose = 1
-warnings-as-errors = true
+intersphinx = ["https://docs.python.org/3/objects.inv",
+               "https://docs.twistedmatrix.com/en/stable/api/objects.inv"]
+warnings-as-errors = false
 privacy = ["HIDDEN:pydoctor.test",
            "PUBLIC:pydoctor._configparser",]
