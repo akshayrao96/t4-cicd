@@ -85,7 +85,7 @@ jobs:
 
       - name: Generate API documentation with pydoctor
         run: |
-          pydoctor
+          poetry run pydoctor
       - name: Upload API documentations
         uses: actions/upload-artifact@v4
         with:
