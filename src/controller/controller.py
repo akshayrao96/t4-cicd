@@ -11,6 +11,7 @@ from typing import Any
 import pprint
 import click
 import git.exc
+from pydantic import ValidationError
 import util.constant as const
 from util.container import (DockerManager)
 from util.model import (SessionDetail, PipelineConfig, ValidatedStage, PipelineInfo)
@@ -26,6 +27,7 @@ REPO_BRANCH_NAME = "main"
 MONGO_PIPELINES_TABLE = "repo_configs"
 
 # pylint: disable=logging-fstring-interpolation
+# pylint: disable=logging-not-lazy
 # pylint: disable=fixme
 
 
@@ -355,7 +357,8 @@ class Controller:
         """
 
     def run_pipeline(self, config_file: str, pipeline: str, git_details:dict, dry_run:bool = False,
-                     local:bool = False, yaml_output: bool = False) -> tuple[bool, str, str]:
+                     local:bool = False, yaml_output: bool = False, override_configs:dict=None
+                     ) -> tuple[bool, str, str]:
         """Executes the job by coordinating the repository, runner, artifact store, and logger.
 
         Args:
@@ -366,6 +369,7 @@ class Controller:
             local (bool): True = run pipeline locally, False = run pipeline remotely.
                 By default set to false.
             yaml_output (bool): set output format to yaml
+            override_configs: to override required configs
 
         Returns:
             tuple[bool, str, str]:
@@ -417,6 +421,20 @@ class Controller:
         # by default it is set to '.cicd-pipelines/pipelines.yml'
         status, message, config_dict = self.validate_config(config_file)
 
+        # Process Override if have
+        if override_configs:
+            combined_config = ConfigOverrides.apply_overrides(
+                config_dict,
+                override_configs)
+            # validate the updated pipeline configuration
+            response_dict = self.config_checker.validate_config(
+                config_dict[const.KEY_GLOBAL][const.KEY_PIPE_NAME],
+                combined_config)
+            # Update status and config_dict
+            status = response_dict.get('valid')
+            config_dict = response_dict.get('pipeline_config')
+
+        # Early Return
         if not status:
             pipeline_id = ""
             return status, message, pipeline_id
@@ -432,27 +450,47 @@ class Controller:
         if local:
             print("Flag --local is set. run pipeline locally.")
 
-        # pprint.pprint(config_dict)
-        #TODO: update method to update git_detail
-        repo_data = copy.deepcopy(git_details)
-        repo_data["is_remote"] = True
-        repo_data['repo_name'] = "cicd-python"
-        repo_data['user_id'] = os.getlogin()
-        repo_data = SessionDetail.model_validate(repo_data)
-        pprint.pprint(repo_data.model_dump())
-        pipeline_config = PipelineConfig.model_validate(config_dict)
-        self._actual_pipeline_run(repo_data, pipeline_config, local)
         status = True
         message = "Pipeline runs successfully"
-        pipeline_id = "pid_unique_string"
+        pipeline_id = "run_number"
+        #TODO: update method to update git_detail
+        try:
+            repo_data = copy.deepcopy(git_details)
+            repo_data["is_remote"] = True
+            repo_data['repo_name'] = "cicd-python"
+            repo_data['user_id'] = os.getlogin()
+            repo_data = SessionDetail.model_validate(repo_data)
+            # pprint.pprint(repo_data.model_dump())
+            pipeline_config = PipelineConfig.model_validate(config_dict)
+            status, pipeline_id = self._actual_pipeline_run(repo_data, pipeline_config, local)
+        except ValidationError as ve:
+            self.logger.warning(f"validation error occur, error is {ve}")
+            click.secho("Error in running pipeline", fg="red")
+            status = False
+
+        if not status:
+            message = 'Pipeline runs fail'
 
         return tuple([status, message, pipeline_id])
 
     def _actual_pipeline_run(self,
                              repo_data:SessionDetail,
                              pipeline_config:PipelineConfig,
-                             local:bool = False) -> bool:
-        """_summary_
+                             local:bool = False) -> tuple[bool, str]:
+        """ method to actually run the pipeline
+
+        Args:
+            repo_data (SessionDetail): information required to identify the repo record
+            pipeline_config (PipelineConfig): validated pipeline_configuration
+            local (bool, optional): flag indicate if run to be local(True) or remote(False). 
+                Defaults to False.
+
+        Raises:
+            ValueError: If target pipeline already running
+
+        Returns:
+            tuple(bool, str): first flag indicate whether the overall run is 
+                successful(True) or fail(False). Second str is the actual run number
         """
         # TODO - Process local flag
         if local:
@@ -467,7 +505,13 @@ class Controller:
             repo_data.branch,
             pipeline_config.global_.pipeline_name
         )
-        his_obj = PipelineInfo.model_validate(pipeline_history)
+        try:
+            his_obj = PipelineInfo.model_validate(pipeline_history)
+        except ValidationError as ve:
+            self.logger.warning(f"validation error for pipeline_history:{pipeline_history}"+
+                                f"error is {ve}")
+            raise ve
+
         # pprint.pprint(his_obj.model_dump())
         if pipeline_history['running']:
             raise ValueError(f"Pipeline {pipeline_config.global_.pipeline_name} Already Running,"+
@@ -487,6 +531,8 @@ class Controller:
         )
         # print(job_id)
         his_obj.job_run_history.append(job_id)
+        run_number = len(his_obj.job_run_history)
+        # TODO- Update pipeline config
         updates = {
             "job_run_history":his_obj.job_run_history,
             'running':True,
@@ -510,6 +556,7 @@ class Controller:
         # Iterate through all stages, for each jobs
         # TODO - Update pipeline_status with cancel case
         pipeline_status = const.STATUS_SUCCESS
+        early_break = False
         for stage_name, stage_config in pipeline_config.stages.items():
             stage_status = const.STATUS_SUCCESS
             stage_config = ValidatedStage.model_validate(stage_config)
@@ -521,16 +568,34 @@ class Controller:
                     #print(job_name)
                     #pprint.pprint(job_config)
                     job_log = docker_manager.run_job(job_name, job_config)
-                    click.echo(f"Stage:{stage_name} Job:{job_name} - Streaming Job Logs")
-                    pprint.pprint(job_log.job_logs)
+                    click.secho(f"Stage:{stage_name} Job:{job_name} - Streaming Job Logs",
+                                fg='green')
+                    click.echo(job_log.job_logs)
+                    # click.echo("\n")
                     job_logs[job_name] = job_log.model_dump()
                     # single fail job will switch the stage status to fail
                     if job_log.job_status == const.STATUS_FAILED:
                         stage_status = const.STATUS_FAILED
+                        click.secho(f"Job:{job_name} failed\n", fg="red")
+                        # Early break
+                        if job_config[const.JOB_SUBKEY_ALLOW] is False:
+                            early_break = True
+                            break
+                    else:
+                        click.secho(f"Job:{job_name} success\n", fg="green")
+                # If early break, skip next job group execution
+                if early_break:
+                    break
             self.mongo_ds.update_job_logs(job_id, stage_name, stage_status, job_logs)
             # single fail stage will switch the pipeline status to fail
             if stage_status == const.STATUS_FAILED:
                 pipeline_status = const.STATUS_FAILED
+                click.secho(f"Stage:{stage_name} failed\n", fg="red")
+            else:
+                click.secho(f"Stage:{stage_name} success\n", fg="green")
+            # If early break, skip next stages execution
+            if early_break:
+                break
             #pprint.pprint(job_logs)
         # Wrap up and return
         docker_manager.remove_vol()
@@ -548,7 +613,8 @@ class Controller:
             pipeline_config.global_.pipeline_name,
             final_updates
         )
-        return pipeline_status
+        pipeline_pass = pipeline_status == const.STATUS_SUCCESS
+        return pipeline_pass, f"run_number:{run_number}"
 
 
     # def stop_job(self):

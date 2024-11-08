@@ -148,7 +148,6 @@ class DockerManager(ContainerManager):
                                                         )
                     job_success = job_success and indicator
                     output += msg
-
             if job_success:
                 job_log.job_status = c.STATUS_SUCCESS
             # Clean up container
@@ -175,6 +174,8 @@ class DockerManager(ContainerManager):
             return False
         if "error" in stderr:
             return False
+        if "not found" in stderr:
+            return False
         return True
 
     def _upload_artifact(self, container:Container,
@@ -197,10 +198,11 @@ class DockerManager(ContainerManager):
                 upload_path_obj = Path(upload_path)
                 if not upload_path_obj.is_dir():
                     parent_path = Path.cwd()
-                    print(parent_path)
+                    #print(parent_path)
                     upload_path_obj = parent_path.joinpath(upload_path_obj)
-                    print(upload_path_obj)
-                    upload_path_obj.mkdir()
+                    #print(upload_path_obj)
+                    # recursively make dir for parents if not exist
+                    upload_path_obj.mkdir(parents=True)
                 with open(f"{upload_path}/volume_contents.tar", "wb") as f:
                     for chunk in bits:
                         f.write(chunk)

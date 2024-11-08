@@ -108,6 +108,7 @@ class TestModel(unittest.TestCase):
             "pipeline_config":self.sample_pipeline_config
         }
         history = model.PipelineInfo.model_validate(pipeline_history)
+        print(history.model_dump())
         logger.debug(history)
         
         # Test handling of None field
