@@ -80,13 +80,16 @@ class TestController(unittest.TestCase):
     def test_validate_n_save_config_save_failure(self, mock_insert_repo, mock_validate_config):
         """Test failing to save a new pipeline configuration"""
         controller = Controller()
-        mock_validate_config.return_value = (True,
-                                            '', {'global': {'pipeline_name': 'test_pipeline'}})
+        mock_validate_config.return_value = (True, '', {'global': {'pipeline_name': 'test_pipeline'}})
         mock_insert_repo.return_value = None  # Simulate save failure
-        status, error_msg, config = controller.validate_n_save_config("/path/to/file.yml")
+
+        status, error_msg, config = controller.validate_n_save_config(
+            "/path/to/file.yml", pipeline_config={'global': {'pipeline_name': 'test_pipeline'}}, skip_validation=True
+        )
 
         self.assertFalse(status)
         self.assertEqual(config['global']['pipeline_name'], 'test_pipeline')
+
 
     @patch("controller.controller.Controller.validate_configs")
     @patch("controller.controller.Controller.validate_n_save_config")
