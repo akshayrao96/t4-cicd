@@ -47,7 +47,7 @@ Fields required:
 
 - jobs_id (primary key)
 <!---Should probably change pipeline_number to pipeline_name--->
-- pipeline_number
+- pipeline_name
 - run_number
 - git commit hash
 - pipeline_config_used
