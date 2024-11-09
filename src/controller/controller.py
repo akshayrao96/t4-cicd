@@ -188,11 +188,9 @@ class Controller:
                     "repo_name": "sample-repo",
                     "repo_url": "https://github.com/sample-user/sample-repo",
                     "branch": "main",
-                    "pipelines": [
-                        self.mongo_ds.create_pipeline_document(
-                            pipeline_name, file_name, resp_pipeline_config
-                        )
-                    ]
+                    pipeline_name: self.mongo_ds.create_pipeline_document(
+                        file_name, resp_pipeline_config
+                )
                 }
                 repo_id = self.mongo_ds.insert_repo(
                     new_repo_data, collection_name=MONGO_PIPELINES_TABLE
@@ -202,25 +200,16 @@ class Controller:
 
             # # Case 2: Existing Repo - Append Pipeline
             else:
-                existing_pipeline = next(
-                    (p for p in repo_data["pipelines"] if p["pipeline_name"] == pipeline_name),
-                    None
-                )
-                if not existing_pipeline:
+                if pipeline_name not in repo_data:
                     new_pipeline_document = self.mongo_ds.create_pipeline_document(
-                        pipeline_name, file_name, resp_pipeline_config
+                        file_name, resp_pipeline_config
                     )
-                    repo_data["pipelines"].append(new_pipeline_document)
+                    repo_data[pipeline_name] = new_pipeline_document
                     success = self.mongo_ds.update_pipeline(repo_data)
                     if not success:
-                        error_msg = f"Error add new '{pipeline_name}' to datastore."
-                        status = False
+                        return False, "Error saving '{pipeline_name}' to datastore.", resp_pipeline_config
                 else:
-                    error_msg = (
-                        f"Pipeline '{pipeline_name}' already exists in datastore. "
-                        "Use --override to update."
-                    )
-                    status = False
+                    return False, f"'{pipeline_name}' already exists. Use --override to update.", resp_pipeline_config
         return status, error_msg.strip(), resp_pipeline_config
 
     def validate_configs(self, directory: str) -> dict:
@@ -300,11 +289,11 @@ class Controller:
             return False
         data = self.mongo_ds.get_pipeline(
             pipeline.get('_id'), collection_name=MONGO_PIPELINES_TABLE)
-        data['pipeline_config'] = ConfigOverrides.apply_overrides(
+        updated_config = ConfigOverrides.apply_overrides(
             pipeline['pipeline_config'], overrides)
         # validate the updated pipeline configuration
         response_dict = self.config_checker.validate_config(pipeline_name,
-                                                            data['pipeline_config'],
+                                                            updated_config,
                                                             error_lc=True)
         status = response_dict.get('valid')
         resp_pipeline_config = response_dict.get('pipeline_config')
@@ -315,7 +304,7 @@ class Controller:
             "sample-repo",
             "https://github.com/sample-user/sample-repo",
             "main",
-            "valid_pipeline",
+            pipeline_name,
             resp_pipeline_config)
         if not success:
             click.echo("Error updating pipeline configuration.")
