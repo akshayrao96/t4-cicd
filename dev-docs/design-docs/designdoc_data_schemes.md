@@ -31,9 +31,7 @@ Primary keys - repo_name, repo_url and branch
 - repo_name
 - repo_url
 - branch
-- Pipelines Information and Status (past and present pipeline)
-  <!---Consider using key-values pair here, with key = pipeline_name, values = single pipelines_info --->
-  - pipeline_name (primary key for pipeline)
+- pipeline_name
   - pipeline_file_name (can be different from pipeline_name)
   - (validated) pipeline_config - pipeline config that failed validation will not be stored
   - job_run_history (list of job runs id for this pipeline)
@@ -45,9 +43,9 @@ Primary keys - repo_name, repo_url and branch
 
 Fields required:
 
-- jobs_id (primary key)
+- _id
 <!---Should probably change pipeline_number to pipeline_name--->
-- pipeline_number
+- pipeline_name
 - run_number
 - git commit hash
 - pipeline_config_used

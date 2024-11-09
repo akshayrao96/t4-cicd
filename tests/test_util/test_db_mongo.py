@@ -268,7 +268,7 @@ class TestMongoDB(unittest.TestCase):
         # Success case
         collection.find_one.return_value = {
             "_id": "12345",
-            "pipelines": [{"pipeline_name": "test_pipeline", "pipeline_config": {"key": "value"}}]
+            "test_pipeline": {"pipeline_config": {"key": "value"}}
         }
         result = mongo_adapter.get_pipeline_config(
             repo_name="test_repo",
@@ -373,15 +373,13 @@ class TestMongoDB(unittest.TestCase):
     def test_create_pipeline_document(self):
         """Test generating a new pipeline document."""
         mongo_adapter = MongoAdapter()
-        pipeline_name = "test_pipeline"
         file_name = "test_pipeline.yml"
         pipeline_config = {"global": {"pipeline_name": "test_pipeline"}}
 
-        result = mongo_adapter.create_pipeline_document(pipeline_name, file_name, pipeline_config)
+        result = mongo_adapter.create_pipeline_document(file_name, pipeline_config)
 
         # Check the structure of the created document
         expected_document = {
-            "pipeline_name": pipeline_name,
             "pipeline_file_name": file_name,
             "pipeline_config": pipeline_config,
             "job_run_history": [],
