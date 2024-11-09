@@ -5,11 +5,11 @@ This week, we met on Monday for a team code walk in preparation for the demo. On
 - Installing as an independent app
 - Running a pipeline with a Java repo
 - Uploading artifacts to a datastore
-The final feature list details can be viewed [here](https://docs.google.com/document/d/1oesRDCpEncrD0_QPSlQgghg0l__P-bS8_qZtxCVQn0c/edit?tab=t.0).
-For the final delivery, we have identified requirements we believe we can or cannot complete.
+
+For the final delivery, we have identified requirements we believe we can or cannot complete. 
+The feature list details can be viewed [here](https://docs.google.com/document/d/1oesRDCpEncrD0_QPSlQgghg0l__P-bS8_qZtxCVQn0c/edit?tab=t.0).
 
 Meeting notes:
-
 - The team reviewed the latest pull request, focusing on the set/get repo and Docker implementation.
 - We discussed approaches to handling edge cases in the set/get repo.
 - We aligned on the demo for next week and distributed the new use cases among team members.
