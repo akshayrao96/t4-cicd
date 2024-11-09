@@ -432,7 +432,6 @@ class MongoAdapter:
                 'repo_name': repo_name,
                 'repo_url': repo_url,
                 'branch': branch,
-                'pipelines.pipeline_name': pipeline_name
             }
             projection = {
                 "_id": 1,
@@ -470,7 +469,6 @@ class MongoAdapter:
                 'repo_name': repo_name,
                 'repo_url': repo_url,
                 'branch': branch,
-                'pipelines.pipeline_name': pipeline_name
             }
             projection = {
                 "_id": 1,
@@ -557,8 +555,9 @@ class MongoAdapter:
                 'repo_name': repo_name,
                 'repo_url': repo_url,
                 'branch': branch,
+                'pipeline_name': pipeline_name
             }
-            update_dict = {f"{pipeline_name}.{key}": value for key, value in updates.items()}
+            update_dict = {key: value for key, value in updates.items()}
             update_operation = {'$set': update_dict}
             mongo_client = MongoClient(self.mongo_uri)
             database = mongo_client[MONGO_DB_NAME]
