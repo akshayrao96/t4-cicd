@@ -34,6 +34,7 @@ Next week meeting chairperson - Jason
 | Task                                                                                                                                                   | Weight        | Assignee |
 |--------------------------------------------------------------------------------------------------------------------------------------------------------|---------------| -------- |
 | [UC6] Show summary all past pipeline runs for a repository[  # 55](https://github.com/CS6510-SEA-F24/t4-cicd/issues/55)                                             | L - 1 week   | Lin     |
+| [MongoAdapter] Collections of Issues and Improvement Requests [#105](https://github.com/CS6510-SEA-F24/t4-cicd/issues/105)| M - 2/3 days  | Lin   |
 | [UC1 - CLI & RepoManager] Options for Branch & Commit[  # 83](https://github.com/CS6510-SEA-F24/t4-cicd/issues/83)                                     | M - 2/3 days  | Akshay   |
 | [UC3, UC5 CLI] Update cid pipeline run commands[  # 85](https://github.com/CS6510-SEA-F24/t4-cicd/issues/85)                                           | M - 2/3 days  | Jason    |
 | [UC5 - Controller & Docker] Implement the methods required to run, stop, cancel pipeline[  # 17] (https://github.com/CS6510-SEA-F24/t4-cicd/issues/17) | L/XL - 2 week | Chin     |
