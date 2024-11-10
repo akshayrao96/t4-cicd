@@ -31,8 +31,7 @@ Primary keys - repo_name, repo_url and branch
 - repo_name
 - repo_url
 - branch
-- Pipelines Information and Status (past and present pipeline)
-  <!---Consider using key-values pair here, with key = pipeline_name, values = single pipelines_info --->
+- Pipelines: (past and present pipeline information)
   - pipeline_name (primary key for pipeline)
   - pipeline_file_name (can be different from pipeline_name)
   - (validated) pipeline_config - pipeline config that failed validation will not be stored
@@ -48,9 +47,11 @@ Fields required:
 - jobs_id (primary key)
 - pipeline_name
 - run_number
-- git commit hash
+- git_commit_hash
 - pipeline_config_used
-- pipeline_status (success/failed/cancelled)
+- status (success/failed/cancelled)
+- start_time
+- completion_time
 - logs - organized by stages
   - stage_name
   - stage_status
@@ -61,4 +62,4 @@ Fields required:
     - allows_failure
     - start_time
     - completion_time
-    - logs & error output
+    - job_logs
