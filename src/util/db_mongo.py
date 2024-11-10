@@ -451,7 +451,6 @@ class MongoAdapter:
             logger.warning(f"Error retrieving pipeline config: {str(e)}")
             return {}
 
-    # TODO - Improve on this method
     def get_pipeline_history(self, repo_name: str, repo_url: str,
                             branch: str, pipeline_name: str) -> dict:
         """Retrieve a specific pipeline's history in a flat structure.
