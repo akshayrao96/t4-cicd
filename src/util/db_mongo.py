@@ -457,7 +457,15 @@ class MongoAdapter:
         """Retrieve the pipeline history based on the given args.
 
         Returns:
-            dict: the _id and pipeline_config fields.
+            Retrieve a specific pipeline's history in a flat structure.
+            
+            Example:
+            {
+                "pipeline_name": "cicd_pipeline",
+                "pipeline_file_name": "pipelines.yml",
+                ...other fields...
+            }
+
         """
         try:
             query_filter = {
@@ -475,8 +483,9 @@ class MongoAdapter:
             pipeline_document = collection.find_one(query_filter, projection)
             mongo_client.close()
             if pipeline_document:
-                # return first found record directly
-                return pipeline_document["pipelines"][pipeline_name]
+                pipeline_data = pipeline_document["pipelines"].get(pipeline_name, {})
+                pipeline_data["pipeline_name"] = pipeline_name
+                return pipeline_data
             logger.warning(
                 f"No pipeline config found for '{pipeline_name}' "
                 f"in '{repo_name}' on branch '{branch}'."
