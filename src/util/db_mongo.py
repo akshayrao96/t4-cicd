@@ -248,7 +248,6 @@ class MongoAdapter:
             logger.info(f"Initialized stages: {', '.join(pending_stages)}")
 
             job_data = {
-                #"pipeline_number": bson.ObjectId(),
                 "pipeline_name": pipeline_info.pipeline_name,
                 "run_number": len(pipeline_info.job_run_history) + 1,
                 "git_commit_hash": pipeline_info.last_commit_hash,
