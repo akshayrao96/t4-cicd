@@ -1,5 +1,0 @@
-{
-    "valid": false,
-    "error_msg": "invalid_config.yml:11:8 Error in section:jobs job:nostage No stage key defined\ninvalid_config.yml:17:15 Error in section:jobs job:wrongstage stage value ['wrong-stage'] defined does not exist in stages list\nError in section:stages stage:deploy No job defined for this stage\ninvalid_config.yml:11:8 jobs:nostage key not found error for subkey:stage\ninvalid_config.yml:23:8 jobs:checkout key not found error for subkey:scripts\ninvalid_config.yml:50:12 jobs:compile no artifact upload path defined\njobs:pytest key not found error for subkey:image\n",
-    "pipeline_config": {}
-}

@@ -36,10 +36,10 @@ def config(
     """
     Command working with pipeline and repo configurations
 
-    This command allows you to manage and validate configuration files used in
-    pipeline executions. You can run this to check the configuration files in
-    default location or pass a custom file/directory to check.
-
+    This command allows you to manage and validate configuration files used in 
+    pipeline executions. You can run this to check the configuration files in 
+    default location or pass a custom file/directory to check. 
+    \f
     Example usage:
 
     To set up repo, check and save the default config file (pipelines.yml):
@@ -135,11 +135,15 @@ def config(
 
 @config.command()
 @click.argument('repo_url', required=True)
-def set_repo(repo_url: str) -> None:
+@click.option('--branch', default="main", help="Specify the branch to retrieve. If not given, 'main' is used.")
+@click.option('--commit', default=None, help="Specify the commit hash to retrieve. If not given, latest commit is used.")
+def set_repo(repo_url: str, branch: str, commit: str) -> None:
     """Sets a new repository for pipeline checks.
 
     Args:
         repo_url (str): The repository URL or path that must be provided.
+        branch (str): Optional branch name; defaults to 'main'.
+        commit (str): Optional commit hash; if not provided, the latest commit is used.
     """
     if not repo_url:
         click.echo(
@@ -149,9 +153,10 @@ def set_repo(repo_url: str) -> None:
     controller = Controller()
 
     try:
-        success, message = controller.set_repo(repo_url)
+        # Pass the repo_url, branch, and commit to the controller's set_repo method
+        success, message = controller.set_repo(repo_url, branch=branch, commit_hash=commit)
         if success:
-            click.echo(f"Repository set successfully: {repo_url}")
+            click.echo(f"Repository set successfully in current working directory: {repo_url}")
         else:
             click.echo(f"Error: {message}")
 
@@ -178,29 +183,33 @@ def get_repo():
         click.echo(
             "Please navigate to a working directory that is a git repository project")
         click.echo("OR")
-        click.echo("Please set an either remote or local repository using:")
+        click.echo("Please set an either remote or local repository using in an empty current working directory:")
         click.echo("cid config set-repo <REPO NAME>")
 
 
 @config.command()
 @click.option('--pipeline', required=True, help="pipeline name to update")
-@click.argument('overrides', nargs=-1)
-def edit(pipeline, overrides):
+@click.option('--override', 'overrides', multiple=True, help="Override configuration in 'key=value' format")
+def override(pipeline, overrides):
     """
-    Override configuration values in a pipeline.
+    Apply configuration overrides to a pipeline and optionally save to the database. 
+    Override configurations in 'key=value' format. Multiple overrides can be provided.
 
     Example usage:
-        cid config edit --pipeline my_pipeline global.docker.image=gradle:jdk8 global.timeout=300
+        cid config override --pipeline pipeline_name --override "global.docker.image=gradle:jdk8"
     """
     try:
         updates = ConfigOverrides.build_nested_dict(overrides)
     except ValueError as e:
         click.echo(str(e))
         return
-    control = Controller()
-    success = control.edit_config(pipeline, updates)
-    if success:
-        click.echo(
-            f"Pipeline '{pipeline}' updated successfully with overrides: {updates}")
+    # Prompt the user to confirm storing in the database
+    if click.confirm("Do you want to apply these overrides and save them to the database?"):
+        control = Controller()
+        success = control.override_config(pipeline, updates)
+        if success:
+            click.echo(f"Pipeline '{pipeline}' updated successfully with overrides: {updates}")
+        else:
+            click.echo(f"Failed to update pipeline '{pipeline}'.")
     else:
-        click.echo(f"Failed to update pipeline '{pipeline}'.")
+        click.echo("No changes were made to the configuration.")
