@@ -11,11 +11,12 @@ from typing import Any
 import pprint
 import click
 import git.exc
+import time
 from pydantic import ValidationError
 import util.constant as const
 from util.container import (DockerManager)
 from util.model import (SessionDetail, PipelineConfig, ValidatedStage, PipelineInfo)
-from util.common_utils import (get_logger, ConfigOverrides, DryRun)
+from util.common_utils import (get_logger, MongoHelper, DryRun)
 from util.repo_manager import (RepoManager)
 from util.db_mongo import (MongoAdapter)
 from util.yaml_parser import YamlParser
@@ -295,7 +296,7 @@ class Controller:
         if not pipeline_config:
             click.echo(f"No pipeline config found for '{pipeline_name}'.")
             return False
-        updated_config = ConfigOverrides.apply_overrides(pipeline_config, overrides)
+        updated_config = MongoHelper.apply_overrides(pipeline_config, overrides)
         # validate the updated pipeline configuration
         response_dict = self.config_checker.validate_config(pipeline_name,
                                                             updated_config,
@@ -388,7 +389,7 @@ class Controller:
 
         # Process Override if have
         if override_configs:
-            combined_config = ConfigOverrides.apply_overrides(
+            combined_config = MongoHelper.apply_overrides(
                 config_dict,
                 override_configs)
             # validate the updated pipeline configuration
@@ -565,7 +566,8 @@ class Controller:
         # Wrap up and return
         docker_manager.remove_vol()
         run_update = {
-            "success":pipeline_status
+            "status":pipeline_status,
+            "completion_time": time.asctime()
         }
         self.mongo_ds.update_job(job_id, run_update)
         final_updates = {
