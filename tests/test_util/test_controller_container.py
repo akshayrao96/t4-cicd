@@ -40,7 +40,7 @@ def load_pipeline() -> ValidationResult:
     with open('sample_validation_res.json', 'w', encoding='utf-8') as f:
         json.dump(result_dict, f, ensure_ascii=True, indent=4)
     return result
-load_pipeline()
+#load_pipeline()
 
 def insert_pipeline_config():
     mongo_adapter = MongoAdapter()
