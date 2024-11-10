@@ -491,7 +491,7 @@ class MongoAdapter:
                 return pipeline_document["pipelines"][0]
             logger.warning(
                 f"No pipeline config found for '{pipeline_name}' "
-                f"in '{repo_name}' on branch '{branch}'."
+                f"in '{repo_name}' for url {repo_url} on branch '{branch}'."
             )
             return {}
         except errors.PyMongoError as e:

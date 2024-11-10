@@ -3,6 +3,7 @@ validate and process the content of pipeline_configuration
 """
 import collections
 import util.constant as c
+from util.model import (ValidationResult)
 from util.common_utils import (get_logger, UnionFind, TopoSort)
 
 logger = get_logger("util.config_tools")
@@ -45,7 +46,7 @@ class ConfigChecker:
                         pipeline_config: dict,
                         file_name: str = DEFAULT_STR,
                         error_lc: bool = False
-                        ) -> dict:
+                        ) -> ValidationResult:
         """ validate the pipeline configuration file. 
 
         Args:
@@ -56,13 +57,7 @@ class ConfigChecker:
             error_lc (bool, optional): boolean flag indicate if lines and columns
                 information available for error tracking, Defaults to False
         Returns:
-            dict: dictionary of {
-                    'valid':<True or False>, 
-                    valid flag indicates if the validation passed or failed. 
-                    'error_msg': <str of error messages collected>,
-                    If validation passed this will be an empty string 
-                    'pipeline_config': dict. pipeline_config is the dictionary of 
-                    the pipeline config processed. if validation failed, it will be empty}
+            ValidationResult: see corresponding model for information hold
         """
         self.pipeline_name = pipeline_name
         self.file_name = file_name
@@ -89,11 +84,18 @@ class ConfigChecker:
             )
         result_flag = global_flag and stage_flag and job_flag
         result_error_msg += global_error + stage_error + job_error
-        return {
-            c.RETURN_KEY_VALID:result_flag,
-            c.RETURN_KEY_ERR: result_error_msg,
-            c.KEY_PIPE_CONFIG: processed_pipeline_config if result_flag else {}
-        }
+
+        validation_res = ValidationResult(
+                valid=result_flag,
+                error_msg=result_error_msg,
+                pipeline_config=processed_pipeline_config if result_flag else {}
+            )
+        return validation_res
+        # return {
+        #     c.RETURN_KEY_VALID:result_flag,
+        #     c.RETURN_KEY_ERR: result_error_msg,
+        #     c.KEY_PIPE_CONFIG: processed_pipeline_config if result_flag else {}
+        # }
 
     def _check_individual_config(self, sub_key: str,
                                  config_dict: dict,
