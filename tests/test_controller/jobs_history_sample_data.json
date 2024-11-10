@@ -1,7 +1,7 @@
 [
     {
       "_id": "1",
-      "pipeline_name": 67890,
+      "pipeline_number": 67890,
       "run_number": 1,
       "git_commit_hash": "z9y8x7w6v5u4t3s2r1q0",
       "pipeline_config_used": "pipelines.yml",
@@ -107,7 +107,7 @@
     },
     {
       "_id": "2",
-      "pipeline_name": 67891,
+      "pipeline_number": 67891,
       "run_number": 2,
       "git_commit_hash": "y8x7w6v5u4t3s2r1q0p9",
       "pipeline_config_used": "pipelines.yml",

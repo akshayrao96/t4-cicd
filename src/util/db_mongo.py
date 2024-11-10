@@ -248,6 +248,7 @@ class MongoAdapter:
             logger.info(f"Initialized stages: {', '.join(pending_stages)}")
 
             job_data = {
+                #"pipeline_number": bson.ObjectId(),
                 "pipeline_name": pipeline_info.pipeline_name,
                 "run_number": len(pipeline_info.job_run_history) + 1,
                 "git_commit_hash": pipeline_info.last_commit_hash,
@@ -432,21 +433,24 @@ class MongoAdapter:
                 'repo_name': repo_name,
                 'repo_url': repo_url,
                 'branch': branch,
+                'pipelines.pipeline_name': pipeline_name
             }
             projection = {
                 "_id": 1,
-                f"{pipeline_name}.pipeline_config": 1
+                "pipelines": {
+                    "$elemMatch": {"pipeline_name": pipeline_name}
+                }
             }
             mongo_client = MongoClient(self.mongo_uri)
             database = mongo_client[MONGO_DB_NAME]
             collection = database[MONGO_PIPELINES_TABLE]
             pipeline_document = collection.find_one(query_filter, projection)
             mongo_client.close()
-            if pipeline_document and pipeline_name in pipeline_document:
-                return {
-                    "_id": pipeline_document["_id"],
-                    "pipeline_config": pipeline_document[pipeline_name].get("pipeline_config")
-                }
+            if pipeline_document and "pipelines" in pipeline_document:
+                # Flatten the result to directly access pipeline_config
+                pipeline_document["pipeline_config"] = pipeline_document["pipelines"][0].get("pipeline_config") # pylint: disable=line-too-long
+                del pipeline_document["pipelines"]
+                return pipeline_document
             logger.warning(
                 f"No pipeline config found for '{pipeline_name}' "
                 f"in '{repo_name}' on branch '{branch}'."
@@ -469,18 +473,22 @@ class MongoAdapter:
                 'repo_name': repo_name,
                 'repo_url': repo_url,
                 'branch': branch,
+                'pipelines.pipeline_name': pipeline_name
             }
             projection = {
                 "_id": 1,
-                f"{pipeline_name}": 1
+                "pipelines": {
+                    "$elemMatch": {"pipeline_name": pipeline_name}
+                }
             }
             mongo_client = MongoClient(self.mongo_uri)
             database = mongo_client[MONGO_DB_NAME]
             collection = database[MONGO_PIPELINES_TABLE]
             pipeline_document = collection.find_one(query_filter, projection)
             mongo_client.close()
-            if pipeline_document and pipeline_name in pipeline_document:
-                return pipeline_document[pipeline_name]
+            if pipeline_document and "pipelines" in pipeline_document:
+                # return first found record directly
+                return pipeline_document["pipelines"][0]
             logger.warning(
                 f"No pipeline config found for '{pipeline_name}' "
                 f"in '{repo_name}' on branch '{branch}'."
@@ -514,11 +522,12 @@ class MongoAdapter:
                 'repo_name': repo_name,
                 'repo_url': repo_url,
                 'branch': branch,
+                'pipelines.pipeline_name': pipeline_name
             }
 
             update_operation = {
                 '$set': {
-                    f"{pipeline_name}.pipeline_config": pipeline_config
+                    'pipelines.$.pipeline_config': pipeline_config
                 }
             }
             mongo_client = MongoClient(self.mongo_uri)
@@ -555,10 +564,17 @@ class MongoAdapter:
                 'repo_name': repo_name,
                 'repo_url': repo_url,
                 'branch': branch,
-                'pipeline_name': pipeline_name
+                'pipelines.pipeline_name': pipeline_name
             }
-            update_dict = {key: value for key, value in updates.items()}
-            update_operation = {'$set': update_dict}
+
+            update_dict = {}
+            for key, value in updates.items():
+                new_key = 'pipelines.$.' + key
+                update_dict[new_key] = value
+            logger.debug(update_dict)
+            update_operation = {
+                '$set': update_dict
+            }
             mongo_client = MongoClient(self.mongo_uri)
             database = mongo_client[MONGO_DB_NAME]
             collection = database[MONGO_PIPELINES_TABLE]
@@ -594,10 +610,12 @@ class MongoAdapter:
         except errors.PyMongoError:
             return {}
 
-    def create_pipeline_document(self, file_name: str, pipeline_config: dict) -> dict:
+    def create_pipeline_document(self, pipeline_name: str,
+                                 file_name: str, pipeline_config: dict) -> dict:
         """Generate a new pipeline document for insertion into pipelines.
 
         Args:
+            pipeline_name (str): The name of the pipeline.
             file_name (str): The name of the YAML file for the pipeline.
             pipeline_config (dict): The pipeline configuration details.
 
@@ -605,6 +623,7 @@ class MongoAdapter:
             dict: A dictionary representing the new pipeline document.
         """
         return {
+            "pipeline_name": pipeline_name,
             "pipeline_file_name": file_name,
             "pipeline_config": pipeline_config,
             "job_run_history": [],
