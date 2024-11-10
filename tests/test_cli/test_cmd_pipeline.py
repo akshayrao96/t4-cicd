@@ -165,16 +165,19 @@ class TestPipelineRun(TestCase):
         assert result.exit_code == 0
 
     @patch("controller.controller.Controller._actual_pipeline_run")
+    @patch("controller.controller.os.getlogin", return_value='user')
     @patch("controller.controller.ConfigChecker.validate_config")
     @patch("controller.controller.YamlParser.parse_yaml_file")
-    def test_success_actual_run(self, mock_parse, mock_validate, mock_actual_run):
+    def test_success_actual_run(self, mock_parse, mock_validate,
+                                mock_getlogin, mock_actual_run):
         """ Test the case where the run_pipeline execution reach the 
         actual run and success
 
         Args:
-            mock_validate (MagicMock): mock the validate_config method
             mock_parse (MagicMock): mock the parse_yaml_file method
-            mock_dry_run(MagicMock): mock the dry_run method 
+            mock_validate (MagicMock): mock the validate_config method
+            mock_getlogin (MagicMock): mock the os.getlogin() method
+            mock_actual_run(MagicMock): mock the actual_run method 
         """
         mock_parse.return_value = self.mock_pipeline_config
         mock_validate.return_value = self.success_validation_res
@@ -183,16 +186,19 @@ class TestPipelineRun(TestCase):
         assert result.exit_code == 0
 
     @patch("controller.controller.Controller._actual_pipeline_run")
+    @patch("controller.controller.os.getlogin", return_value='user')
     @patch("controller.controller.ConfigChecker.validate_config")
     @patch("controller.controller.YamlParser.parse_yaml_file")
-    def test_fail_actual_run(self, mock_parse, mock_validate, mock_actual_run):
+    def test_fail_actual_run(self, mock_parse, mock_validate,
+                                mock_getlogin, mock_actual_run):
         """ Test the case where the run_pipeline execution reach the 
         actual run and fail
 
         Args:
-            mock_validate (MagicMock): mock the validate_config method
             mock_parse (MagicMock): mock the parse_yaml_file method
-            mock_dry_run(MagicMock): mock the dry_run method 
+            mock_validate (MagicMock): mock the validate_config method
+            mock_getlogin (MagicMock): mock the os.getlogin() method
+            mock_actual_run(MagicMock): mock the actual_run method
         """
         mock_parse.return_value = self.mock_pipeline_config
         mock_validate.return_value = self.success_validation_res
@@ -206,16 +212,19 @@ class TestPipelineRun(TestCase):
     
     # Integration test
     @patch("controller.controller.Controller._actual_pipeline_run")
+    @patch("controller.controller.os.getlogin", return_value='user')
     @patch("controller.controller.ConfigChecker.validate_config")
     @patch("controller.controller.YamlParser.parse_yaml_file")
-    def test_success_actual_run_with_override(self, mock_parse, mock_validate, mock_actual_run):
+    def test_success_actual_run_with_override(self, mock_parse, mock_validate,
+                                mock_getlogin, mock_actual_run):
         """ Test the case where the run_pipeline execution reach the 
         actual run and success, with overrides apply
 
         Args:
-            mock_validate (MagicMock): mock the validate_config method
             mock_parse (MagicMock): mock the parse_yaml_file method
-            mock_dry_run(MagicMock): mock the dry_run method 
+            mock_validate (MagicMock): mock the validate_config method
+            mock_getlogin (MagicMock): mock the os.getlogin() method
+            mock_actual_run(MagicMock): mock the actual_run method
         """
         mock_parse.return_value = self.mock_pipeline_config
         mock_validate.return_value = self.success_validation_res
