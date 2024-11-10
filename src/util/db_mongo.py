@@ -462,15 +462,7 @@ class MongoAdapter:
             pipeline_name (str): Name of the pipeline.
 
         Returns:
-            dict: Pipeline history data with fields like "pipeline_name", "pipeline_file_name",
-            and other relevant information.
-
-            Example:
-                {
-                    "pipeline_name": "cicd_pipeline",
-                    "pipeline_file_name": "pipelines.yml",
-                    ...other fields...
-                }
+            dict: Pipeline history data. Empty dict if not found.
         """
         try:
             query_filter = {
