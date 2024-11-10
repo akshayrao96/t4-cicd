@@ -3,7 +3,7 @@
 import hashlib
 import time
 import click
-from util.common_utils import (get_logger,ConfigOverrides)
+from util.common_utils import (get_logger,MongoHelper)
 from controller.controller import (Controller)
 
 DEFAULT_CONFIG_FILE_PATH = ".cicd-pipelines/pipelines.yml"
@@ -66,7 +66,7 @@ and can't be both.")
 
     if overrides:
         try:
-            overrides = ConfigOverrides.build_nested_dict(overrides)
+            overrides = MongoHelper.build_nested_dict(overrides)
             # print(override_configs)
         except ValueError as e:
             click.secho(str(e), fg='red')
