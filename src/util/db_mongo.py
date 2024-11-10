@@ -454,18 +454,21 @@ class MongoAdapter:
     # TODO - Improve on this method
     def get_pipeline_history(self, repo_name: str, repo_url: str,
                             branch: str, pipeline_name: str) -> dict:
-        """Retrieve the pipeline history based on the given args.
+        """Retrieve a specific pipeline's history in a flat structure.
+
+        Args:
+            repo_name (str): Repository name.
+            repo_url (str): Repository URL.
+            branch (str): Repository branch.
+            pipeline_name (str): Name of the pipeline.
 
         Returns:
-            Retrieve a specific pipeline's history in a flat structure.
-            
-            Example:
+            dict: Pipeline history data, Example:
             {
                 "pipeline_name": "cicd_pipeline",
                 "pipeline_file_name": "pipelines.yml",
                 ...other fields...
             }
-
         """
         try:
             query_filter = {
