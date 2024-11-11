@@ -135,8 +135,10 @@ def config(
 
 @config.command()
 @click.argument('repo_url', required=True)
-@click.option('--branch', default="main", help="Specify the branch to retrieve. If not given, 'main' is used.")
-@click.option('--commit', default=None, help="Specify the commit hash to retrieve. If not given, latest commit is used.")
+@click.option('--branch', default="main", help="Specify the branch to retrieve.\
+ If not given, 'main' is used.")
+@click.option('--commit', default=None, help="Specify the commit hash to retrieve.\
+ If not given, latest commit is used.")
 def set_repo(repo_url: str, branch: str, commit: str) -> None:
     """Sets a new repository for pipeline checks.
 
@@ -189,7 +191,8 @@ def get_repo():
 
 @config.command()
 @click.option('--pipeline', required=True, help="pipeline name to update")
-@click.option('--override', 'overrides', multiple=True, help="Override configuration in 'key=value' format")
+@click.option('--override', 'overrides', multiple=True, 
+              help="Override configuration in 'key=value' format")
 def override(pipeline, overrides):
     """
     Apply configuration overrides to a pipeline and optionally save to the database. 
