@@ -139,6 +139,6 @@ class PipelineHist(BaseModel):
     branch: Optional[str] = "main"
     stage: Optional[str] = "all"
     job: Optional[str] = "all"
-    run: Optional[str] = "1"
+    run: Optional[str] = None
     is_remote: Optional[bool] = False
     # commit_hash: Optional[str] = ""

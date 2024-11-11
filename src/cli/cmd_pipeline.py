@@ -3,6 +3,7 @@
 import hashlib
 import time
 import click
+import json
 from pydantic import ValidationError
 from util.common_utils import (get_logger,MongoHelper,PrintMessage)
 from util.model import (PipelineHist)
@@ -136,6 +137,7 @@ def log(tail:str, repo:str):
     # logger.debug(f"Showing the last {tail} lines of the pipeline log with hash {pipeline_hash}")
 
 @pipeline.command()
+@click.pass_context
 @click.option('-r', '--repo', 'repo_url', default='./', help='url of the repository (https://)')
 @click.option('--local', 'local', help='retrieve local pipeline history', is_flag=True)
 @click.option('--pipeline', 'pipeline_name', default='cicd_pipeline', help='pipeline name to get the history')
@@ -143,13 +145,23 @@ def log(tail:str, repo:str):
 @click.option('-s', '--stage', 'stage', default='all', help='stage name to view report; \
 default stages options: [build, test, doc, deploy]')
 @click.option('--job', 'job', default='all', help="job name to view report")
-@click.option('-r', '--run', 'run_number', default='1', help='run number to get the report')
+@click.option('-r', '--run', 'run_number', default=None, help='run number to get the report')
 def report(ctx, repo_url:str, local:bool, pipeline_name:str, branch:str, stage:str, 
            job:str, run_number:str):
-
+    """Report pipeline provides user to retrieve the pipeline history.
+    \f 
+    Args:
+        ctx (_type_): _description_
+        repo_url (str): _description_
+        local (bool): _description_
+        pipeline_name (str): _description_
+        branch (str): _description_
+        stage (str): _description_
+        job (str): _description_
+        run_number (str): _description_
+    """
     ctrl = Controller()
     pipeline_model = {}
-    
     #TODO: Step 1. get_repo to retrieve repo_name, repo_url, branch
     # repo_data = ctrl.get_repo()
     
@@ -158,8 +170,6 @@ def report(ctx, repo_url:str, local:bool, pipeline_name:str, branch:str, stage:s
     #branch = "main"
     #pipeline_name #from user input
 
-    # TODO: may not be necessary to check if pipeline_name is supplied.
-    # if ctx.get_parameter_source("pipeline_name") != click.core.ParameterSource.DEFAULT:
     pipeline_model['pipeline_name'] = pipeline_name
 
     if ctx.get_parameter_source("repo_url") != click.core.ParameterSource.DEFAULT:
@@ -183,8 +193,11 @@ def report(ctx, repo_url:str, local:bool, pipeline_name:str, branch:str, stage:s
     try:
         pipeline_model = PipelineHist.model_validate(pipeline_model)
     except ValidationError as ve:
-        click.secho("Error in getting the pipeline report. missing required keys", fg="red")
-        click.secho(ve)
+        errors = json.loads(ve.json())
+        missing_locs = [error["loc"] for error in errors if error["type"] == "missing"]
+        click.secho("Error in getting the pipeline report.", fg="red")
+        click.secho(f"missing required keys: {missing_locs}", fg="red")
+        return
 
     #TODO: L4.2.Show pipeline run summary
     # xx report --repo https://github.com/company/project --pipeline code-review --run 2
@@ -199,7 +212,10 @@ def report(ctx, repo_url:str, local:bool, pipeline_name:str, branch:str, stage:s
     #   build --run 2
 
     #TODO: Step 2 call pipeline_history
-    dict_result = ctrl.pipeline_history(pipeline_model)
+    resp_success, resp_message = ctrl.pipeline_history(pipeline_model)
+    if not resp_success:
+        click.secho(resp_message, fg='red')
+        return
 
-    msg = PrintMessage(dict_result).print()
-    click.echo(f"Pipeline report:\n {msg}")
+    click.secho("===== Pipeline report =====\n", fg='green')
+    click.secho(resp_message, fg='green')

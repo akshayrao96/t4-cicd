@@ -495,7 +495,10 @@ class MongoAdapter:
         except errors.PyMongoError as e:
             logger.warning(f"Error retrieving pipeline config: {str(e)}")
             return {}
-
+        except AttributeError as attr:
+            logger.warning(f"pipelines: {pipeline_document} is empty. Error: {str(attr)}")
+            print(f"pipelines: {pipeline_document} is empty.\nError: {str(attr)}")
+            return {}
     def update_pipeline_config(
             self,
             repo_name: str,
