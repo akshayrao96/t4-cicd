@@ -1,6 +1,6 @@
 # CID Command Line Prompts Documentation
 
-Last updated - 2024-10-21
+Last updated - 2024-11-09
 
 This documentation outlines all available CID CLI commands and their current implementation status.
 Each command is tagged with its requirement abbreviation (L1, etc.) and implementation priority level.
@@ -198,25 +198,52 @@ Commands:
   run  Run pipeline given the configuration file.
 ```
 
-#### `cid pipeline run` **(stub, not implemented, 1)**
+#### `cid pipeline run`
 
 - **Description**: Runs the pipelines for the repository set.
-- **Current usage** (stub, no logic yet):
+- **Current usage**:
 
 ```
 % cid pipeline run
 
-Run config file called pipeline.yml at repo local
-pipeline run response: (True, 'Pipeline runs successfully', 'pid_unique_string')
+Usage: cid pipeline run [OPTIONS]
+
+  Run pipeline given the configuration file. Base command is cid pipeline run,
+  this will run the pipeline specified in .cicd-pipelines/pipelines.yml for
+  current repository or  previously set repository.
+
+  To change the target repository, branch, commit, target pipeline by name /
+  file path,  use the corresponding options.
+
+Options:
+  --file TEXT        configuration file path. if --file not specified, default
+                     to .cicd-pipelines/pipelines.yml
+  --pipeline TEXT    pipeline name to run
+  -r, --repo TEXT    repository url or local directory path
+  -b, --branch TEXT  repository branch name
+  -c, --commit TEXT  commit hash
+  --local            run pipeline locally
+  --dry-run          dry-run options to simulate the pipelineprocess
+  --yaml             print output in yaml format
+  --override TEXT    Override configuration in 'key=value' format
+  --help             Show this message and exit.
 ```
 
-- **Considerations**:
-  - First check if the user is in a git repository. Otherwise, check if a valid repository has been set.
-  - Start with one pipeline file, but need to add functionality for selecting different files.
-  - Determine what to output to the user, and how to store logs and artifacts (both in a database and in a folder, perhaps `./target`).
-  - Handle different error messages for various scenarios (e.g., no repo set, no pipeline file, invalid configurations).
+- **Brief Description of Handling Logic**:
+  - The program will first check if the user is in a git repository.
+    - If the user is in git repository, but target repo is provided and different, the program will throw error (cannot run command for other repo in an existing repo)
+    - Else, the program will try to switch to target branch and commit.
+  - If the user is not in a git repository,
+    - If target repo is provided, it will try to set the current directory to target repo, branch and commit
+    - Else, it will try to set the current directory to previously used repository, branch and commit by the user
+  - Second check is on the --pipeline and --file arguments, only one should be supplied.
+    - The program will try to extract the yaml file content based on given --pipeline or --file
+  - Third step, process and try to apply the overrides if any
+  - Fourth step, validated the pipeline configuration
+  - Fifth step, determine if this is going to be a dry-run
+  - For non dry-run, actual run will be perform.
 
-### `cid pipeline --dry-run` **(not implemented, 0)**
+### `cid pipeline --dry-run`
 
 - **Description**: Informs the user what would happen if the pipeline was run (dry-run mode).
 - **Considerations**:
