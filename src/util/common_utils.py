@@ -442,3 +442,41 @@ class DryRun:
         formatted_msg += "\n"
 
         return formatted_msg
+
+class PrintMessage:
+    def __init__(self, msg_dict: dict):
+        self.msg_dict = msg_dict
+
+    def _get_nested_value(self, data, key_path):
+        """Helper function to get a value from nested dictionaries."""
+        keys = key_path.split(".")
+        for key in keys:
+            if isinstance(data, dict):
+                data = data.get(key)
+            else:
+                return None
+        return data
+    
+    # keys=["name", "job.department"]
+    def print(self, keys=None) -> str:
+        """print message given a dictionary
+
+        Args:
+            type (str, optional): specify print type. Defaults to "plain_text".
+
+        Returns:
+            str: _description_
+        """
+        filtered_dict = self.msg_dict
+
+        if keys:
+            filtered_dict = {key: self._get_nested_value(self.msg_dict, key) for key in keys}
+
+        # Plain text formatting
+        return "\n".join([f"{key:<15}: {value}" for key, value in filtered_dict.items()])
+
+        # elif type == "json":
+        #     return json.dump(self.msg_dict, indent=4)
+        # elif type == "yaml":
+        #     # YAML formatted output
+        #     return yaml.dump(self.msg_dict, default_flow_style=False)

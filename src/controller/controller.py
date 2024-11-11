@@ -651,25 +651,29 @@ class Controller:
 
         return True, dry_run_msg, pipeline_id
 
-    def pipeline_history(self, repo_url: str, repo_name: str, branch: str = "main",
-                         pipeline_name:str = 'cicd_pipeline') -> bool:
-        query_data = {}
-        try:
-            query_data['repo_url'] = repo_url
-            query_data['repo_name'] = repo_name
-            query_data['pipeline_name'] = pipeline_name
-            #query_data['branch'] = "main" #optional
-            query_data = PipelineHist.model_validate(query_data)
-        except ValidationError as ve:
-            self.logger.warning(f"validation error occur, error is {ve}")
-            click.secho("Error in running pipeline", fg="red")
-            status = False
-            return status
+    #def pipeline_history(self, repo_url: str, repo_name: str, branch: str = "main",
+    #                     pipeline_name:str = 'cicd_pipeline') -> bool:
+    def pipeline_history(self, pipeline_details: PipelineHist) -> dict:
+        # query_data = {}
+        # try:
+        #     query_data['repo_url'] = repo_url
+        #     query_data['repo_name'] = repo_name
+        #     query_data['pipeline_name'] = pipeline_name
+        #     #query_data['branch'] = "main" #optional
+        #     query_data = PipelineHist.model_validate(query_data)
+        # except ValidationError as ve:
+        #     self.logger.warning(f"validation error occur, error is {ve}")
+        #     click.secho("Error in running pipeline", fg="red")
+        #     status = False
+        #     return status
 
-        pipeline_dict = self.mongo_ds.get_pipeline_history(repo_name, repo_url,
-                                                           branch, pipeline_name)
+        pipeline_dict = self.mongo_ds.get_pipeline_history(pipeline_details['repo_name'],
+            pipeline_details['repo_url'], pipeline_details['branch'], 
+            pipeline_details['pipeline_name'])
 
         #print(pipeline_dict)
         #TODO from here, you can just go through the keys and format the output accordingly
         #   if need to format to yaml
         print(pipeline_dict.keys())
+
+        return pipeline_dict

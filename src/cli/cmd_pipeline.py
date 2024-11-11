@@ -3,7 +3,9 @@
 import hashlib
 import time
 import click
-from util.common_utils import (get_logger,ConfigOverrides)
+from pydantic import ValidationError
+from util.common_utils import (get_logger,ConfigOverrides,PrintMessage)
+from util.model import (PipelineHist)
 from controller.controller import (Controller)
 
 DEFAULT_CONFIG_FILE_PATH = ".cicd-pipelines/pipelines.yml"
@@ -138,17 +140,51 @@ def log(tail:str, repo:str):
 @click.option('--local', 'local', help='retrieve local pipeline history', is_flag=True)
 @click.option('--pipeline', 'pipeline_name', default='cicd_pipeline', help='pipeline name to get the history')
 @click.option('-b', '--branch', 'branch', default='main', help="branch name of the repository; default is 'main'")
-@click.option('-s', '--stage', 'stage', default='build', help='stage name for report')
-@click.option('-r', '--run', 'run', default='1', help='run number to get the report')
-def report(repo_url:str, local:bool, pipeline_name:str, branch:str, stage:str, run:str):
+@click.option('-s', '--stage', 'stage', default='all', help='stage name to view report; \
+default stages options: [build, test, doc, deploy]')
+@click.option('--job', 'job', default='all', help="job name to view report")
+@click.option('-r', '--run', 'run_number', default='1', help='run number to get the report')
+def report(ctx, repo_url:str, local:bool, pipeline_name:str, branch:str, stage:str, 
+           job:str, run_number:str):
 
-    #TODO: if repo location is specify as "--repo .", this needs to get the current $pwd.
-    #           check if this exist.
     ctrl = Controller()
-    repo_name = "cicd-python"
+    pipeline_model = {}
+    
+    #TODO: Step 1. get_repo to retrieve repo_name, repo_url, branch
+    # repo_data = ctrl.get_repo()
+    
+    ### TBD - current placehoder ###
+    #repo_name = "cicd-python"
     #branch = "main"
-    #pipeline_name = "cicd_pipeline"
-    #TODO: get_repo to retrieve repo_name, repo_url, branch
+    #pipeline_name #from user input
+
+    # TODO: may not be necessary to check if pipeline_name is supplied.
+    # if ctx.get_parameter_source("pipeline_name") != click.core.ParameterSource.DEFAULT:
+    pipeline_model['pipeline_name'] = pipeline_name
+
+    if ctx.get_parameter_source("repo_url") != click.core.ParameterSource.DEFAULT:
+        #TODO: if repo location is specify as "--repo .", this needs to get the current $pwd.
+        pipeline_model['repo_url'] = repo_url
+        # grab repo_name from the URL
+        pipeline_model['repo_name'] = repo_url.split('/')[-1]
+
+    # this is needed when user specify a different value than the default one.
+    # this matches with the PipelineHist model.
+    pipeline_model['branch'] = branch
+    pipeline_model['stage'] = stage
+    pipeline_model['job'] = job
+    pipeline_model['run'] = run_number
+    pipeline_model['is_remote'] = local
+
+    # if flag not given,
+    #    'stage' default to 'all'
+    #    'run' default to '1' #or can be latest
+    #TODO: recheck if model_validate is necessary to do here or can be moved to controller
+    try:
+        pipeline_model = PipelineHist.model_validate(pipeline_model)
+    except ValidationError as ve:
+        click.secho("Error in getting the pipeline report. missing required keys", fg="red")
+        click.secho(ve)
 
     #TODO: L4.2.Show pipeline run summary
     # xx report --repo https://github.com/company/project --pipeline code-review --run 2
@@ -162,4 +198,8 @@ def report(repo_url:str, local:bool, pipeline_name:str, branch:str, stage:str, r
     # xx report --repo https://github.com/company/project --pipeline code-review --stage 
     #   build --run 2
 
-    ctrl.pipeline_history(repo_url, repo_name, branch, pipeline_name)
+    #TODO: Step 2 call pipeline_history
+    dict_result = ctrl.pipeline_history(pipeline_model)
+
+    msg = PrintMessage(dict_result).print()
+    click.echo(f"Pipeline report:\n {msg}")

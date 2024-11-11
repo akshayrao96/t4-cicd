@@ -137,5 +137,8 @@ class PipelineHist(BaseModel):
     repo_url:str
     pipeline_name: str
     branch: Optional[str] = "main"
+    stage: Optional[str] = "all"
+    job: Optional[str] = "all"
+    run: Optional[str] = "1"
     is_remote: Optional[bool] = False
     # commit_hash: Optional[str] = ""
