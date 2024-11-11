@@ -2,8 +2,8 @@
 # pylint: disable=logging-fstring-interpolation
 import hashlib
 import time
-import click
 import json
+import click
 from pydantic import ValidationError
 from util.common_utils import (get_logger,MongoHelper,PrintMessage)
 from util.model import (PipelineHist)
@@ -140,13 +140,15 @@ def log(tail:str, repo:str):
 @click.pass_context
 @click.option('-r', '--repo', 'repo_url', default='./', help='url of the repository (https://)')
 @click.option('--local', 'local', help='retrieve local pipeline history', is_flag=True)
-@click.option('--pipeline', 'pipeline_name', default='cicd_pipeline', help='pipeline name to get the history')
-@click.option('-b', '--branch', 'branch', default='main', help="branch name of the repository; default is 'main'")
+@click.option('--pipeline', 'pipeline_name', default='cicd_pipeline', 
+              help='pipeline name to get the history')
+@click.option('-b', '--branch', 'branch', default='main', 
+              help="branch name of the repository; default is 'main'")
 @click.option('-s', '--stage', 'stage', default='all', help='stage name to view report; \
 default stages options: [build, test, doc, deploy]')
 @click.option('--job', 'job', default='all', help="job name to view report")
 @click.option('-r', '--run', 'run_number', default=None, help='run number to get the report')
-def report(ctx, repo_url:str, local:bool, pipeline_name:str, branch:str, stage:str, 
+def report(ctx, repo_url:str, local:bool, pipeline_name:str, branch:str, stage:str,
            job:str, run_number:str):
     """Report pipeline provides user to retrieve the pipeline history.
     \f 
@@ -208,7 +210,7 @@ def report(ctx, repo_url:str, local:bool, pipeline_name:str, branch:str, stage:s
     # xx report --repo https://github.com/company/project --pipeline code-review --stage build
     # if stage is defined, use the repo, pipeline_name, and stage to print the summary
     # b) --run
-    # xx report --repo https://github.com/company/project --pipeline code-review --stage 
+    # xx report --repo https://github.com/company/project --pipeline code-review --stage
     #   build --run 2
 
     #TODO: Step 2 call pipeline_history

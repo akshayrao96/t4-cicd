@@ -7,11 +7,11 @@
 from datetime import datetime
 import copy
 import os
-from typing import Any
-import pprint
-import click
-import git.exc
+#from typing import Any
+#import pprint
 import time
+import click
+#import git.exc
 from pydantic import ValidationError
 import util.constant as const
 from util.container import (DockerManager)
@@ -62,7 +62,8 @@ class Controller:
 
         in_git_repo, repo_name = self.repo_manager.is_current_repo()
         if in_git_repo:
-            return False, f"You are currently in a Git repository: '{repo_name}'. Please navigate to an empty directory."
+            return False, f"You are currently in a Git repository: '{repo_name}'.\
+                Please navigate to an empty directory."
 
         is_valid, message, repo_details = self.repo_manager.set_repo(
             repo_url, branch, commit_hash)
@@ -662,10 +663,10 @@ class Controller:
             job_history = self.mongo_ds.get_job(history['job_run_history'][run_number])
         except KeyError as ke:
             err_msg = f"There is no job history for pipeline '{pipeline_name}' in {repo_url}!\n"
-            err_msg += f"please ensure that the pipeline_name or repo are valid."
-            err_msg += f"Please run `cid pipeline run` if no reports found"
+            err_msg += "please ensure that the pipeline_name or repo are valid."
+            err_msg += "Please run `cid pipeline run` if no reports found"
             self.logger.warning(f"Key Error in pipeline_history: {ke}")
-            
+
             is_success = False
             return is_success, err_msg
         except IndexError as ie:
@@ -674,10 +675,10 @@ class Controller:
             err_msg = f"run_number: {pipeline_dict['run']} does not exist!\n"
             err_msg += f"do you mean --run {len(history['job_run_history'])}?"
             return is_success, err_msg
-    
+
         message = PrintMessage(job_history)
         output_msg = message.print(['pipeline_name', 'run_number'])
         output_msg += message.print_log_status()
-        
+
         is_success = True
         return is_success, output_msg
