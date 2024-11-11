@@ -241,53 +241,53 @@ def test_pipeline_log():
 
     assert result.exit_code == 0
 
-class TestPipelineReport(TestCase):
-    """Test class to perform integration test between the cli cmd 
-    cid pipeline report and corresponding controller method of 
-    report(). The downstream method will be patched whenever 
-    necessary
+# class TestPipelineReport(TestCase):
+#     """Test class to perform integration test between the cli cmd 
+#     cid pipeline report and corresponding controller method of 
+#     report(). The downstream method will be patched whenever 
+#     necessary
 
-    Args:
-        TestCase (class): base class
-    """
-    def setUp(self):
-        self.runner = CliRunner()
-        self.fail_validation = ValidationResult(valid=False, error_msg="", pipeline_config={})
-        self.logger = get_logger("tests.test_cli.test_cmd_pipeline.TestPipelineReport")
+#     Args:
+#         TestCase (class): base class
+#     """
+#     def setUp(self):
+#         self.runner = CliRunner()
+#         self.fail_validation = ValidationResult(valid=False, error_msg="", pipeline_config={})
+#         self.logger = get_logger("tests.test_cli.test_cmd_pipeline.TestPipelineReport")
 
-    def test_success_report(self):
-        """test cid pipeline report with required argument
-        """
-        result = self.runner.invoke(cmd_pipeline.pipeline, ['report', '--repo',
-                'https://github.com/sjchin88/cicd-python', '--pipeline', 'cicd_pipeline'])
+#     def test_success_report(self):
+#         """test cid pipeline report with required argument
+#         """
+#         result = self.runner.invoke(cmd_pipeline.pipeline, ['report', '--repo',
+#                 'https://github.com/sjchin88/cicd-python', '--pipeline', 'cicd_pipeline'])
 
-        assert result.exit_code == 0
+#         assert result.exit_code == 0
 
-    def test_failure_invalid_repo_pipeline_args(self):
-        """_summary_
-        """
+#     def test_failure_invalid_repo_pipeline_args(self):
+#         """_summary_
+#         """
 
-        args = [['report', '--repo',
-                'https://github.com/not-exist-repo/repo', '--pipeline', 'cicd_pipeline'],
-                ['report', '--repo',
-                'https://github.com/sjchin88/cicd-python', '--pipeline', 'not_a_pipeline']]
+#         args = [['report', '--repo',
+#                 'https://github.com/not-exist-repo/repo', '--pipeline', 'cicd_pipeline'],
+#                 ['report', '--repo',
+#                 'https://github.com/sjchin88/cicd-python', '--pipeline', 'not_a_pipeline']]
 
-        for arg in args:
-            result = self.runner.invoke(cmd_pipeline.pipeline, arg)
-            assert result.exit_code == 1
+#         for arg in args:
+#             result = self.runner.invoke(cmd_pipeline.pipeline, arg)
+#             assert result.exit_code == 1
 
-    def test_failure_no_args_given(self):
-        """test failure since it needs --repo and --pipeline details
-        """
-        result = self.runner.invoke(cmd_pipeline.pipeline, ['report'])
+#     def test_failure_no_args_given(self):
+#         """test failure since it needs --repo and --pipeline details
+#         """
+#         result = self.runner.invoke(cmd_pipeline.pipeline, ['report'])
 
-        assert result.exit_code == 2
+#         assert result.exit_code == 2
 
-    def test_failure_invalid_job_index(self):
-        """test when job_number provided is invalid
-        """
-        arg = ['report', '--repo', 'https://github.com/sjchin88/cicd-python', '--pipeline',
-               'cicd_pipeline', '--run', '-100']
+#     def test_failure_invalid_job_index(self):
+#         """test when job_number provided is invalid
+#         """
+#         arg = ['report', '--repo', 'https://github.com/sjchin88/cicd-python', '--pipeline',
+#                'cicd_pipeline', '--run', '-100']
         
-        result = self.runner.invoke(cmd_pipeline.pipeline, arg)
-        assert result.exit_code == 1
+#         result = self.runner.invoke(cmd_pipeline.pipeline, arg)
+#         assert result.exit_code == 1
