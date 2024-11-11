@@ -239,9 +239,75 @@ class TopoSort:
             return (result_flag, result_error_msg, [])
         return (result_flag, result_error_msg, order)
 
-class ConfigOverrides:
-    """ConfigOverrides Class to handle building and applying nested dictionary overrides."""
+class MongoHelper:
+    """MongoHelper class to provide helper functions for MongoDB operations"""
 
+    ## PipelineHistory
+    @staticmethod
+    def build_match_filter(repo_url: str, pipeline_name: str = None) -> dict:
+        """Builds the match filter for a MongoDB aggregation pipeline."""
+        match_filter = {"repo_url": repo_url}
+        if pipeline_name:
+            match_filter["pipelines." + pipeline_name] = {"$exists": True}
+        return match_filter
+
+    @staticmethod
+    def build_aggregation_pipeline(match_filter: dict, pipeline_name: str = None, stage_name: str = None, job_name: str = None, run_number: int = None) -> list:
+        """Builds the aggregation pipeline based on stage, job, and run number filters."""
+        pipeline = [
+            {"$match": match_filter},
+            # {"$project": {"pipelines": 1}},
+            {"$addFields": {"pipelines_array": {"$objectToArray": "$pipelines"}}},
+            {"$unwind": "$pipelines_array"}]
+        if pipeline_name:
+            pipeline += [{"$match": {"pipelines_array.k": pipeline_name}}]
+        pipeline.append({
+            "$addFields": {
+                "pipelines_array.v.job_run_history": {
+                    "$map": {
+                        "input": "$pipelines_array.v.job_run_history",
+                        "as": "history_id",
+                        "in": {"$toObjectId": "$$history_id"}
+                    }
+                }
+            }
+        })
+        pipeline.append({
+            "$lookup": {
+                "from": "jobs_history",
+                "localField": "pipelines_array.v.job_run_history",
+                "foreignField": "_id",
+                "as": "job_details"
+            }
+        })
+        pipeline.append({"$unwind": "$job_details"})
+        
+        if run_number is not None:
+            pass
+        if stage_name:
+            pass
+        if job_name:
+            pass
+        return pipeline
+
+    @staticmethod
+    def build_projection(stage_name: str = None, job_name: str = None) -> dict:
+        """Builds the projection stage for MongoDB aggregation based on stage and job fields."""
+        projection_fields = {
+            "pipeline_name": "$pipelines_array.k",
+            "run_number": "$job_details.run_number",
+            "git_commit_hash": "$job_details.git_commit_hash",
+            "status": "$job_details.status",
+            "start_time": "$job_details.start_time",
+            "completion_time": "$job_details.completion_time"
+        }
+        if stage_name:
+            pass
+        if job_name:
+            pass
+        return projection_fields
+
+    ## ConfigOverrides
     @staticmethod
     def build_nested_dict(overrides):
         """
@@ -277,7 +343,7 @@ class ConfigOverrides:
         """
         for key, value in updates.items():
             if isinstance(value, dict):
-                config[key] = ConfigOverrides.apply_overrides(config.get(key, {}), value)
+                config[key] = MongoHelper.apply_overrides(config.get(key, {}), value)
             else:
                 config[key] = value
         return config

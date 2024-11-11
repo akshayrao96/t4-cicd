@@ -67,7 +67,7 @@ class TestController(unittest.TestCase):
         mock_get_repo.return_value = {
             "_id": "existing_repo_id",
             "repo_name": "sample-repo",
-            "pipelines": []
+            "pipelines": {}
         }
         mock_update_pipeline.return_value = True
         status, error_msg, config = controller.validate_n_save_config("/path/to/file.yml")
@@ -147,7 +147,7 @@ class TestOverrideConfig(unittest.TestCase):
         return_value={'valid': True, 'pipeline_config': {"updated_config": "value"}}
     )
     @patch(
-        "controller.controller.ConfigOverrides.apply_overrides",
+        "controller.controller.MongoHelper.apply_overrides",
         return_value={"updated_config": "value"}
     )
     @patch("controller.controller.MongoAdapter")
@@ -183,7 +183,7 @@ class TestOverrideConfig(unittest.TestCase):
         return_value={'valid': False}
     )
     @patch(
-        "controller.controller.ConfigOverrides.apply_overrides",
+        "controller.controller.MongoHelper.apply_overrides",
         return_value={"updated_config": "value"}
     )
     @patch("controller.controller.MongoAdapter")
@@ -206,7 +206,7 @@ class TestOverrideConfig(unittest.TestCase):
         return_value={'valid': True}
     )
     @patch(
-        "controller.controller.ConfigOverrides.apply_overrides",
+        "controller.controller.MongoHelper.apply_overrides",
         return_value={"updated_config": "value"}
     )
     @patch("controller.controller.MongoAdapter")

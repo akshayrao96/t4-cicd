@@ -11,11 +11,12 @@ from typing import Any
 import pprint
 import click
 import git.exc
+import time
 from pydantic import ValidationError
 import util.constant as const
 from util.container import (DockerManager)
 from util.model import (SessionDetail, PipelineConfig, ValidatedStage, PipelineInfo, PipelineHist)
-from util.common_utils import (get_logger, ConfigOverrides, DryRun)
+from util.common_utils import (get_logger, MongoHelper, DryRun)
 from util.repo_manager import (RepoManager)
 from util.db_mongo import (MongoAdapter)
 from util.yaml_parser import YamlParser
@@ -190,21 +191,12 @@ class Controller:
                     "repo_name": "sample-repo",
                     "repo_url": "https://github.com/sample-user/sample-repo",
                     "branch": "main",
-                    "pipelines": [
+                    "pipelines": {
                         self.mongo_ds.create_pipeline_document(
                             pipeline_name, file_name, resp_pipeline_config
                         )
-                    ]
+                    }
                 }
-                # TODO: schema improvement https://github.com/CS6510-SEA-F24/t4-cicd/issues/105
-                # new_repo_data = {
-                #     "repo_name": "cicd-python",
-                #     "repo_url": "https://github.com/sjchin88/cicd-python",
-                #     "branch": "main",
-                #     "pipelines": self.mongo_ds.create_pipeline_document(
-                #             pipeline_name, file_name, resp_pipeline_config
-                #         )
-                # }
                 repo_id = self.mongo_ds.insert_repo(
                     new_repo_data, collection_name=MONGO_PIPELINES_TABLE
                 )
@@ -213,24 +205,18 @@ class Controller:
 
             # # Case 2: Existing Repo - Append Pipeline
             else:
-                existing_pipeline = next(
-                    #(p_name for p_name in repo_data["pipelines"] if p_name == pipeline_name),
-                    (p for p in repo_data["pipelines"] if p["pipeline_name"] == pipeline_name),
-                    None
-                )
-                if not existing_pipeline:
+                if pipeline_name not in repo_data["pipelines"]:
                     new_pipeline_document = self.mongo_ds.create_pipeline_document(
-                        pipeline_name, file_name, resp_pipeline_config
+                        file_name, resp_pipeline_config
                     )
-                    repo_data["pipelines"].append(new_pipeline_document)
-                    #repo_data["pipelines"].update(new_pipeline_document)
+                    repo_data["pipelines"][pipeline_name] = new_pipeline_document
                     success = self.mongo_ds.update_pipeline(repo_data)
                     if not success:
                         error_msg = f"Error add new '{pipeline_name}' to datastore."
                         status = False
                 else:
                     error_msg = (
-                        f"Pipeline '{pipeline_name}' already exists in datastore. "
+                        f"Pipeline '{pipeline_name}' already exists"
                         "Use --override to update."
                     )
                     status = False
@@ -303,33 +289,29 @@ class Controller:
             Raises:
                 ValueError: If no pipeline configuration is found for the given pipeline name.
             """
-        pipeline = self.mongo_ds.get_pipeline_config(
+        pipeline_config_data = self.mongo_ds.get_pipeline_config(
             "sample-repo",
             "https://github.com/sample-user/sample-repo",
             "main",
             pipeline_name)
-        if not pipeline.get('pipeline_config'):
+        pipeline_config = pipeline_config_data.get('pipeline_config')
+        if not pipeline_config:
             click.echo(f"No pipeline config found for '{pipeline_name}'.")
             return False
-        data = self.mongo_ds.get_pipeline(
-            pipeline.get('_id'), collection_name=MONGO_PIPELINES_TABLE)
-        data['pipeline_config'] = ConfigOverrides.apply_overrides(
-            pipeline['pipeline_config'], overrides)
+        updated_config = MongoHelper.apply_overrides(pipeline_config, overrides)
         # validate the updated pipeline configuration
         response_dict = self.config_checker.validate_config(pipeline_name,
-                                                            data['pipeline_config'],
+                                                            updated_config,
                                                             error_lc=True)
-        status = response_dict.get('valid')
-        resp_pipeline_config = response_dict.get('pipeline_config')
-        if not status:
+        if not response_dict.get('valid'):
             click.echo("Override pipeline configuration validation failed.")
             return False
         success = self.mongo_ds.update_pipeline_config(
             "sample-repo",
             "https://github.com/sample-user/sample-repo",
             "main",
-            "valid_pipeline",
-            resp_pipeline_config)
+            pipeline_name,
+            response_dict.get('pipeline_config'))
         if not success:
             click.echo("Error updating pipeline configuration.")
             return False
@@ -409,7 +391,7 @@ class Controller:
 
         # Process Override if have
         if override_configs:
-            combined_config = ConfigOverrides.apply_overrides(
+            combined_config = MongoHelper.apply_overrides(
                 config_dict,
                 override_configs)
             # validate the updated pipeline configuration
@@ -586,7 +568,8 @@ class Controller:
         # Wrap up and return
         docker_manager.remove_vol()
         run_update = {
-            "success":pipeline_status
+            "status":pipeline_status,
+            "completion_time": time.asctime()
         }
         self.mongo_ds.update_job(job_id, run_update)
         final_updates = {
