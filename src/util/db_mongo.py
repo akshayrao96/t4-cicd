@@ -621,12 +621,21 @@ class MongoAdapter:
             "last_commit_hash": ""
         }
 
-    def get_pipeline_runs_with_jobs(
+    def get_pipeline_run_summary(
         self, repo_url: str, pipeline_name: str = None, stage_name: str = None, 
         job_name: str = None, run_number: int = None) -> list:
         """
-        Retrieve detailed pipeline run data with optional filters for pipelines, stages, and jobs.
-        Uses external helpers to build the match filter, aggregation pipeline, and projection stages.
+        Retrieves pipeline run data with optional filters for pipelines, stages, jobs, and run numbers.
+
+        Args:
+            repo_url (str): Repository URL.
+            pipeline_name (str, optional): Pipeline name filter.
+            stage_name (str, optional): Stage name filter.
+            job_name (str, optional): Job name filter.
+            run_number (int, optional): Run number filter.
+
+        Returns:
+            list: A list of dictionaries, where each dictionary contains data for a pipeline run that matches the filters.
         """
         match_filter = MongoHelper.build_match_filter(repo_url, pipeline_name)
         aggregation_pipeline = MongoHelper.build_aggregation_pipeline(
