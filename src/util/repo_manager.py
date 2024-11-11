@@ -22,6 +22,7 @@ class RepoManager:
     Utility class for managing Git repositories, including cloning, validation,
     branch and commit handling, and metadata extraction.
     """
+
     def set_repo(
             self,
             repo_source: str,
@@ -49,7 +50,7 @@ class RepoManager:
         if any(current_directory.iterdir()):
             logger.warning(
                 "Current working directory is not empty. Please use an empty directory.")
-            return False, "Current working directory is not empty. Please use an empty directory."
+            return False, "Current working directory is not empty. Please use an empty directory.", {}
 
         logger.debug(
             "Starting repository validation for %s with branch '%s' and commit '%s'.",
@@ -63,6 +64,11 @@ class RepoManager:
 
         if not success:
             return False, message, {}
+
+        repo_details = self.get_current_repo_details()
+
+        if not repo_details:
+            return False, "Failed to retrieve repository details after cloning.", {}
 
         return True, "Repository successfully cloned and set up in the current directory.", repo_details
 
@@ -86,8 +92,9 @@ class RepoManager:
         """
         logger.debug(
             "Starting validation and cloning for %s with branch '%s' and commit '%s'.",
-            repo_source, branch, commit_hash
-        )
+            repo_source,
+            branch,
+            commit_hash)
 
         current_directory = Path(os.getcwd())
         repo_name = self._extract_repo_name_from_url(repo_source)
@@ -98,32 +105,44 @@ class RepoManager:
             return False, "Current working directory is not empty. Please use an empty directory.", {}
 
         try:
-            # Clone the repository contents directly into the current working directory
-            repo = Repo.clone_from(repo_source, current_directory, branch=branch, single_branch=True)
+            # Clone the repository contents directly into the current working
+            # directory
+            repo = Repo.clone_from(
+                repo_source,
+                current_directory,
+                branch=branch,
+                single_branch=True)
             latest_commit_hash = repo.head.commit.hexsha
-            logger.debug("Successfully cloned branch '%s' with latest commit %s.", branch, latest_commit_hash)
+            logger.debug(
+                "Successfully cloned branch '%s' with latest commit %s.",
+                branch,
+                latest_commit_hash)
 
-            # If a specific commit hash is provided, check out that commit without detaching HEAD
+            # If a specific commit hash is provided, check out that commit
+            # without detaching HEAD
             if commit_hash:
-                success, message = self._checkout_commit(repo, branch, commit_hash)
+                success, message = self._checkout_commit(
+                    repo, branch, commit_hash)
                 if not success:
                     self._safe_cleanup(current_directory)
-                    return False, message, {}
+                    return False, message
 
-            repo_details = {
+            return True, "Repository successfully validated, cloned, and checked out.", {
                 "repo_name": repo_name,
                 "repo_source": repo_source,
                 "branch": branch,
-                "commit_hash": commit_hash or latest_commit_hash,
-                "latest_commit": (commit_hash == latest_commit_hash if commit_hash else True),
+                "commit_hash": commit_hash or latest_commit_hash
             }
-            return True, "Repository successfully validated, cloned, and checked out.", repo_details
 
         except GitCommandError as e:
             logger.warning("An error occurred during cloning: %s", e)
-            return False, "Failed to clone repository. Branch given not found in repository.", {}
+            return False, "Failed to clone repository. Branch given not found in repository.",{}
 
-    def _checkout_commit(self, repo: Repo, branch: str, commit_hash: str) -> tuple:
+    def _checkout_commit(
+            self,
+            repo: Repo,
+            branch: str,
+            commit_hash: str) -> tuple:
         """
         Check out a specific commit on a branch without detaching HEAD.
 
@@ -137,12 +156,19 @@ class RepoManager:
         """
         if any(commit_hash == commit.hexsha for commit in repo.iter_commits(branch)):
             repo.git.checkout(commit_hash)
-            repo.git.execute(["git", "update-ref", f"refs/heads/{branch}", commit_hash])
+            repo.git.execute(
+                ["git", "update-ref", f"refs/heads/{branch}", commit_hash])
             repo.git.checkout(branch)
-            logger.debug("Checked out and reset branch '%s' to commit %s.", branch, commit_hash)
+            logger.debug(
+                "Checked out and reset branch '%s' to commit %s.",
+                branch,
+                commit_hash)
             return True, f"Checked out branch '{branch}' at commit {commit_hash}."
         else:
-            logger.warning("Commit hash %s does not exist on branch '%s'.", commit_hash, branch)
+            logger.warning(
+                "Commit hash %s does not exist on branch '%s'.",
+                commit_hash,
+                branch)
             return False, f"Commit hash {commit_hash} does not exist on branch '{branch}'."
 
     def _is_valid_git_repo(self, repo_source: str) -> bool:
@@ -219,3 +245,32 @@ class RepoManager:
             except Exception as e:
                 logger.error("Failed to remove %s: %s", item, e)
         logger.info("Cleaned up all contents inside the directory %s", path)
+
+    def get_current_repo_details(self) -> dict:
+        """
+        Retrieve details of the current Git repository.
+
+        Returns:
+            dict: A dictionary containing repository details such as repo_url, repo_name, branch, and commit_hash.
+                  Returns an empty dictionary if not in a Git repository.
+        """
+        try:
+            repo = Repo(os.getcwd(), search_parent_directories=True)
+            origin_url = next(repo.remote().urls)
+            branch = repo.active_branch.name
+            commit_hash = repo.head.commit.hexsha
+            repo_name = self._extract_repo_name_from_url(origin_url)
+
+            return {
+                "repo_url": origin_url,
+                "repo_name": repo_name,
+                "branch": branch,
+                "commit_hash": commit_hash
+            }
+
+        except InvalidGitRepositoryError:
+            return {}
+
+        except GitCommandError as e:
+            logger.error("Error while retrieving repository details: %s", e)
+            return {}

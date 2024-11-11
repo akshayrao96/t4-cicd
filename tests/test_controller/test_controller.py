@@ -5,6 +5,8 @@ import json
 import unittest
 from unittest.mock import MagicMock, patch
 from click.testing import CliRunner
+from pydantic import ValidationError, BaseModel
+
 from controller.controller import (Controller)
 from util.db_mongo import MongoAdapter
 from util.common_utils import (get_logger)
@@ -253,7 +255,9 @@ class TestControllerRepoFunctions(unittest.TestCase):
         self.assertEqual(message, "Failed to clone repository.")
 
     @patch("controller.controller.RepoManager")
-    def test_set_repo_success(self, mock_repo_manager):
+    @patch("util.db_mongo.MongoAdapter.insert_repo", return_value="new_repo_id")
+    @patch("util.model.SessionDetail.model_validate")
+    def test_set_repo_success(self, mock_validate, mock_insert_repo, mock_repo_manager):
         """Test successful set_repo call."""
         mock_instance = mock_repo_manager.return_value
         mock_instance.is_current_repo.return_value = (False, None)
@@ -262,28 +266,58 @@ class TestControllerRepoFunctions(unittest.TestCase):
             "branch": "main",
             "commit_hash": "latest_commit_hash"
         })
+        mock_validate.return_value = MagicMock(model_dump=lambda: {"validated_data": True})
 
-        with patch("os.getlogin", return_value="test_user"), \
-                patch("util.db_mongo.MongoAdapter.insert_repo", return_value="new_repo_id"):
+        with patch("os.getlogin", return_value="test_user"):
             controller = Controller()
             success, message = controller.set_repo("https://github.com/sample/repo")
 
             self.assertTrue(success)
             self.assertIn("Repository set successfully", message)
+            mock_validate.assert_called_once()  # Ensures validation is called
+            mock_insert_repo.assert_called_once_with({"validated_data": True})
 
     @patch("controller.controller.RepoManager")
     @patch("util.db_mongo.MongoAdapter.get_last_set_repo")
-    def test_get_repo_in_git_repo(self, mock_get_last_set_repo, mock_repo_manager):
+    @patch("os.getlogin", return_value="test_user")  # Mock os.getlogin
+    def test_get_repo_in_git_repo(self, mock_getlogin, mock_get_last_set_repo, mock_repo_manager):
         """Test get_repo when in a Git repository."""
+        # Setup mock return values for RepoManager methods
         mock_instance = mock_repo_manager.return_value
         mock_instance.is_current_repo.return_value = (True, "existing_repo")
+        mock_instance.get_current_repo_details.return_value = {
+            "repo_url": "https://github.com/sample/repo",
+            "repo_name": "existing_repo",
+            "branch": "main",
+            "commit_hash": "latest_commit_hash"
+        }
 
-        controller = Controller()
-        status, repo_name = controller.get_repo()
+        # Mock SessionDetail.model_validate to return a structured dictionary
+        with patch("util.model.SessionDetail.model_validate") as mock_validate:
+            mock_validate.return_value = MagicMock(model_dump=lambda: {
+                "user_id": "test_user",
+                "repo_url": "https://github.com/sample/repo",
+                "repo_name": "existing_repo",
+                "branch": "main",
+                "commit_hash": "latest_commit_hash",
+                "is_remote": True,
+                "time": "2024-01-01 12:00:00"
+            })
 
-        self.assertTrue(status)
-        self.assertEqual(repo_name, "existing_repo")
-        mock_get_last_set_repo.assert_not_called()
+            # Instantiate the controller and call get_repo
+            controller = Controller()
+            status, repo_data = controller.get_repo()
+
+            # Assertions
+            self.assertTrue(status)
+            self.assertEqual(repo_data["repo_name"], "existing_repo")
+            self.assertEqual(repo_data["branch"], "main")
+            self.assertEqual(repo_data["repo_url"], "https://github.com/sample/repo")
+            self.assertEqual(repo_data["commit_hash"], "latest_commit_hash")
+
+            # Ensure get_last_set_repo is not called when in a Git repository
+            mock_get_last_set_repo.assert_not_called()
+            mock_getlogin.assert_called_once()
 
     @patch("controller.controller.RepoManager")
     @patch("util.db_mongo.MongoAdapter.get_last_set_repo")
@@ -294,10 +328,10 @@ class TestControllerRepoFunctions(unittest.TestCase):
         mock_get_last_set_repo.return_value = {"repo_url": "https://github.com/sample/last_repo"}
 
         controller = Controller()
-        status, repo_url = controller.get_repo()
+        status, repo_data = controller.get_repo()
 
         self.assertFalse(status)
-        self.assertEqual(repo_url, "https://github.com/sample/last_repo")
+        self.assertEqual(repo_data["repo_url"], "https://github.com/sample/last_repo")
 
     @patch("controller.controller.RepoManager")
     @patch("util.db_mongo.MongoAdapter.get_last_set_repo")
@@ -308,7 +342,7 @@ class TestControllerRepoFunctions(unittest.TestCase):
         mock_get_last_set_repo.return_value = None
 
         controller = Controller()
-        status, repo_url = controller.get_repo()
+        status, repo_data = controller.get_repo()
 
         self.assertFalse(status)
-        self.assertIsNone(repo_url)
+        self.assertIsNone(repo_data)

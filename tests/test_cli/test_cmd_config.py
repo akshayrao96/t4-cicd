@@ -207,8 +207,7 @@ def test_set_repo_failure(mock_set_repo):
 
     assert result.exit_code == 0
     assert "Error: Failed to set repository" in result.output
-    mock_set_repo.assert_called_once_with("https://github.com/example/repo.git", branch="invalid",
-                                          commit_hash="unknown_commit")
+    mock_set_repo.assert_called_once_with("https://github.com/example/repo.git", branch="invalid", commit_hash="unknown_commit")
 
 
 def test_set_repo_no_repo_given():
@@ -220,26 +219,43 @@ def test_set_repo_no_repo_given():
     assert "Error: Missing argument 'REPO_URL'." in result.output
 
 
-@patch("cli.cmd_config.Controller.get_repo", return_value=(True, "https://github.com/example/repo.git"))
+@patch("cli.cmd_config.Controller.get_repo", return_value=(True, {
+    "repo_url": "https://github.com/example/repo.git",
+    "repo_name": "example_repo",
+    "branch": "main",
+    "commit_hash": "123abc"
+}))
 def test_get_repo_success(mock_get_repo):
     """Test `get-repo` command when a repository is configured in the current directory."""
     runner = CliRunner()
     result = runner.invoke(cmd_config.config, ['get-repo'])
 
     assert result.exit_code == 0
-    assert "Current repository configured: https://github.com/example/repo.git" in result.output
+    assert "Current repository configured:" in result.output
+    assert "Repository URL: https://github.com/example/repo.git" in result.output
+    assert "Repository Name: example_repo" in result.output
+    assert "Branch: main" in result.output
+    assert "Commit Hash: 123abc" in result.output
     mock_get_repo.assert_called_once()
 
 
-@patch("cli.cmd_config.Controller.get_repo", return_value=(False, "https://github.com/example/last-repo.git"))
+@patch("cli.cmd_config.Controller.get_repo", return_value=(False, {
+    "repo_url": "https://github.com/example/last-repo.git",
+    "repo_name": "last_repo",
+    "branch": "main",
+    "commit_hash": "456def"
+}))
 def test_get_repo_last_set_repo(mock_get_repo):
     """Test `get-repo` command retrieving the last set repository."""
     runner = CliRunner()
     result = runner.invoke(cmd_config.config, ['get-repo'])
 
     assert result.exit_code == 0
-    assert "Fetching last set repo..." in result.output
-    assert "Repository configured: https://github.com/example/last-repo.git" in result.output
+    assert "Fetching last set repository" in result.output
+    assert "Repository URL: https://github.com/example/last-repo.git" in result.output
+    assert "Repository Name: last_repo" in result.output
+    assert "Branch: main" in result.output
+    assert "Commit Hash: 456def" in result.output
     mock_get_repo.assert_called_once()
 
 
@@ -250,5 +266,5 @@ def test_get_repo_no_repo_set(mock_get_repo):
     result = runner.invoke(cmd_config.config, ['get-repo'])
 
     assert result.exit_code == 0
-    assert "No repository currently configured." in result.output
+    assert "No repository has been configured previously." in result.output
     mock_get_repo.assert_called_once()

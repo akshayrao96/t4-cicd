@@ -72,44 +72,78 @@ class Controller:
         if not is_valid:
             return False, message
 
-        repo_name = repo_details["repo_name"]
-        time_log = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        user_id = os.getlogin()
+        raw_data = self._prepare_session_details(repo_url=repo_url, repo_name=repo_details["repo_name"],
+                                                             branch=repo_details["branch"],
+                                                             commit_hash=repo_details["commit_hash"])
 
-        repo_data = {
-            "user_id": user_id,
-            "repo_url": repo_url,
-            "repo_name": repo_name,
-            "branch": repo_details["branch"],
-            "commit_hash": repo_details["commit_hash"],
-            "is_remote": True,
-            "time": time_log
-        }
+        try:
+            repo_data = SessionDetail.model_validate(raw_data)
+            inserted_id = self.mongo_ds.insert_repo(repo_data.model_dump())
 
-        inserted_id = self.mongo_ds.insert_repo(repo_data)
-        if not inserted_id:
-            return False, "Failed to set repository."
+            if not inserted_id:
+                return False, "Failed to set repository."
 
-        return True, f"Repository set successfully with ID: {inserted_id}"
+            return True, f"Repository set successfully with ID: {inserted_id}"
 
-    def get_repo(self) -> tuple[bool, str | None]:
-        """
-        Check if the current directory is a Git repository or retrieve the last set repository from MongoDB.
+        except ValidationError as e:
+            return False, f"Data validation error: {e}"
 
-        Returns:
-            tuple[bool, Optional[str]]: (True, repo name) if in a Git repository, or
-            (False, last set repo URL) if not in a Git repo. Returns (False, None) if no last set repo.
-        """
+    def get_repo(self) -> tuple[bool, dict | None]:
         in_git_repo, repo_name = self.repo_manager.is_current_repo()
 
         if in_git_repo:
-            return True, repo_name
+            repo_details = self.repo_manager.get_current_repo_details()
 
+            # Use prepare_session_details to structure session data
+            raw_data = self._prepare_session_details(
+                repo_url=repo_details["repo_url"],
+                repo_name=repo_name,
+                branch=repo_details["branch"],
+                commit_hash=repo_details["commit_hash"]
+            )
+
+            try:
+                # Validate and insert the repo data if needed
+                repo_data = SessionDetail.model_validate(raw_data)
+                self.mongo_ds.insert_repo(repo_data.model_dump())  # Store details if not already in MongoDB
+
+                return True, repo_data.model_dump()
+
+            except ValidationError as e:
+                return False, {"error": f"Data validation error: {e}"}
+
+        # Retrieve the last set repo if not in a Git repo
         last_repo = self.mongo_ds.get_last_set_repo()
         if last_repo:
-            return False, last_repo.get('repo_url', '')
+            return False, last_repo
 
         return False, None
+
+    def _prepare_session_details(self, repo_url: str, repo_name: str, branch: str, commit_hash: str) -> dict:
+        """
+        Prepare session details for a repository.
+
+        Args:
+            repo_url (str): The repository URL.
+            repo_name (str): The repository name.
+            branch (str): The branch name.
+            commit_hash (str): The commit hash.
+
+        Returns:
+            dict: A dictionary containing the session details.
+        """
+        time_log = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        user_id = os.getlogin()
+
+        return {
+            "user_id": user_id,
+            "repo_url": repo_url,
+            "repo_name": repo_name,
+            "branch": branch,
+            "commit_hash": commit_hash,
+            "is_remote": True,
+            "time": time_log
+        }
 
     def get_controller_history(self) -> dict:
         """Retrieve pipeline history from Mongo DB

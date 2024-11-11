@@ -172,21 +172,31 @@ def get_repo():
 
     # Gets the currently set repo from the controller
     controller = Controller()
-    status, repo_url = controller.get_repo()
-    if status and repo_url:
-        click.echo(
-            f"Using current directory. \nCurrent repository configured: {repo_url}")
-    elif repo_url:
-        print(
-            "Fetching last set repo...")
-        click.echo(f"Repository configured: {repo_url}")
+    status, repo_details = controller.get_repo()
+
+    if status and repo_details:
+        click.echo("\nConfigured to current working directory. Current repository configured:\n")
+        click.echo(f"Repository URL: {repo_details['repo_url']}")
+        click.echo(f"Repository Name: {repo_details['repo_name']}")
+        click.echo(f"Branch: {repo_details['branch']}")
+        click.echo(f"Commit Hash: {repo_details['commit_hash']}\n")
+
+    elif repo_details:
+        click.echo("\nCurrent working directory is not a git repository")
+        click.echo("\nFetching last set repository: \n")
+        click.echo(f"Repository URL: {repo_details['repo_url']}")
+        click.echo(f"Repository Name: {repo_details['repo_name']}")
+        click.echo(f"Branch: {repo_details['branch']}")
+        click.echo(f"Commit Hash: {repo_details['commit_hash']}\n")
+        click.echo("Configure the repository in an empty working directory:\n")
+        click.echo(f"cid config set-repo {repo_details['repo_url']}\n")
+
     else:
-        click.echo("No repository currently configured.")
-        click.echo(
-            "Please navigate to a working directory that is a git repository project")
+        click.echo("\nNo repository has been configured previously.")
+        click.echo("Please navigate to a working directory that is a Git repository project")
         click.echo("OR")
-        click.echo("Please set an either remote or local repository using in an empty current working directory:")
-        click.echo("cid config set-repo <REPO NAME>")
+        click.echo("Please set a remote or local repository in an empty current working directory:\n")
+        click.echo("cid config set-repo <REPO NAME>\n")
 
 
 @config.command()
