@@ -203,7 +203,7 @@ def report(ctx, repo_url:str, local:bool, pipeline_name:str, branch:str, stage:s
         missing_locs = [error["loc"] for error in errors if error["type"] == "missing"]
         click.secho("Error in getting the pipeline report.", fg="red")
         click.secho(f"missing required keys: {missing_locs}", fg="red")
-        return
+        sys.exit(2)
 
     #TODO: L4.2.Show pipeline run summary
     # xx report --repo https://github.com/company/project --pipeline code-review --run 2
@@ -217,11 +217,11 @@ def report(ctx, repo_url:str, local:bool, pipeline_name:str, branch:str, stage:s
     # xx report --repo https://github.com/company/project --pipeline code-review --stage
     #   build --run 2
 
-    #TODO: Step 2 call pipeline_history
+    #Step 2 call pipeline_history
     resp_success, resp_message = ctrl.pipeline_history(pipeline_model)
     if not resp_success:
         click.secho(resp_message, fg='red')
-        return
+        sys.exit(1)
 
     click.secho("===== Pipeline report =====\n", fg='green')
     click.secho(resp_message, fg='green')

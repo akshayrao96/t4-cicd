@@ -515,6 +515,8 @@ class DryRun:
         return formatted_msg
 
 class PrintMessage:
+    """PrintMessage handles with dict data and format printing for output to CLI
+    """
     def __init__(self, msg_dict: dict):
         self.msg_dict = msg_dict
 
@@ -528,15 +530,15 @@ class PrintMessage:
                 return None
         return data
     
-    # keys=["name", "job.department"]
     def print(self, keys=None) -> str:
-        """print message given a dictionary
+        """print message given a dictionary. need to specify the keys in the dict 
+        to print. Example: keys=["name", "job.department"]
 
         Args:
-            type (str, optional): specify print type. Defaults to "plain_text".
+            keys (list, optional): specify the key in the dict.
 
         Returns:
-            str: _description_
+            str: formatted string in the format key:value
         """
         filtered_dict = self.msg_dict
 
@@ -546,12 +548,12 @@ class PrintMessage:
         # Plain text formatting
         return "\n".join([f"{key:<15}: {value}" for key, value in filtered_dict.items()])
 
-        # elif type == "json":
-        #     return json.dump(self.msg_dict, indent=4)
-        # elif type == "yaml":
-        #     # YAML formatted output
-        #     return yaml.dump(self.msg_dict, default_flow_style=False)
     def print_log_status(self) -> str:
+        """print method for outputting the job status for each stages
+
+        Returns:
+            str: message of the output logs.
+        """
         logs = self.msg_dict['logs']
         output_logs = ""
             
