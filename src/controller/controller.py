@@ -297,7 +297,7 @@ class Controller:
         # validate the updated pipeline configuration
 
         validation_res = self.config_checker.validate_config(pipeline_name,
-                                                            data['pipeline_config'],
+                                                            updated_config,
                                                             error_lc=True)
         status = validation_res.valid
         resp_pipeline_config = validation_res.pipeline_config
