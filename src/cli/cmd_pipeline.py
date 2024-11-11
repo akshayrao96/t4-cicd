@@ -144,9 +144,9 @@ def log(tail:str, repo:str):
 @click.pass_context
 @click.option('-r', '--repo', 'repo_url', default='./', help='url of the repository (https://)')
 @click.option('--local', 'local', help='retrieve local pipeline history', is_flag=True)
-@click.option('--pipeline', 'pipeline_name', default='cicd_pipeline', 
+@click.option('--pipeline', 'pipeline_name', default='cicd_pipeline',
               help='pipeline name to get the history')
-@click.option('-b', '--branch', 'branch', default='main', 
+@click.option('-b', '--branch', 'branch', default='main',
               help="branch name of the repository; default is 'main'")
 @click.option('-s', '--stage', 'stage', default='all', help='stage name to view report; \
 default stages options: [build, test, doc, deploy]')

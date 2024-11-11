@@ -628,7 +628,8 @@ class MongoAdapter:
         self, repo_url: str, pipeline_name: str = None, stage_name: str = None, 
         job_name: str = None, run_number: int = None) -> list:
         """
-        Retrieves pipeline run data with optional filters for pipelines, stages, jobs, and run numbers.
+        Retrieves pipeline run data with optional filters for pipelines, stages, jobs, 
+        and run numbers.
 
         Args:
             repo_url (str): Repository URL.
@@ -638,11 +639,13 @@ class MongoAdapter:
             run_number (int, optional): Run number filter.
 
         Returns:
-            list: A list of dictionaries, where each dictionary contains data for a pipeline run that matches the filters.
+            list: A list of dictionaries, where each dictionary contains data for a 
+                    pipeline run that matches the filters.
         """
         match_filter = MongoHelper.build_match_filter(repo_url, pipeline_name)
         aggregation_pipeline = MongoHelper.build_aggregation_pipeline(
-            match_filter, pipeline_name=pipeline_name, stage_name=stage_name, job_name=job_name, run_number=run_number
+            match_filter, pipeline_name=pipeline_name, stage_name=stage_name, 
+            job_name=job_name, run_number=run_number
         )
         projection_fields = MongoHelper.build_projection(stage_name, job_name)
         aggregation_pipeline.append({"$project": projection_fields})
@@ -657,5 +660,6 @@ class MongoAdapter:
             return result
 
         except errors.PyMongoError as e:
-            logger.error(f"Error retrieving pipeline runs with job details for repo {repo_url}: {e}")
+            logger.error(f"Error retrieving pipeline runs with job details for \
+                         repo {repo_url}: {e}")
             return []
