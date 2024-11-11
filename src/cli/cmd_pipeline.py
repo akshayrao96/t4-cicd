@@ -1,6 +1,7 @@
 """ All related commands for pipeline actions """
 # pylint: disable=logging-fstring-interpolation
 import hashlib
+import sys
 import time
 import json
 import click
@@ -23,14 +24,11 @@ def pipeline():
 # def touch(filename):
 #     """Print FILENAME if the file exists."""
 #     click.echo(click.format_filename(filename))
-
-#TODO: add exception when user cancel the pipeline job
-# https://click.palletsprojects.com/en/stable/exceptions/
 @pipeline.command()
 @click.pass_context
 @click.option('--file', 'file_path', default=DEFAULT_CONFIG_FILE_PATH, help='configuration \
 file path. if --file not specified, default to .cicd-pipelines/pipelines.yml')
-@click.option('--pipeline', 'pipeline', help='pipeline name to run' )
+@click.option('--pipeline', 'pipeline_name', help='pipeline name to run' )
 @click.option('-r', '--repo', 'repo', default='./', help='repository url or \
 local directory path')
 @click.option('-b', '--branch', 'branch', default='main', help='repository branch name')
@@ -41,31 +39,37 @@ process', is_flag=True)
 @click.option('--yaml', 'yaml_output', help='print output in yaml format', is_flag=True)
 @click.option('--override', 'overrides', multiple=True,
               help="Override configuration in 'key=value' format")
-def run(ctx, file_path:str, pipeline:str, repo:str, branch:str, commit:str, local:bool,
+def run(ctx, file_path:str, pipeline_name:str, repo:str, branch:str, commit:str, local:bool,
         dry_run:bool, yaml_output:bool, overrides):
-    """Run pipeline given the configuration file. 
-
-    Command to run `cid pipeline run <config_filename>`
-    Command for dry-run `cid pipeline run --dry-run --repo <repo> --branch <branch_name> 
-    --commit <commit_hash>`
-    Args:
-        name (str): configuration file name
-        repo (str): repository url or local directory path
-        branch (str): branch name of the repository
-        commit (str): specific commit hash. by default, it is the latest (HEAD).
-        local (bool): execute pipeline locally.
-        dry_run (bool): plan the pipeline without creating 
-        yaml (bool): print output in yaml format
+    """ Run pipeline given the configuration file. Base command is cid pipeline run, this will
+    run the pipeline specified in .cicd-pipelines/pipelines.yml for current repository or 
+    previously set repository. 
+    
+    To change the target repository, branch, commit, target pipeline by name / file path, 
+    use the corresponding options. \f
+    
+    Args: 
+        file_path (str, optional): configuration file name. 
+        Default to .cicd-pipelines/pipelines.yml.
+        pipeline_name (str, optional): target pipeline name. Default to None.
+        repo (str, optional): repository url or local directory path. 
+        Default to current working directory ('./').
+        branch (str, optional): branch name of the repository. Default to main.
+        commit (str, optional): specific commit hash. Default to the latest (HEAD).
+        local (bool, optional): If True, execute pipeline locally. Default False.
+        dry_run (bool, optional): If True, plan the pipeline without creating. Default False.
+        yaml (bool, optional): If True, print output in yaml format. Default False.
     """
-    source_pipeline = ctx.get_parameter_source("pipeline")
+    source_pipeline = ctx.get_parameter_source("pipeline_name")
     filepath_pipeline = ctx.get_parameter_source("file_path")
 
     # --file and --pipeline are mutually exclusive, raise error if both value are provided
     if source_pipeline != click.core.ParameterSource.DEFAULT:
         if filepath_pipeline != click.core.ParameterSource.DEFAULT:
-            click.echo("cid: invalid flag. you can only pass --file or --pipeline \
-and can't be both.")
-            return
+            message = "cid: invalid flag. you can only pass --file "
+            message += "or --pipeline and can't be both."
+            click.secho(message, fg='red')
+            sys.exit(2)
 
     if overrides:
         try:
@@ -73,7 +77,7 @@ and can't be both.")
             # print(override_configs)
         except ValueError as e:
             click.secho(str(e), fg='red')
-            return
+            sys.exit(2)
     control = Controller()
 
     # TODO - Del 2024-11-04 Update Note and Fix
@@ -87,7 +91,8 @@ and can't be both.")
         "commit_hash": commit,
         "remote_repo": local,
     }
-    status, message, pipeline_id = control.run_pipeline(config_file=file_path, pipeline=pipeline,
+
+    status, message = control.run_pipeline(config_file=file_path, pipeline_name=pipeline_name,
                     dry_run=dry_run, git_details=git_details,
                     local=local, yaml_output=yaml_output,
                     override_configs=overrides)
@@ -98,8 +103,7 @@ and can't be both.")
         click.secho(f"{message}", fg='green')
     else:
         click.secho(f"{message}", fg='red')
-    # TODO - To Discuss, why do we need to show pipeline_id to user
-    click.echo(f"pipeline_id: {pipeline_id}")
+        sys.exit(1)
 
 @pipeline.command()
 @click.option('--repo', default='local', help="Obtain logs for this repo")

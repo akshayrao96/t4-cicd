@@ -1,3 +1,6 @@
+# ignore documentations for now, include only during final submission
+apidocs
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

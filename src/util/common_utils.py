@@ -10,15 +10,19 @@ from dotenv import dotenv_values
 
 
 def get_logger(logger_name='', log_level=logging.DEBUG, log_file='../debug.log') -> logging.Logger:
-    """_summary_
+    """ common function to set the logger for the cicd system. This will add the stream logger 
+    and also the file logger. For production, the stream logger logging level is set to 
+    error to hide the messy debug, info and warning messages from the users. 
 
     Args:
-        logger_name (str, optional): _description_. Defaults to ''.
-        log_level (_type_, optional): _description_. Defaults to logging.DEBUG.
-        log_file (str, optional): _description_. Defaults to 'debug.log'.
+        logger_name (str, optional): name of the logger. Defaults to ''.
+        log_level (int, optional): logging level . Defaults to logging.DEBUG.
+        log_file (str, optional): name of output log file. Defaults to '../debug.log'.
+        This will generate a log file with name debug.log at the parent directory
+        when running the commands
 
     Returns:
-        logging.Logger: _description_
+        logging.Logger: a configured logger
     """
     # Retrieve logger and set log level
     logger = logging.getLogger(logger_name)
@@ -333,6 +337,7 @@ class MongoHelper:
     def apply_overrides(config, updates):
         """
         Recursively apply updates to a configuration dictionary.
+        Note this will add the key:value pairs into the config is the key is not in originally
 
         Args:
             config (dict): The original dictionary.

@@ -1,6 +1,6 @@
 
 global:
-  pipeline_name: cycle_pipeline
+  pipeline_name: cycle_pipeline_2
   docker: 
     registry: 'dockerhub'
     image: 'ubuntu:latest'
