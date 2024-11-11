@@ -39,97 +39,74 @@ class Controller:
         """
         # init Docker
         # init RepoManager
-        self.repo_manager = RepoManager(REPO_SOURCE)
+        self.repo_manager = RepoManager()
         self.mongo_ds = MongoAdapter()  # init DataStore (MongoDB, Postgres)
         self.config_checker = ConfigChecker()  # init Configuration Checker
         # ..and many more
         self.logger = get_logger('cli.controller')
 
-    def set_repo(self, repo_url: str) -> tuple[bool, str]:
-        """Set the repository URL, validate it, and store in MongoDB.
+    def set_repo(self, repo_url: str, branch: str = "main",
+                 commit_hash: str = None) -> tuple[bool, str]:
+        """
+        Set the repository URL, validate it, and store in MongoDB for CID configurations.
 
         Args:
             repo_url (str): The repository URL provided by the user.
+            branch (str): The branch to validate or use, main if not given.
+            commit_hash (str): Commit hash to retrieve, latest commit if not given.
 
         Returns:
             tuple[bool, str]: A tuple indicating success/failure and a message.
         """
 
-        mongo = MongoAdapter()
+        in_git_repo, repo_name = self.repo_manager.is_current_repo()
+        if in_git_repo:
+            return False, f"You are currently in a Git repository: '{repo_name}'. Please navigate to an empty directory."
 
-        # Check if the current directory is a Git repository using get_repo
-        try:
-            repo = git.Repo(os.getcwd(), search_parent_directories=True)
-            repo_name = os.path.basename(repo.working_tree_dir)
-            return False, (
-                f"You are currently in a current working directory Git repository: '{repo_name}'.\n"
-                "Please navigate out of the current working directory repository and try again\n"
-                "cid config set-repo <repository>."
-            )
-        except git.exc.InvalidGitRepositoryError:
-            self.logger.info(
-                f"Proceeding to configure for repository {repo_url}.")
+        is_valid, message, repo_details = self.repo_manager.set_repo(
+            repo_url, branch, commit_hash)
 
-        # Validate the provided repo URL
-        if not self._is_valid_repo(repo_url):
-            return False, "The provided URL is not a valid URL or a valid Git repository."
+        if not is_valid:
+            return False, message
 
-        repo_name = self.repo_manager._extract_repo_name_from_url(repo_url)
+        repo_name = repo_details["repo_name"]
+        time_log = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        user_id = os.getlogin()
 
-        # Default to 'main' branch for now
-        branch = "main"
-
-        # Log the current time
-        now = datetime.now()
-        time_log = now.strftime("%Y-%m-%d %H:%M:%S")
-
-        # Data to insert into MongoDB
         repo_data = {
-            "user_id": "random",  # random user session for now
+            "user_id": user_id,
             "repo_url": repo_url,
             "repo_name": repo_name,
-            "branch": branch,
-            "commit_hash": "random hash for now",
-            "is_remote": True,  # can only set remote repo for now
-            "last_temp_working_dir": None,  # placeholder for now
+            "branch": repo_details["branch"],
+            "commit_hash": repo_details["commit_hash"],
+            "is_remote": True,
             "time": time_log
         }
 
-        # Insert the repo data into MongoDB
-        inserted_id = mongo.insert_repo(repo_data)
-        if inserted_id:
-            return True, f"Repository set successfully with ID: {inserted_id}"
-        else:
+        inserted_id = self.mongo_ds.insert_repo(repo_data)
+        if not inserted_id:
             return False, "Failed to set repository."
 
-    def _is_valid_repo(self, repo_source: str) -> bool:
-        """private function to check if the repository path specified is a valid repository
+        return True, f"Repository set successfully with ID: {inserted_id}"
 
-        Args:
-            repo_source (str): _description_
+    def get_repo(self) -> tuple[bool, str | None]:
+        """
+        Check if the current directory is a Git repository or retrieve the last set repository from MongoDB.
 
         Returns:
-            bool: _description_
+            tuple[bool, Optional[str]]: (True, repo name) if in a Git repository, or
+            (False, last set repo URL) if not in a Git repo. Returns (False, None) if no last set repo.
         """
-        return self.repo_manager._is_remote_repo_valid(repo_source)
+        in_git_repo, repo_name = self.repo_manager.is_current_repo()
 
-    def get_repo(self) -> tuple[Any, str] | str:
-        """Check if the current directory is a Git repository.
-
-        Returns:
-            str: Repository's name if current working directory is a Git repo, None otherwise.
-        """
-        mongo = MongoAdapter()
-        try:
-            repo = git.Repo(os.getcwd(), search_parent_directories=True)
-            repo_name = os.path.basename(repo.working_tree_dir)
+        if in_git_repo:
             return True, repo_name
-        except git.exc.InvalidGitRepositoryError:
-            last_repo = mongo.get_last_set_repo()
-            if last_repo:
-                return False, last_repo.get('repo_url', '')
-            else:
-                return False, ""
+
+        last_repo = self.mongo_ds.get_last_set_repo()
+        if last_repo:
+            return False, last_repo.get('repo_url', '')
+
+        return False, None
 
     def get_controller_history(self) -> dict:
         """Retrieve pipeline history from Mongo DB
