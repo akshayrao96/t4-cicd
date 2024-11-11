@@ -243,8 +243,8 @@ class TopoSort:
             return (result_flag, result_error_msg, [])
         return (result_flag, result_error_msg, order)
 
-class MongoHelper:
-    """MongoHelper class to provide helper functions for MongoDB operations"""
+class ConfigOverrides:
+    """ConfigOverrides class to provide helper functions for MongoDB operations"""
 
     ## PipelineHistory
     @staticmethod
@@ -348,7 +348,7 @@ class MongoHelper:
         """
         for key, value in updates.items():
             if isinstance(value, dict):
-                config[key] = MongoHelper.apply_overrides(config.get(key, {}), value)
+                config[key] = ConfigOverrides.apply_overrides(config.get(key, {}), value)
             else:
                 config[key] = value
         return config

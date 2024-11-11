@@ -16,7 +16,7 @@ from ruamel.yaml import YAMLError
 import util.constant as const
 from util.container import (DockerManager)
 from util.model import (SessionDetail, PipelineConfig, ValidatedStage, PipelineInfo, PipelineHist)
-from util.common_utils import (get_logger, MongoHelper, DryRun, PrintMessage)
+from util.common_utils import (get_logger, ConfigOverrides, DryRun, PrintMessage)
 from util.repo_manager import (RepoManager)
 from util.db_mongo import (MongoAdapter)
 from util.yaml_parser import YamlParser
@@ -294,7 +294,7 @@ class Controller:
         if not pipeline_config:
             click.echo(f"No pipeline config found for '{pipeline_name}'.")
             return False
-        updated_config = MongoHelper.apply_overrides(pipeline_config, overrides)
+        updated_config = ConfigOverrides.apply_overrides(pipeline_config, overrides)
         # validate the updated pipeline configuration
 
         validation_res = self.config_checker.validate_config(pipeline_name,

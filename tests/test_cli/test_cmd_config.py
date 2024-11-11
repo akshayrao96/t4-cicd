@@ -126,7 +126,7 @@ def test_config_check_with_invalid_file():
 #     # result.output will have newline ending, need to strip it
 
 @patch("cli.cmd_config.Controller.override_config", return_value=True)
-@patch("cli.cmd_config.MongoHelper.build_nested_dict", return_value={"global": {"docker": {"image": "gradle:jdk8"}}})
+@patch("cli.cmd_config.ConfigOverrides.build_nested_dict", return_value={"global": {"docker": {"image": "gradle:jdk8"}}})
 def test_override_save_to_db(mock_build_nested_dict, mock_override_config):
     """ Test override command with confirmation to save changes to the database """
     runner = CliRunner()
@@ -141,7 +141,7 @@ def test_override_save_to_db(mock_build_nested_dict, mock_override_config):
     mock_override_config.assert_called_once_with('test_pipeline', {"global": {"docker": {"image": "gradle:jdk8"}}})
 
 @patch("cli.cmd_config.Controller.override_config", return_value=True)
-@patch("cli.cmd_config.MongoHelper.build_nested_dict", return_value={"global": {"docker": {"image": "gradle:jdk8"}}})
+@patch("cli.cmd_config.ConfigOverrides.build_nested_dict", return_value={"global": {"docker": {"image": "gradle:jdk8"}}})
 def test_override_decline_save_to_db(mock_build_nested_dict, mock_override_config):
     """ Test override command without saving changes to the database """
     runner = CliRunner()
@@ -155,7 +155,7 @@ def test_override_decline_save_to_db(mock_build_nested_dict, mock_override_confi
     mock_build_nested_dict.assert_called_once_with(('global.docker.image=gradle:jdk8',))
     mock_override_config.assert_not_called()
 
-@patch("cli.cmd_config.MongoHelper.build_nested_dict", side_effect=ValueError("Invalid override format"))
+@patch("cli.cmd_config.ConfigOverrides.build_nested_dict", side_effect=ValueError("Invalid override format"))
 def test_override_value_error(mock_build_nested_dict):
     """ Test override command when a ValueError is raised """
     runner = CliRunner()
@@ -169,7 +169,7 @@ def test_override_value_error(mock_build_nested_dict):
     mock_build_nested_dict.assert_called_once_with(('invalid_override_format',))
 
 @patch("cli.cmd_config.Controller.override_config", return_value=False)
-@patch("cli.cmd_config.MongoHelper.build_nested_dict", return_value={"global": {"docker": {"image": "gradle:jdk8"}}})
+@patch("cli.cmd_config.ConfigOverrides.build_nested_dict", return_value={"global": {"docker": {"image": "gradle:jdk8"}}})
 def test_override_save_to_db_failure(mock_build_nested_dict, mock_override_config):
     """ Test override command when the save to database fails """
     runner = CliRunner()

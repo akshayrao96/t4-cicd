@@ -6,7 +6,7 @@ import time
 import bson
 from bson import ObjectId
 from pymongo import (MongoClient, errors)
-from util.common_utils import (get_env, get_logger, MongoHelper)
+from util.common_utils import (get_env, get_logger, ConfigOverrides)
 from util.model import (PipelineInfo)
 
 env = get_env()
@@ -642,12 +642,12 @@ class MongoAdapter:
             list: A list of dictionaries, where each dictionary contains data for a 
                     pipeline run that matches the filters.
         """
-        match_filter = MongoHelper.build_match_filter(repo_url, pipeline_name)
-        aggregation_pipeline = MongoHelper.build_aggregation_pipeline(
+        match_filter = ConfigOverrides.build_match_filter(repo_url, pipeline_name)
+        aggregation_pipeline = ConfigOverrides.build_aggregation_pipeline(
             match_filter, pipeline_name=pipeline_name, stage_name=stage_name, 
             job_name=job_name, run_number=run_number
         )
-        projection_fields = MongoHelper.build_projection(stage_name, job_name)
+        projection_fields = ConfigOverrides.build_projection(stage_name, job_name)
         aggregation_pipeline.append({"$project": projection_fields})
         aggregation_pipeline.append({"$sort": {"job_details.run_number": -1}})
 

@@ -150,7 +150,7 @@ class TestOverrideConfig(unittest.TestCase):
         "controller.controller.ConfigChecker.validate_config"
     )
     @patch(
-        "controller.controller.MongoHelper.apply_overrides",
+        "controller.controller.ConfigOverrides.apply_overrides",
         return_value={"updated_config": "value"}
     )
     @patch("controller.controller.MongoAdapter")
@@ -184,7 +184,7 @@ class TestOverrideConfig(unittest.TestCase):
     @patch("controller.controller.click.echo")
     @patch("controller.controller.ConfigChecker.validate_config")
     @patch(
-        "controller.controller.MongoHelper.apply_overrides",
+        "controller.controller.ConfigOverrides.apply_overrides",
         return_value={"updated_config": "value"}
     )
     @patch("controller.controller.MongoAdapter")
@@ -205,7 +205,7 @@ class TestOverrideConfig(unittest.TestCase):
     @patch("controller.controller.click.echo")
     @patch("controller.controller.ConfigChecker.validate_config")
     @patch(
-        "controller.controller.MongoHelper.apply_overrides",
+        "controller.controller.ConfigOverrides.apply_overrides",
         return_value={"updated_config": "value"}
     )
     @patch("controller.controller.MongoAdapter")
