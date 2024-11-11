@@ -248,7 +248,6 @@ class MongoAdapter:
             logger.info(f"Initialized stages: {', '.join(pending_stages)}")
 
             job_data = {
-                #"pipeline_number": bson.ObjectId(),
                 "pipeline_name": pipeline_info.pipeline_name,
                 "run_number": len(pipeline_info.job_run_history) + 1,
                 "git_commit_hash": pipeline_info.last_commit_hash,
@@ -433,62 +432,57 @@ class MongoAdapter:
                 'repo_name': repo_name,
                 'repo_url': repo_url,
                 'branch': branch,
-                'pipelines.pipeline_name': pipeline_name
             }
             projection = {
                 "_id": 1,
-                "pipelines": {
-                    "$elemMatch": {"pipeline_name": pipeline_name}
-                }
+                f"pipelines.{pipeline_name}.pipeline_config": 1
             }
             mongo_client = MongoClient(self.mongo_uri)
             database = mongo_client[MONGO_DB_NAME]
             collection = database[MONGO_PIPELINES_TABLE]
             pipeline_document = collection.find_one(query_filter, projection)
             mongo_client.close()
-            if pipeline_document and "pipelines" in pipeline_document:
-                # Flatten the result to directly access pipeline_config
-                pipeline_document["pipeline_config"] = pipeline_document["pipelines"][0].get("pipeline_config") # pylint: disable=line-too-long
-                del pipeline_document["pipelines"]
-                return pipeline_document
-            logger.warning(
-                f"No pipeline config found for '{pipeline_name}' "
-                f"in '{repo_name}' on branch '{branch}'."
-            )
-            return {}
+            if pipeline_document:
+                pipeline_config = pipeline_document["pipelines"][pipeline_name]["pipeline_config"]
+                return {"_id": pipeline_document["_id"], "pipeline_config": pipeline_config}
+            else:
+                return {}
         except errors.PyMongoError as e:
             logger.warning(f"Error retrieving pipeline config: {str(e)}")
             return {}
 
-    # TODO - Improve on this method
     def get_pipeline_history(self, repo_name: str, repo_url: str,
                             branch: str, pipeline_name: str) -> dict:
-        """Retrieve the pipeline history based on the given args.
+        """Retrieve a specific pipeline's history in a flat structure.
+
+        Args:
+            repo_name (str): Repository name.
+            repo_url (str): Repository URL.
+            branch (str): Repository branch.
+            pipeline_name (str): Name of the pipeline.
 
         Returns:
-            dict: the _id and pipeline_config fields.
+            dict: Pipeline history data. Empty dict if not found.
         """
         try:
             query_filter = {
                 'repo_name': repo_name,
                 'repo_url': repo_url,
                 'branch': branch,
-                'pipelines.pipeline_name': pipeline_name
             }
             projection = {
                 "_id": 1,
-                "pipelines": {
-                    "$elemMatch": {"pipeline_name": pipeline_name}
-                }
+                f"pipelines.{pipeline_name}": 1
             }
             mongo_client = MongoClient(self.mongo_uri)
             database = mongo_client[MONGO_DB_NAME]
             collection = database[MONGO_PIPELINES_TABLE]
             pipeline_document = collection.find_one(query_filter, projection)
             mongo_client.close()
-            if pipeline_document and "pipelines" in pipeline_document:
-                # return first found record directly
-                return pipeline_document["pipelines"][0]
+            if pipeline_document:
+                pipeline_data = pipeline_document["pipelines"].get(pipeline_name, {})
+                pipeline_data["pipeline_name"] = pipeline_name
+                return pipeline_data
             logger.warning(
                 f"No pipeline config found for '{pipeline_name}' "
                 f"in '{repo_name}' for url {repo_url} on branch '{branch}'."
@@ -522,12 +516,10 @@ class MongoAdapter:
                 'repo_name': repo_name,
                 'repo_url': repo_url,
                 'branch': branch,
-                'pipelines.pipeline_name': pipeline_name
             }
-
             update_operation = {
                 '$set': {
-                    'pipelines.$.pipeline_config': pipeline_config
+                    f'pipelines.{pipeline_name}.pipeline_config': pipeline_config
                 }
             }
             mongo_client = MongoClient(self.mongo_uri)
@@ -564,13 +556,9 @@ class MongoAdapter:
                 'repo_name': repo_name,
                 'repo_url': repo_url,
                 'branch': branch,
-                'pipelines.pipeline_name': pipeline_name
             }
 
-            update_dict = {}
-            for key, value in updates.items():
-                new_key = 'pipelines.$.' + key
-                update_dict[new_key] = value
+            update_dict = {f'pipelines.{pipeline_name}.{key}': value for key, value in updates.items()}
             logger.debug(update_dict)
             update_operation = {
                 '$set': update_dict
@@ -610,12 +598,10 @@ class MongoAdapter:
         except errors.PyMongoError:
             return {}
 
-    def create_pipeline_document(self, pipeline_name: str,
-                                 file_name: str, pipeline_config: dict) -> dict:
+    def create_pipeline_document(self, file_name: str, pipeline_config: dict) -> dict:
         """Generate a new pipeline document for insertion into pipelines.
 
         Args:
-            pipeline_name (str): The name of the pipeline.
             file_name (str): The name of the YAML file for the pipeline.
             pipeline_config (dict): The pipeline configuration details.
 
@@ -623,7 +609,6 @@ class MongoAdapter:
             dict: A dictionary representing the new pipeline document.
         """
         return {
-            "pipeline_name": pipeline_name,
             "pipeline_file_name": file_name,
             "pipeline_config": pipeline_config,
             "job_run_history": [],

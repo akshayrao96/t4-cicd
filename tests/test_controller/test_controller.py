@@ -69,7 +69,7 @@ class TestController(unittest.TestCase):
         mock_get_repo.return_value = {
             "_id": "existing_repo_id",
             "repo_name": "sample-repo",
-            "pipelines": []
+            "pipelines": {}
         }
         mock_update_pipeline.return_value = True
         status, error_msg, config = controller.validate_n_save_config("/path/to/file.yml")
