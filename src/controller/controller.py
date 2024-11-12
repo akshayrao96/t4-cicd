@@ -645,17 +645,25 @@ class Controller:
                 else:
                     job_history = self.mongo_ds.get_pipeline_run_summary(repo_url, pipeline_name)
 
+                
+                #validation, if job_history is empty from get_pipeline_run_summary(),
+                # this means no data found in DB
+                #TODO: see how to handle the exception in KeyEror
+                if job_history == []:
+                    is_success = False
+                    err_msg = f"There is no job history for pipeline '{pipeline_name}' in {repo_url}!\n"
+                    err_msg += "please ensure that the pipeline_name or repo are valid."
+                    err_msg += "Please run `cid pipeline run` if no reports found"
+                    return is_success, err_msg
                 for job in job_history:
                     message = PrintMessage(job)
                     output_msg += message.print(['pipeline_name', 'run_number', 'git_commit_hash',
                                             'start_time', 'completion_time'])
-
         except KeyError as ke:
             err_msg = f"There is no job history for pipeline '{pipeline_name}' in {repo_url}!\n"
             err_msg += "please ensure that the pipeline_name or repo are valid."
             err_msg += "Please run `cid pipeline run` if no reports found"
             self.logger.warning(f"Key Error in pipeline_history: {ke}")
-
             is_success = False
             return is_success, err_msg
         except IndexError as ie:
