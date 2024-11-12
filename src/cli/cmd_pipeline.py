@@ -144,7 +144,7 @@ def log(tail:str, repo:str):
 @click.pass_context
 @click.option('-r', '--repo', 'repo_url', default='./', help='url of the repository (https://)')
 @click.option('--local', 'local', help='retrieve local pipeline history', is_flag=True)
-@click.option('--pipeline', 'pipeline_name', default='cicd_pipeline',
+@click.option('--pipeline', 'pipeline_name', default='all',
               help='pipeline name to get the history')
 @click.option('-b', '--branch', 'branch', default='main',
               help="branch name of the repository; default is 'main'")
@@ -154,8 +154,8 @@ default stages options: [build, test, doc, deploy]')
 @click.option('-r', '--run', 'run_number', default=None, help='run number to get the report')
 def report(ctx, repo_url:str, local:bool, pipeline_name:str, branch:str, stage:str,
            job:str, run_number:str):
-    """Report pipeline provides user to retrieve the pipeline history.
-    \f 
+    """Report pipeline provides user to retrieve the pipeline history. \f 
+
     Args:
         ctx (_type_): _description_
         repo_url (str): _description_
@@ -169,12 +169,7 @@ def report(ctx, repo_url:str, local:bool, pipeline_name:str, branch:str, stage:s
     ctrl = Controller()
     pipeline_model = {}
     #TODO: Step 1. get_repo to retrieve repo_name, repo_url, branch
-    # repo_data = ctrl.get_repo()
-    
-    ### TBD - current placehoder ###
-    #repo_name = "cicd-python"
-    #branch = "main"
-    #pipeline_name #from user input
+    #TODO: validate if --run is specified, --pipeline needs to exist
 
     pipeline_model['pipeline_name'] = pipeline_name
 
@@ -192,20 +187,18 @@ def report(ctx, repo_url:str, local:bool, pipeline_name:str, branch:str, stage:s
     pipeline_model['run'] = run_number
     pipeline_model['is_remote'] = local
 
-    # if flag not given,
-    #    'stage' default to 'all'
-    #    'run' default to '1' #or can be latest
-    #TODO: recheck if model_validate is necessary to do here or can be moved to controller
     try:
         pipeline_model = PipelineHist.model_validate(pipeline_model)
     except ValidationError as ve:
         errors = json.loads(ve.json())
         missing_locs = [error["loc"] for error in errors if error["type"] == "missing"]
         click.secho("Error in getting the pipeline report.", fg="red")
+        click.secho("please ensure '--repo <url> --pipeline <pipeline_name>' is present",
+                    fg="red")
         click.secho(f"missing required keys: {missing_locs}", fg="red")
         sys.exit(2)
 
-    #TODO: L4.2.Show pipeline run summary
+    # L4.2.Show pipeline run summary
     # xx report --repo https://github.com/company/project --pipeline code-review --run 2
     # show summary without specifying the stage. We can use the method and parse the stage summary
 

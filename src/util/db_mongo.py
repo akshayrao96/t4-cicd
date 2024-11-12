@@ -625,7 +625,7 @@ class MongoAdapter:
         }
 
     def get_pipeline_run_summary(
-        self, repo_url: str, pipeline_name: str = None, stage_name: str = None, 
+        self, repo_url: str, pipeline_name: str = None, stage_name: str = None,
         job_name: str = None, run_number: int = None) -> list:
         """
         Retrieves pipeline run data with optional filters for pipelines, stages, jobs, 
@@ -644,7 +644,7 @@ class MongoAdapter:
         """
         match_filter = ConfigOverrides.build_match_filter(repo_url, pipeline_name)
         aggregation_pipeline = ConfigOverrides.build_aggregation_pipeline(
-            match_filter, pipeline_name=pipeline_name, stage_name=stage_name, 
+            match_filter, pipeline_name=pipeline_name, stage_name=stage_name,
             job_name=job_name, run_number=run_number
         )
         projection_fields = ConfigOverrides.build_projection(stage_name, job_name)

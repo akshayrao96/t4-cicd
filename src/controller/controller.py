@@ -617,21 +617,39 @@ class Controller:
         pipeline_dict = pipeline_details.model_dump()
         pipeline_name = pipeline_dict['pipeline_name']
         repo_url = pipeline_dict['repo_url']
-        # print(f"pipeline_dict = {pipeline_dict}")
-        history = self.mongo_ds.get_pipeline_history(pipeline_dict['repo_name'],
-            repo_url, pipeline_dict['branch'],
-            pipeline_name)
-
-        #get the last run if 'run' not specified.
-
-        # pipeline name
-        # run number #TODO get from jobs_history
-        # status #TODO get from jobs_history
-        # start time
-        # completion time
+        run_number = pipeline_dict['run']
+        output_msg = ""
         try:
-            run_number = int(pipeline_dict['run'] or len(history['job_run_history'])) - 1
-            job_history = self.mongo_ds.get_job(history['job_run_history'][run_number])
+            #(L4.2) cid pipeline report --repo <repo> --pipeline <pipeline> --run <number>
+            if pipeline_dict['run']: # --run is specified
+
+                #TODO: refactor code to use the `get_pipeline_run_summary()` method
+                history = self.mongo_ds.get_pipeline_history(pipeline_dict['repo_name'],
+                repo_url, pipeline_dict['branch'], pipeline_name)
+                #history = self.mongo_ds.get_pipeline_run_summary(repo_url, pipeline_name,
+                #                                                 run_number=run_number)
+                run_number = int(pipeline_dict['run']) - 1
+                job_history = self.mongo_ds.get_job(history['job_run_history'][run_number])
+                
+                message = PrintMessage(job_history)
+                output_msg = message.print(['pipeline_name', 'run_number', 'git_commit_hash',
+                                        'start_time', 'completion_time'])
+                output_msg += message.print_log_status()
+            else:
+                #L4.1. cid pipeline report --repo <repo> | get all pipelines report
+                #--run flag is not specified, so list out the pipeline reports.
+                #by default, "all" will return the history of all pipeline_name.
+                #TODO: add --local flag seen in 4.1.2
+                if pipeline_name == "all": #run all job_history
+                    job_history = self.mongo_ds.get_pipeline_run_summary(repo_url)
+                else:
+                    job_history = self.mongo_ds.get_pipeline_run_summary(repo_url, pipeline_name)
+
+                for job in job_history:
+                    message = PrintMessage(job)
+                    output_msg += message.print(['pipeline_name', 'run_number', 'git_commit_hash',
+                                            'start_time', 'completion_time'])
+
         except KeyError as ke:
             err_msg = f"There is no job history for pipeline '{pipeline_name}' in {repo_url}!\n"
             err_msg += "please ensure that the pipeline_name or repo are valid."
@@ -646,10 +664,6 @@ class Controller:
             err_msg = f"run_number: {pipeline_dict['run']} does not exist!\n"
             err_msg += f"do you mean --run {len(history['job_run_history'])}?"
             return is_success, err_msg
-
-        message = PrintMessage(job_history)
-        output_msg = message.print(['pipeline_name', 'run_number'])
-        output_msg += message.print_log_status()
 
         is_success = True
         return is_success, output_msg

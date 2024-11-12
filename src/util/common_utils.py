@@ -546,7 +546,9 @@ class PrintMessage:
             filtered_dict = {key: self._get_nested_value(self.msg_dict, key) for key in keys}
 
         # Plain text formatting
-        return "\n".join([f"{key:<15}: {value}" for key, value in filtered_dict.items()])
+        message = "\n".join([f"{key:<15}: {value}" for key, value in filtered_dict.items()])
+        message += "\n"
+        return message
 
     def print_log_status(self) -> str:
         """print method for outputting the job status for each stages
@@ -556,16 +558,19 @@ class PrintMessage:
         """
         logs = self.msg_dict['logs']
         output_logs = ""
-            
-        for stage in logs:
-            stage_name = stage['stage_name']
-            output_logs += f"\nstage: {stage_name}"
-            for job_name, job_info in stage['jobs'].items():
-                start_time = job_info['start_time']
-                completion_time = job_info['completion_time']
-                job_status = job_info['job_status']
-                output_logs += f"\n  Job: {job_name}\n"
-                output_logs += f"    job_status       : {job_status}\n"
-                output_logs += f"    start_time       : {start_time}\n"
-                output_logs += f"    completion_time  : {completion_time}\n"
+        try:
+            for stage in logs:
+                stage_name = stage['stage_name']
+                output_logs += f"\nstage: {stage_name}"
+                for job_name, job_info in stage['jobs'].items():
+                    start_time = job_info['start_time']
+                    completion_time = job_info['completion_time']
+                    job_status = job_info['job_status']
+                    output_logs += f"\n  Job: {job_name}\n"
+                    output_logs += f"    job_status       : {job_status}\n"
+                    output_logs += f"    start_time       : {start_time}\n"
+                    output_logs += f"    completion_time  : {completion_time}\n"
+        except AttributeError:
+            output_logs += "\n  [no logs available. jobs are empty]"
+
         return output_logs
