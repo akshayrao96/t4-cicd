@@ -4,7 +4,7 @@ Note we cant use constant when defining the field here
 """
 import time
 from collections import OrderedDict
-from typing import Optional
+from typing import (Optional, Union)
 from pydantic import (BaseModel, Field, field_validator)
 import util.constant as c
 
@@ -71,7 +71,7 @@ class SessionDetail(BaseModel):
     time:Optional[str] = time.asctime()
 
 class GlobalConfig(BaseModel):
-    """ class to hold information for a global section
+    """ class to hold information for a validated global section
 
     Args:
         BaseModel (BaseModel): Base Pydantic Class
@@ -99,8 +99,19 @@ class PipelineConfig(BaseModel):
     stages : OrderedDict
     jobs:dict
 
+class RawPipelineInfo(BaseModel):
+    """ class to hold information for a single pipeline 
+    before pipeline config validations
+    
+    Args:
+        BaseModel (BaseModel): Base Pydantic Class
+    """
+    pipeline_name: str
+    pipeline_file_name: str
+    pipeline_config: dict
+
 class PipelineInfo(BaseModel):
-    """ class to hold information for a single pipeline history
+    """ class to hold information for a single pipeline 
     Args:
         BaseModel (BaseModel): Base Pydantic Class
     """
@@ -110,7 +121,7 @@ class PipelineInfo(BaseModel):
     job_run_history: Optional[list] = []
     active: Optional[bool] = False
     running: Optional[bool] = False
-    last_commit_hash: str
+    last_commit_hash: Optional[str] = ""
 
     @field_validator("job_run_history")
     @classmethod
@@ -126,3 +137,28 @@ class PipelineInfo(BaseModel):
             list: existing list or new list
         """
         return job_run_history or []
+
+class PipelineHist(BaseModel):
+    """class to hold data to retrieve pipeline history
+
+    Args:
+        BaseModel (BaseModel): Base Pydantic Class
+    """
+    repo_name:str
+    repo_url:str
+    pipeline_name: str
+    branch: Optional[str] = "main"
+    stage: Optional[str] = "all"
+    job: Optional[str] = "all"
+    run: Optional[str] = None
+    is_remote: Optional[bool] = False
+    # commit_hash: Optional[str] = ""
+
+class ValidationResult(BaseModel):
+    """ class to hold validation result for a single pipeline 
+    Args:
+        BaseModel (BaseModel): Base Pydantic Class
+    """
+    valid: bool
+    error_msg: str
+    pipeline_config: Union[PipelineConfig, dict]

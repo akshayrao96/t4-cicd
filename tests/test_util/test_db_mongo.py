@@ -268,7 +268,11 @@ class TestMongoDB(unittest.TestCase):
         # Success case
         collection.find_one.return_value = {
             "_id": "12345",
-            "pipelines": [{"pipeline_name": "test_pipeline", "pipeline_config": {"key": "value"}}]
+            "pipelines": {
+                "test_pipeline": {
+                    "pipeline_config": {"key": "value"}
+                }
+            }
         }
         result = mongo_adapter.get_pipeline_config(
             repo_name="test_repo",
@@ -345,7 +349,7 @@ class TestMongoDB(unittest.TestCase):
             "repo_name": "sample-repo",
             "repo_url": "https://github.com/sample-user/sample-repo",
             "branch": "main",
-            "pipelines": []
+            "pipelines": {}
         }
         mock_get_repo.return_value = expected_repo
         mongo_adapter = MongoAdapter()
@@ -377,11 +381,10 @@ class TestMongoDB(unittest.TestCase):
         file_name = "test_pipeline.yml"
         pipeline_config = {"global": {"pipeline_name": "test_pipeline"}}
 
-        result = mongo_adapter.create_pipeline_document(pipeline_name, file_name, pipeline_config)
+        result = mongo_adapter.create_pipeline_document(file_name, pipeline_config)
 
         # Check the structure of the created document
         expected_document = {
-            "pipeline_name": pipeline_name,
             "pipeline_file_name": file_name,
             "pipeline_config": pipeline_config,
             "job_run_history": [],
