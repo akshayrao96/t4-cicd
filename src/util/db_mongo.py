@@ -2,9 +2,11 @@
 """
 import copy
 from datetime import datetime, timezone
+import time
 import bson
+from bson import ObjectId
 from pymongo import (MongoClient, errors)
-from util.common_utils import (get_env, get_logger)
+from util.common_utils import (get_env, get_logger, ConfigOverrides)
 from util.model import (PipelineInfo)
 
 env = get_env()
@@ -252,7 +254,9 @@ class MongoAdapter:
                 "run_number": len(pipeline_info.job_run_history) + 1,
                 "git_commit_hash": pipeline_info.last_commit_hash,
                 "pipeline_config_used": pipeline_config,
-                "success": None,
+                "status": None,
+                "start_time": time.asctime(),
+                "completion_time": "",
                 "logs": stage_logs
             }
             return self._insert(job_data, MONGO_DB_NAME, MONGO_JOBS_TABLE)
@@ -491,7 +495,10 @@ class MongoAdapter:
         except errors.PyMongoError as e:
             logger.warning(f"Error retrieving pipeline config: {str(e)}")
             return {}
-
+        except AttributeError as attr:
+            logger.warning(f"pipelines: {pipeline_document} is empty. Error: {str(attr)}")
+            print(f"pipelines: {pipeline_document} is empty.\nError: {str(attr)}")
+            return {}
     def update_pipeline_config(
             self,
             repo_name: str,
@@ -616,3 +623,43 @@ class MongoAdapter:
             "running": False,
             "last_commit_hash": ""
         }
+
+    def get_pipeline_run_summary(
+        self, repo_url: str, pipeline_name: str = None, stage_name: str = None,
+        job_name: str = None, run_number: int = None) -> list:
+        """
+        Retrieves pipeline run data with optional filters for pipelines, stages, jobs, 
+        and run numbers.
+
+        Args:
+            repo_url (str): Repository URL.
+            pipeline_name (str, optional): Pipeline name filter.
+            stage_name (str, optional): Stage name filter.
+            job_name (str, optional): Job name filter.
+            run_number (int, optional): Run number filter.
+
+        Returns:
+            list: A list of dictionaries, where each dictionary contains data for a 
+                    pipeline run that matches the filters.
+        """
+        match_filter = ConfigOverrides.build_match_filter(repo_url, pipeline_name)
+        aggregation_pipeline = ConfigOverrides.build_aggregation_pipeline(
+            match_filter, pipeline_name=pipeline_name, stage_name=stage_name,
+            job_name=job_name, run_number=run_number
+        )
+        projection_fields = ConfigOverrides.build_projection(stage_name, job_name)
+        aggregation_pipeline.append({"$project": projection_fields})
+        aggregation_pipeline.append({"$sort": {"job_details.run_number": -1}})
+
+        try:
+            mongo_client = MongoClient(self.mongo_uri)
+            database = mongo_client[MONGO_DB_NAME]
+            repo_collection = database[MONGO_PIPELINES_TABLE]
+            result = list(repo_collection.aggregate(aggregation_pipeline))
+            mongo_client.close()
+            return result
+
+        except errors.PyMongoError as e:
+            logger.error(f"Error retrieving pipeline runs with job details for \
+                         repo {repo_url}: {e}")
+            return []

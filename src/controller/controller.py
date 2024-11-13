@@ -7,15 +7,16 @@
 from datetime import datetime
 import copy
 import os
+import time
 #import pprint
 import click
-import git.exc
+#import git.exc
 from pydantic import ValidationError
 from ruamel.yaml import YAMLError
 import util.constant as const
 from util.container import (DockerManager)
-from util.model import (SessionDetail, PipelineConfig, ValidatedStage, PipelineInfo)
-from util.common_utils import (get_logger, ConfigOverrides, DryRun)
+from util.model import (SessionDetail, PipelineConfig, ValidatedStage, PipelineInfo, PipelineHist)
+from util.common_utils import (get_logger, ConfigOverrides, DryRun, PrintMessage)
 from util.repo_manager import (RepoManager)
 from util.db_mongo import (MongoAdapter)
 from util.yaml_parser import YamlParser
@@ -62,7 +63,8 @@ class Controller:
 
         in_git_repo, repo_name = self.repo_manager.is_current_repo()
         if in_git_repo:
-            return False, f"You are currently in a Git repository: '{repo_name}'. Please navigate to an empty directory."
+            return False, f"You are currently in a Git repository: '{repo_name}'.\
+                Please navigate to an empty directory."
 
         is_valid, message, repo_details = self.repo_manager.set_repo(
             repo_url, branch, commit_hash)
@@ -180,20 +182,19 @@ class Controller:
         # If validation passes, save to datastore
         if status:
             pipeline_name = resp_pipeline_config['global'].get('pipeline_name')
+            #TODO: replace stubs
             repo_data = self.mongo_ds.get_repo(
                 "sample-repo", "https://github.com/sample-user/sample-repo", "main"
             )
             # Case 1: No Repo Exists - Create New Repo with Pipeline
+            #TODO: replace stubs
             if not repo_data:
                 new_repo_data = {
                     "repo_name": "sample-repo",
                     "repo_url": "https://github.com/sample-user/sample-repo",
                     "branch": "main",
-                    "pipelines": {
-                        pipeline_name: self.mongo_ds.create_pipeline_document(
-                            file_name, resp_pipeline_config
-                        )
-                    }
+                    "pipelines":
+                        self.mongo_ds.create_pipeline_document(file_name, resp_pipeline_config)
                 }
                 repo_id = self.mongo_ds.insert_repo(
                     new_repo_data, collection_name=MONGO_PIPELINES_TABLE
@@ -343,6 +344,7 @@ class Controller:
                 bool: status
                 str: message
         """
+
         ## TODO: Step 1 integrate with get and set repo
         status = True
         message = None
@@ -535,7 +537,8 @@ class Controller:
         # Wrap up and return
         docker_manager.remove_vol()
         run_update = {
-            "success":pipeline_status
+            "status":pipeline_status,
+            "completion_time": time.asctime()
         }
         self.mongo_ds.update_job(job_id, run_update)
         final_updates = {
@@ -599,3 +602,76 @@ class Controller:
             dry_run_msg = yaml_output_msg
 
         return True, dry_run_msg
+
+    def pipeline_history(self, pipeline_details: PipelineHist) -> tuple[bool, str]:
+        """pipeline history provides user to retrieve the past pipeline runs
+
+        Args:
+            pipeline_details (PipelineHist): pydantic models that contains \
+                user input to query pipeline history to database.
+
+        Returns:
+            dict: 
+                "is_success": boolean if 
+        """
+        pipeline_dict = pipeline_details.model_dump()
+        pipeline_name = pipeline_dict['pipeline_name']
+        repo_url = pipeline_dict['repo_url']
+        run_number = pipeline_dict['run']
+        output_msg = ""
+        try:
+            #(L4.2) cid pipeline report --repo <repo> --pipeline <pipeline> --run <number>
+            if pipeline_dict['run']: # --run is specified
+
+                #TODO: refactor code to use the `get_pipeline_run_summary()` method
+                history = self.mongo_ds.get_pipeline_history(pipeline_dict['repo_name'],
+                repo_url, pipeline_dict['branch'], pipeline_name)
+                #history = self.mongo_ds.get_pipeline_run_summary(repo_url, pipeline_name,
+                #                                                 run_number=run_number)
+                run_number = int(pipeline_dict['run']) - 1
+                job_history = self.mongo_ds.get_job(history['job_run_history'][run_number])
+                
+                message = PrintMessage(job_history)
+                output_msg = message.print(['pipeline_name', 'run_number', 'git_commit_hash',
+                                        'start_time', 'completion_time'])
+                output_msg += message.print_log_status()
+            else:
+                #L4.1. cid pipeline report --repo <repo> | get all pipelines report
+                #--run flag is not specified, so list out the pipeline reports.
+                #by default, "all" will return the history of all pipeline_name.
+                #TODO: add --local flag seen in 4.1.2
+                if pipeline_name == "all": #run all job_history
+                    job_history = self.mongo_ds.get_pipeline_run_summary(repo_url)
+                else:
+                    job_history = self.mongo_ds.get_pipeline_run_summary(repo_url, pipeline_name)
+
+                
+                #validation, if job_history is empty from get_pipeline_run_summary(),
+                # this means no data found in DB
+                #TODO: see how to handle the exception in KeyEror
+                if job_history == []:
+                    is_success = False
+                    err_msg = f"There is no job history for pipeline '{pipeline_name}' in {repo_url}!\n"
+                    err_msg += "please ensure that the pipeline_name or repo are valid."
+                    err_msg += "Please run `cid pipeline run` if no reports found"
+                    return is_success, err_msg
+                for job in job_history:
+                    message = PrintMessage(job)
+                    output_msg += message.print(['pipeline_name', 'run_number', 'git_commit_hash',
+                                            'start_time', 'completion_time'])
+        except KeyError as ke:
+            err_msg = f"There is no job history for pipeline '{pipeline_name}' in {repo_url}!\n"
+            err_msg += "please ensure that the pipeline_name or repo are valid."
+            err_msg += "Please run `cid pipeline run` if no reports found"
+            self.logger.warning(f"Key Error in pipeline_history: {ke}")
+            is_success = False
+            return is_success, err_msg
+        except IndexError as ie:
+            self.logger.warning(f"job_number is out of bound. error: {ie}")
+            is_success = False
+            err_msg = f"run_number: {pipeline_dict['run']} does not exist!\n"
+            err_msg += f"do you mean --run {len(history['job_run_history'])}?"
+            return is_success, err_msg
+
+        is_success = True
+        return is_success, output_msg

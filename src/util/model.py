@@ -138,6 +138,22 @@ class PipelineInfo(BaseModel):
         """
         return job_run_history or []
 
+class PipelineHist(BaseModel):
+    """class to hold data to retrieve pipeline history
+
+    Args:
+        BaseModel (BaseModel): Base Pydantic Class
+    """
+    repo_name:str
+    repo_url:str
+    pipeline_name: str
+    branch: Optional[str] = "main"
+    stage: Optional[str] = "all"
+    job: Optional[str] = "all"
+    run: Optional[str] = None
+    is_remote: Optional[bool] = False
+    # commit_hash: Optional[str] = ""
+
 class ValidationResult(BaseModel):
     """ class to hold validation result for a single pipeline 
     Args:

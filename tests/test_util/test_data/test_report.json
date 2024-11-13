@@ -1,0 +1,237 @@
+[{
+  "_id": {
+    "$oid": "673139d61c77e7e99afd88ce"
+  },
+  "repo_name": "cicd-python",
+  "repo_url": "https://github.com/sjchin88/cicd-python",
+  "branch": "main",
+  "pipelines": {
+    "cicd_pipeline": {
+      "pipeline_file_name": "pipelines.yml",
+      "pipeline_config": {
+        "global": {
+          "pipeline_name": "cicd_pipeline",
+          "artifact_upload_path": "/temp",
+          "docker": {
+            "registry": "dockerhub",
+            "image": "sjchin88/python-git-poetry:latest"
+          }
+        },
+        "stages": {
+          "build": {
+            "job_graph": {
+              "checkout": [
+                "compile"
+              ],
+              "compile": []
+            },
+            "job_groups": [
+              [
+                "checkout",
+                "compile"
+              ]
+            ]
+          },
+          "test": {
+            "job_graph": {
+              "pylint": [],
+              "pytest": []
+            },
+            "job_groups": [
+              [
+                "pylint"
+              ],
+              [
+                "pytest"
+              ]
+            ]
+          }
+        },
+        "jobs": {
+          "checkout": {
+            "stage": "build",
+            "allow_failure": false,
+            "needs": [],
+            "artifact_upload_path": "/temp",
+            "scripts": [
+              "git clone https://github.com/sjchin88/cicd-python",
+              "cd cicd-python",
+              "ls -la"
+            ],
+            "docker": {
+              "registry": "dockerhub",
+              "image": "sjchin88/python-git-poetry:latest"
+            }
+          },
+          "compile": {
+            "stage": "build",
+            "allow_failure": false,
+            "needs": [
+              "checkout"
+            ],
+            "artifact_upload_path": "/temp",
+            "scripts": [
+              "cd cicd-python",
+              "poetry run pytest"
+            ],
+            "docker": {
+              "registry": "dockerhub",
+              "image": "sjchin88/python-git-poetry:latest"
+            }
+          },
+          "pytest": {
+            "stage": "test",
+            "allow_failure": false,
+            "needs": [],
+            "artifact_upload_path": "/temp",
+            "scripts": [
+              "cd cicd-python",
+              "poetry run pytest"
+            ],
+            "docker": {
+              "registry": "dockerhub",
+              "image": "sjchin88/python-git-poetry:latest"
+            },
+            "artifacts": {
+              "on_success_only": false,
+              "paths": [
+                "cicd-python/htmlcov"
+              ]
+            }
+          },
+          "pylint": {
+            "stage": "test",
+            "allow_failure": false,
+            "needs": [],
+            "artifact_upload_path": "/temp",
+            "scripts": [
+              "cd cicd-python",
+              "poetry run pylint ./src --fail-under=9.5"
+            ],
+            "docker": {
+              "registry": "dockerhub",
+              "image": "sjchin88/python-git-poetry:latest"
+            }
+          }
+        }
+      },
+      "job_run_history": [],
+      "active": true,
+      "running": false,
+      "last_commit_hash": "16adc46"
+    },
+    "cicd_pipeline2": {
+      "pipeline_file_name": "pipelines2.yml",
+      "pipeline_config": {
+        "global": {
+          "pipeline_name": "cicd_pipeline2",
+          "artifact_upload_path": "/temp",
+          "docker": {
+            "registry": "dockerhub",
+            "image": "sjchin88/python-git-poetry:latest"
+          }
+        },
+        "stages": {
+          "build": {
+            "job_graph": {
+              "checkout": [
+                "compile"
+              ],
+              "compile": []
+            },
+            "job_groups": [
+              [
+                "checkout",
+                "compile"
+              ]
+            ]
+          },
+          "test": {
+            "job_graph": {
+              "pylint": [],
+              "pytest": []
+            },
+            "job_groups": [
+              [
+                "pylint"
+              ],
+              [
+                "pytest"
+              ]
+            ]
+          }
+        },
+        "jobs": {
+          "checkout": {
+            "stage": "build",
+            "allow_failure": false,
+            "needs": [],
+            "artifact_upload_path": "/temp",
+            "scripts": [
+              "git clone https://github.com/sjchin88/cicd-python ."
+            ],
+            "docker": {
+              "registry": "dockerhub",
+              "image": "sjchin88/python-git-poetry:latest"
+            }
+          },
+          "compile": {
+            "stage": "build",
+            "allow_failure": false,
+            "needs": [
+              "checkout"
+            ],
+            "artifact_upload_path": "/temp",
+            "scripts": [
+              "poetry config virtualenvs.path /app/.cache/pypoetry/virtualenvs",
+              "poetry install"
+            ],
+            "docker": {
+              "registry": "dockerhub",
+              "image": "sjchin88/python-git-poetry:latest"
+            }
+          },
+          "pytest": {
+            "stage": "test",
+            "allow_failure": false,
+            "needs": [],
+            "artifact_upload_path": "/temp",
+            "scripts": [
+              "poetry config virtualenvs.path /app/.cache/pypoetry/virtualenvs",
+              "poetry run pytest",
+              "ls -la"
+            ],
+            "artifacts": {
+              "on_success_only": false,
+              "paths": [
+                "htmlcov"
+              ]
+            },
+            "docker": {
+              "registry": "dockerhub",
+              "image": "sjchin88/python-git-poetry:latest"
+            }
+          },
+          "pylint": {
+            "stage": "test",
+            "allow_failure": false,
+            "needs": [],
+            "artifact_upload_path": "/temp",
+            "scripts": [
+              "poetry config virtualenvs.path /app/.cache/pypoetry/virtualenvs",
+              "poetry run pylint ./src --fail-under=9.5"
+            ],
+            "docker": {
+              "registry": "dockerhub",
+              "image": "sjchin88/python-git-poetry:latest"
+            }
+          }
+        }
+      },
+      "job_run_history": [],
+      "active": true,
+      "running": false,
+      "last_commit_hash": "16adc46"
+    }
+  }
+}]
