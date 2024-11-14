@@ -36,29 +36,17 @@ class TestRepoManager(unittest.TestCase):
         self.assertIn("successfully validated, cloned, and checked out", message)
         self.assertEqual(repo_details["commit_hash"], "sample_commit_hash")
 
-    def test_validate_and_clone_repo_clone_failure(self, mock_clone_from, mock_iterdir):
-        """Test validate_and_clone_repo when cloning fails with GitCommandError."""
-        repo_manager = RepoManager()
-
-        success, message, _ = repo_manager.validate_and_clone_repo(
-            "https://github.com/sample/repo", branch="nonexistent_branch"
-        )
-
-        self.assertFalse(success)
-        self.assertIn("Failed to clone repository", message)
-
     @patch("util.repo_manager.Path.iterdir", return_value=[])
     @patch("util.repo_manager.Repo.clone_from", side_effect=GitCommandError("clone", "error"))
     def test_validate_and_clone_repo_clone_failure(self, mock_clone_from, mock_iterdir):
         """Test validate_and_clone_repo when cloning fails with GitCommandError."""
         repo_manager = RepoManager()
-
         success, message, _ = repo_manager.validate_and_clone_repo(
             "https://github.com/sample/repo", branch="nonexistent_branch"
         )
 
         self.assertFalse(success)
-        self.assertIn("Failed to clone repository", message)
+        self.assertIn("Failed to clone given repository. Invalid branch name given.", message)
 
     def test_extract_repo_name_with_and_without_git(self):
         """Test _extract_repo_name_from_url extracts repo names with or without .git extension."""
@@ -105,40 +93,74 @@ class TestRepoManager(unittest.TestCase):
         self.assertFalse(result)
 
     @patch("util.repo_manager.Repo", autospec=True)
-    def test_is_current_repo_in_git_repo(self, mock_repo):
-        """Test is_current_repo when the current directory is a git repository."""
+    def test_is_current_dir_repo_in_git_repo(self, mock_repo):
+        """Test is_current_dir_repo when the current directory is a Git repository."""
         repo_manager = RepoManager()
         mock_repo.return_value.working_tree_dir = "/mock/path/to/repo"
-        result, repo_name = repo_manager.is_current_repo()
+        mock_repo.return_value.head.commit.hexsha = "latest_commit_hash"
 
-        self.assertTrue(result)
-        self.assertEqual(repo_name, "repo")
+        with patch("os.getcwd", return_value="/mock/path/to/repo"):
+            result, repo_name, is_in_root = repo_manager.is_current_dir_repo()
+
+            self.assertTrue(result)
+            self.assertEqual(repo_name, "repo")
+            self.assertTrue(is_in_root)
 
     @patch("util.repo_manager.Repo", side_effect=InvalidGitRepositoryError)
-    def test_is_current_repo_not_in_git_repo(self, mock_repo):
-        """Test is_current_repo when the current directory is not a git repository."""
+    def test_is_current_dir_repo_not_in_git_repo(self, mock_repo):
+        """Test is_current_dir_repo when the current directory is not a Git repository."""
         repo_manager = RepoManager()
-        result, repo_name = repo_manager.is_current_repo()
+        result, repo_name, is_in_root = repo_manager.is_current_dir_repo()
 
         self.assertFalse(result)
         self.assertIsNone(repo_name)
+        self.assertFalse(is_in_root)
 
     @patch("util.repo_manager.shutil.rmtree")
     @patch("util.repo_manager.Path.unlink")
     def test_safe_cleanup(self, mock_unlink, mock_rmtree):
-        """Test _safe_cleanup with temporary directory to ensure it is safe."""
-        # Create a temporary directory with some files and directories
-        with tempfile.TemporaryDirectory() as temp_dir:
-            temp_path = Path(temp_dir)
-            file1 = temp_path / "file1"
-            dir1 = temp_path / "dir1"
-            file1.touch()  # Create an empty file
-            dir1.mkdir()  # Create an empty directory
+        """Test _safe_cleanup with a temporary directory to ensure it removes contents."""
+        with patch("util.repo_manager.Path.iterdir") as mock_iterdir:
+            # Set up mock items: one file and one directory
+            mock_file = MagicMock(spec=Path)
+            mock_file.is_dir.return_value = False
+            mock_file.unlink = mock_unlink  # Ensure `unlink` is assigned to this mock file
 
-            # Initialize RepoManager and run _safe_cleanup
+            mock_dir = MagicMock(spec=Path)
+            mock_dir.is_dir.return_value = True
+
+            # Mock `iterdir` to return a list containing the file and directory
+            mock_iterdir.return_value = [mock_file, mock_dir]
+
+            # Run the cleanup
             repo_manager = RepoManager()
-            repo_manager._safe_cleanup(temp_path)
+            repo_manager._safe_cleanup(Path("/mock/path"))
 
-            # Verify `unlink` was called for files and `rmtree` for directories
+            # Assert `unlink` was called on the file and `rmtree` on the directory
             mock_unlink.assert_called_once_with()
-            mock_rmtree.assert_called_once_with(dir1)
+            mock_rmtree.assert_called_once_with(mock_dir)
+
+    @patch("util.repo_manager.Repo", autospec=True)
+    def test_get_current_repo_details_success(self, mock_repo):
+        """Test get_current_repo_details when in a Git repository."""
+        repo_manager = RepoManager()
+        mock_instance = mock_repo.return_value
+        mock_instance.remote.return_value.urls = iter(["https://github.com/sample/repo.git"])  # Make `urls` an iterator
+        mock_instance.active_branch.name = "main"
+        mock_instance.head.commit.hexsha = "123abc"
+
+        with patch("os.getcwd", return_value="/mock/path/to/repo"):
+            result = repo_manager.get_current_repo_details()
+
+            self.assertEqual(result["repo_url"], "https://github.com/sample/repo.git")
+            self.assertEqual(result["repo_name"], "repo")
+            self.assertEqual(result["branch"], "main")
+            self.assertEqual(result["commit_hash"], "123abc")
+
+    @patch("util.repo_manager.Repo", side_effect=InvalidGitRepositoryError)
+    def test_get_current_repo_details_not_in_git_repo(self, mock_repo):
+        """Test get_current_repo_details when not in a Git repository."""
+        repo_manager = RepoManager()
+        result = repo_manager.get_current_repo_details()
+
+        self.assertEqual(result, {})

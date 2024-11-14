@@ -400,29 +400,79 @@ class MongoAdapter:
             logger.warning(f"Error inserting new repository, exception is {e}")
             return None
 
-    def get_last_set_repo(self, db_name: str = MONGO_DB_NAME,
-                          collection_name: str = MONGO_REPOS_TABLE) -> dict:
-        """ Retrieve the last set repository from the user
+    def get_last_set_repo(
+            self,
+            user_id: str,
+            db_name: str = MONGO_DB_NAME,
+            collection_name: str = MONGO_REPOS_TABLE) -> dict:
+        """
+        Retrieve the last set repository for a specific user.
 
         Args:
-            db_name (str, optional): target database. Defaults to MONGO_DB_NAME.
-            collection_name (str, optional): collection(table) to retrieve from. 
+            user_id (str): The ID of the user whose last set repository to retrieve.
+            db_name (str, optional): Target database. Defaults to MONGO_DB_NAME.
+            collection_name (str, optional): Collection (table) to retrieve from.
                 Defaults to MONGO_REPOS_TABLE.
 
         Returns:
-            dict: last repository entry in dict form, or None if not found
+            dict: The last repository entry in dictionary form for the user, or None if not found.
         """
         try:
             mongo_client = MongoClient(self.mongo_uri)
             database = mongo_client[db_name]
             collection = database[collection_name]
-            result = collection.find_one(sort=[("time", -1)])
+
+            # Find the most recent entry for the specific user_id
+            result = collection.find_one(
+                {"user_id": user_id},  # Filter by user_id
+                sort=[("time", -1)]  # Sort by time in descending order
+            )
+
             mongo_client.close()
             return result
+
         except errors.PyMongoError as e:
-            logger.warning(
-                f"Error retrieving last set repository, exception is {e}")
-            return None
+            logger.warning(f"Error retrieving last set repository for user {user_id}: {e}")
+            return {}
+
+    def upsert_repo(
+            self,
+            repo_data: dict) -> bool:
+        """
+        Upsert a repository record based on user ID. If a record with the same user_id exists,
+        update it; otherwise, insert a new record.
+
+        Args:
+            repo_data (dict): The repository data to upsert, including the "user_id" field.
+            db_name (str, optional): The database name. Defaults to MONGO_DB_NAME.
+            collection_name (str, optional): The collection name. Defaults to MONGO_REPOS_TABLE.
+
+        Returns:
+            bool: True if the upsert was successful, False otherwise.
+        """
+        user_id = repo_data.get("user_id")
+        if not user_id:
+            logger.warning("Upsert failed: 'user_id' not found in repo_data.")
+            return False
+
+        try:
+            query_filter = {"user_id": user_id}
+
+            # Use MongoDB's upsert feature to update if exists or insert if not
+            update_operation = {"$set": repo_data}
+            mongo_client = MongoClient(self.mongo_uri)
+            database = mongo_client[MONGO_DB_NAME]
+            collection = database[MONGO_REPOS_TABLE]
+
+            # Perform the upsert operation
+            result = collection.update_one(query_filter, update_operation, upsert=True)
+            mongo_client.close()
+
+            return result.acknowledged
+
+        except errors.PyMongoError as e:
+            logger.warning(f"Error in upsert_repo, exception is {e}")
+            return False
 
     def get_pipeline_config(self, repo_name: str, repo_url: str,
                             branch: str, pipeline_name: str) -> dict:

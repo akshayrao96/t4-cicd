@@ -48,102 +48,123 @@ class Controller:
         self.logger = get_logger('cli.controller')
 
     def set_repo(self, repo_url: str, branch: str = "main",
-                 commit_hash: str = None) -> tuple[bool, str]:
+                 commit_hash: str = None) -> tuple[bool, str, SessionDetail | None]:
         """
-        Set the repository URL, validate it, and store in MongoDB for CID configurations.
+        Configure and save a Git repository for CI/CD checks.
+
+        Clones the specified Git repository to the current working directory, with an optional branch and commit.
+        If the current directory is already a Git repository, it returns an error.
 
         Args:
-            repo_url (str): The repository URL provided by the user.
-            branch (str): The branch to validate or use, main if not given.
-            commit_hash (str): Commit hash to retrieve, latest commit if not given.
+            repo_url (str): URL of the Git repository to configure.
+            branch (str, optional): The branch to use, defaults to 'main'.
+            commit_hash (str, optional): Specific commit hash to check out, defaults to the latest commit.
 
         Returns:
-            tuple[bool, str]: A tuple indicating success/failure and a message.
+            tuple: (bool, str, SessionDetail | None)
+                - bool: True if the repository was successfully configured, False otherwise.
+                - str: Message indicating the result.
+                - SessionDetail or None: Session details if successful, or None if it failed.
         """
 
-        in_git_repo, repo_name = self.repo_manager.is_current_repo()
+        # Check : User's $PWD is a git repo. Return failure, error message, and none
+        in_git_repo, message, repo_name = self.repo_manager.is_current_dir_repo()
         if in_git_repo:
-            return False, f"You are currently in a Git repository: '{repo_name}'.\
-                Please navigate to an empty directory."
+            return False, f"Currently in a Git repository: '{repo_name}'. Please navigate to an empty directory.", None
 
+
+        # Check : User has cloned a repo successfully, branch and commit are valid
         is_valid, message, repo_details = self.repo_manager.set_repo(
             repo_url, branch, commit_hash)
 
+        # If not, return failure, error message, and none
         if not is_valid:
-            return False, message
+            return False, message, None
 
-        raw_data = self._prepare_session_details(repo_url=repo_url, repo_name=repo_details["repo_name"],
-                                                             branch=repo_details["branch"],
-                                                             commit_hash=repo_details["commit_hash"])
+        time_log = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        user_id = os.getlogin()
 
+        # Put the information into a SessionDetail Object.
+        # Returns true, message, and the SessionDetail if successful
+        # Else: If not, return false, message, and none
         try:
-            repo_data = SessionDetail.model_validate(raw_data)
-            inserted_id = self.mongo_ds.insert_repo(repo_data.model_dump())
+            repo_data = SessionDetail.model_validate({
+                "user_id": user_id,
+                "repo_url": repo_url,
+                "repo_name": repo_details["repo_name"],
+                "branch": repo_details["branch"],
+                "commit_hash": repo_details["commit_hash"],
+                "is_remote": True,
+                "time": time_log
+            })
 
+            inserted_id = self.mongo_ds.upsert_repo(repo_data.model_dump())
             if not inserted_id:
-                return False, "Failed to set repository."
+                return False, "Failed to store repository details in MongoDB.", None
 
-            return True, f"Repository set successfully with ID: {inserted_id}"
+            return True, "Repository set successfully.", repo_data
 
         except ValidationError as e:
-            return False, f"Data validation error: {e}"
+            return False, f"Data validation error: {e}", None
 
-    def get_repo(self) -> tuple[bool, dict | None]:
-        in_git_repo, repo_name = self.repo_manager.is_current_repo()
+    def get_repo(self) -> tuple[bool, str, SessionDetail | None]:
+        """
+        Retrieve the current or last saved repository details.
+
+        Checks if the current directory is a Git repository:
+        - If yes, returns its details.
+        - If no, returns details of the last configured repository for the user if available.
+
+        Returns:
+            tuple: (bool, str, SessionDetail | None)
+                - bool: True if in a Git repository, False otherwise.
+                - str: Message about the repository status or any issues.
+                - SessionDetail or None: Repository details if available, otherwise None.
+        """
+
+        # Case: check if user is in a $PWD that is a git repo
+        in_git_repo, repo_name, is_in_root = self.repo_manager.is_current_dir_repo()
+        user_id = os.getlogin()
 
         if in_git_repo:
             repo_details = self.repo_manager.get_current_repo_details()
 
-            # Use prepare_session_details to structure session data
-            raw_data = self._prepare_session_details(
-                repo_url=repo_details["repo_url"],
-                repo_name=repo_name,
-                branch=repo_details["branch"],
-                commit_hash=repo_details["commit_hash"]
-            )
+            time_log = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
             try:
-                # Validate and insert the repo data if needed
-                repo_data = SessionDetail.model_validate(raw_data)
-                self.mongo_ds.insert_repo(repo_data.model_dump())  # Store details if not already in MongoDB
+                repo_data = SessionDetail.model_validate({
+                    "user_id": user_id,
+                    "repo_url": repo_details["repo_url"],
+                    "repo_name": repo_details["repo_name"],
+                    "branch": repo_details["branch"],
+                    "commit_hash": repo_details["commit_hash"],
+                    "is_remote": True,
+                    "time": time_log
+                })
 
-                return True, repo_data.model_dump()
+                self.mongo_ds.upsert_repo(repo_data.model_dump())
+
+                if not is_in_root:
+                    return False, "Not in the root of the repository. Please navigate to the root of the repo and try again.", repo_data
+
+                return True, "Repository is configured in current directory", repo_data
 
             except ValidationError as e:
-                return False, {"error": f"Data validation error: {e}"}
+                return False, f"Data validation error: {e}", None
 
-        # Retrieve the last set repo if not in a Git repo
-        last_repo = self.mongo_ds.get_last_set_repo()
+        last_repo = self.mongo_ds.get_last_set_repo(user_id)
+
         if last_repo:
-            return False, last_repo
+            try:
+                last_repo_data = SessionDetail.model_validate(last_repo)
+                return False, "Current working directory is not a git repository", last_repo_data
 
-        return False, None
+            except ValidationError as e:
+                self.logger.warning(f"Failed to convert last_repo to SessionDetail: {e}")
+                return False, "Failed to convert last repository to SessionDetail.", None
 
-    def _prepare_session_details(self, repo_url: str, repo_name: str, branch: str, commit_hash: str) -> dict:
-        """
-        Prepare session details for a repository.
-
-        Args:
-            repo_url (str): The repository URL.
-            repo_name (str): The repository name.
-            branch (str): The branch name.
-            commit_hash (str): The commit hash.
-
-        Returns:
-            dict: A dictionary containing the session details.
-        """
-        time_log = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        user_id = os.getlogin()
-
-        return {
-            "user_id": user_id,
-            "repo_url": repo_url,
-            "repo_name": repo_name,
-            "branch": branch,
-            "commit_hash": commit_hash,
-            "is_remote": True,
-            "time": time_log
-        }
+        # No repository information available
+        return False, "No repository found to run command.", None
 
     def get_controller_history(self) -> dict:
         """Retrieve pipeline history from Mongo DB
@@ -645,8 +666,8 @@ class Controller:
                 user input to query pipeline history to database.
 
         Returns:
-            dict: 
-                "is_success": boolean if 
+            dict:
+                "is_success": boolean if
         """
         pipeline_dict = pipeline_details.model_dump()
         pipeline_name = pipeline_dict['pipeline_name']
@@ -664,7 +685,7 @@ class Controller:
                 #                                                 run_number=run_number)
                 run_number = int(pipeline_dict['run']) - 1
                 job_history = self.mongo_ds.get_job(history['job_run_history'][run_number])
-                
+
                 message = PrintMessage(job_history)
                 output_msg = message.print(['pipeline_name', 'run_number', 'git_commit_hash',
                                         'start_time', 'completion_time'])
@@ -679,7 +700,7 @@ class Controller:
                 else:
                     job_history = self.mongo_ds.get_pipeline_run_summary(repo_url, pipeline_name)
 
-                
+
                 #validation, if job_history is empty from get_pipeline_run_summary(),
                 # this means no data found in DB
                 #TODO: see how to handle the exception in KeyEror

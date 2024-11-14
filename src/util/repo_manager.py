@@ -27,14 +27,14 @@ class RepoManager:
             self,
             repo_source: str,
             branch: str = "main",
-            commit_hash: str = None) -> tuple:
+            commit_hash: str = None) -> tuple[bool, str, dict]:
         """
-        Validate the repository, clone it if necessary, and avoid redundant cloning if possible.
+        Validates the repository, clones it if necessary, and avoids redundant cloning.
 
         Args:
             repo_source (str): The repository URL.
-            branch (str): The branch to validate (default is "main").
-            commit_hash (str): Optional commit hash to validate.
+            branch (str): The branch to clone (default is "main").
+            commit_hash (str): Optional specific commit hash to check out.
 
         Returns:
             tuple: (bool, str, dict) indicating success status, message, and repository details.
@@ -58,7 +58,6 @@ class RepoManager:
             branch,
             commit_hash)
 
-        # Step 3: Attempt to clone and validate the repo
         success, message, repo_details = self.validate_and_clone_repo(
             repo_source, branch, commit_hash)
 
@@ -76,19 +75,17 @@ class RepoManager:
             self,
             repo_source: str,
             branch: str = "main",
-            commit_hash: str = None) -> tuple:
+            commit_hash: str = None) -> tuple[bool, str, dict]:
         """
-        Validate the branch and commit, clone the repository if valid, and return repository details.
+        Clones the repository after validating the branch and commit hash.
 
         Args:
             repo_source (str): The repository URL.
-            branch (str): The branch to validate (default is "main").
+            branch (str): The branch to clone (default is "main").
             commit_hash (str): Optional commit hash to validate.
 
         Returns:
-            tuple: (bool, str, dict) where the first element is success status,
-            the second element is a message,
-            the third element is a dictionary containing repo details (if successful).
+            tuple: (bool, str, dict) indicating success status, message, and repository details if successful.
         """
         logger.debug(
             "Starting validation and cloning for %s with branch '%s' and commit '%s'.",
@@ -102,7 +99,7 @@ class RepoManager:
         # Check if the current directory is empty
         if any(current_directory.iterdir()):
             logger.warning("Current working directory is not empty.")
-            return False, "Current working directory is not empty. Please use an empty directory.", {}
+            return False, "Current working directory is not empty. Please use an empty directory and run the same command.", {}
 
         try:
             # Clone the repository contents directly into the current working
@@ -125,7 +122,7 @@ class RepoManager:
                     repo, branch, commit_hash)
                 if not success:
                     self._safe_cleanup(current_directory)
-                    return False, message
+                    return False, message, {}
 
             return True, "Repository successfully validated, cloned, and checked out.", {
                 "repo_name": repo_name,
@@ -136,23 +133,23 @@ class RepoManager:
 
         except GitCommandError as e:
             logger.warning("An error occurred during cloning: %s", e)
-            return False, "Failed to clone repository. Branch given not found in repository.",{}
+            return False, "Failed to clone given repository. Invalid branch name given.", {}
 
     def _checkout_commit(
             self,
             repo: Repo,
             branch: str,
-            commit_hash: str) -> tuple:
+            commit_hash: str) -> tuple[bool, str]:
         """
-        Check out a specific commit on a branch without detaching HEAD.
+        Checks out a specific commit on a branch.
 
         Args:
             repo (Repo): The cloned repository object.
             branch (str): The branch to check out.
-            commit_hash (str): The specific commit hash to check out.
+            commit_hash (str): The commit hash to check out.
 
         Returns:
-            tuple: (bool, str) indicating success status and message.
+            tuple: (bool, str) indicating success status and a message.
         """
         if any(commit_hash == commit.hexsha for commit in repo.iter_commits(branch)):
             repo.git.checkout(commit_hash)
@@ -173,10 +170,10 @@ class RepoManager:
 
     def _is_valid_git_repo(self, repo_source: str) -> bool:
         """
-        Check if the given repo source is a valid Git repository.
+        Checks if the given URL points to a valid Git repository.
 
         Args:
-            repo_source (str): The repository source URL.
+            repo_source (str): The repository URL.
 
         Returns:
             bool: True if the repository is valid, False otherwise.
@@ -195,7 +192,7 @@ class RepoManager:
 
     def _extract_repo_name_from_url(self, url: str) -> str:
         """
-        Extract the repository name from the URL.
+        Extracts the repository name from a URL.
 
         Args:
             url (str): The repository URL.
@@ -220,22 +217,33 @@ class RepoManager:
                 str(e))
             return ""
 
-    def is_current_repo(self) -> tuple[bool, str | None]:
+    def is_current_dir_repo(self) -> tuple[bool, str | None, bool]:
         """
-        Check if the current working directory is a Git repository.
+        Checks if the current working directory is a Git repository and if it is at the root.
 
         Returns:
-            tuple[bool, Optional[str]]: True and repo name if in Git repo, otherwise False and None.
+            tuple: (bool, str | None, bool) where:
+                - bool: True if in a Git repository.
+                - str | None: The repository name if in a Git repo, otherwise None.
+                - bool: True if in the root directory of the Git repo, otherwise False.
         """
         try:
             repo = Repo(os.getcwd(), search_parent_directories=True)
             repo_name = os.path.basename(repo.working_tree_dir)
-            return True, repo_name
-        except InvalidGitRepositoryError:
-            return False, None
 
-    def _safe_cleanup(self, path: Path):
-        """Safely remove all contents of the specified directory without deleting the directory itself."""
+            # Check if the current directory is the root of the repository
+            is_in_root = os.getcwd() == repo.working_tree_dir
+            return True, repo_name, is_in_root
+        except InvalidGitRepositoryError:
+            return False, None, False
+
+    def _safe_cleanup(self, path: Path) -> None:
+        """
+        Safely removes all contents of a directory without deleting the directory itself.
+
+        Args:
+            path (Path): The directory path to clean up.
+        """
         for item in path.iterdir():
             try:
                 if item.is_dir():
@@ -248,10 +256,10 @@ class RepoManager:
 
     def get_current_repo_details(self) -> dict:
         """
-        Retrieve details of the current Git repository.
+        Retrieves details of the current Git repository.
 
         Returns:
-            dict: A dictionary containing repository details such as repo_url, repo_name, branch, and commit_hash.
+            dict: Contains repository details such as 'repo_url', 'repo_name', 'branch', and 'commit_hash'.
                   Returns an empty dictionary if not in a Git repository.
         """
         try:

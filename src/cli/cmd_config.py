@@ -147,20 +147,33 @@ def set_repo(repo_url: str, branch: str, commit: str) -> None:
         branch (str): Optional branch name; defaults to 'main'.
         commit (str): Optional commit hash; if not provided, the latest commit is used.
     """
+
+    # Checks if user has not given a repo. Return to user error, terminate
     if not repo_url:
-        click.echo(
-            "Error: No repository provided. Please specify a repository URL.")
+        click.echo("Error: No repository provided. Please specify a repository URL.")
         return
 
     controller = Controller()
 
     try:
-        # Pass the repo_url, branch, and commit to the controller's set_repo method
-        success, message = controller.set_repo(repo_url, branch=branch, commit_hash=commit)
-        if success:
-            click.echo(f"Repository set successfully in current working directory: {repo_url}")
-        else:
-            click.echo(f"Error: {message}")
+        # Call the set_repo method
+
+        # success = true is repo is successfully set, otherwise, false if error occurred
+        # message = success if repo is set, otherwise, specific error message of what the error is
+        # repo_details = SessionDetails if success, otherwise, none
+
+        status, message, repo_details = controller.set_repo(repo_url, branch=branch, commit_hash=commit)
+
+        # Display the result message
+        click.echo(f"{message}\n")
+
+        # If successful, display detailed repository information
+        if status and repo_details:
+            click.echo("Current working directory configured:\n")
+            click.echo(f"Repository URL: {repo_details.repo_url}")
+            click.echo(f"Repository Name: {repo_details.repo_name}")
+            click.echo(f"Branch: {repo_details.branch}")
+            click.echo(f"Commit Hash: {repo_details.commit_hash}\n")
 
     except Exception as e:
         click.echo(f"An unexpected error occurred: {str(e)}")
@@ -168,35 +181,55 @@ def set_repo(repo_url: str, branch: str, commit: str) -> None:
 
 @config.command()
 def get_repo():
-    """Gets the currently set repository."""
+    """
+    Display information about the currently configured repository.
 
-    # Gets the currently set repo from the controller
+    This command retrieves and displays details of the currently configured Git repository,
+    either from the current working directory if it is a Git repository, or from the last
+    set repository stored in the system.
+
+    Behavior:
+        - If the current directory is a Git repository, it displays the URL, branch, and latest commit hash.
+        - If the current directory is not a Git repository but a previous repository configuration exists,
+          it retrieves and displays details of the last configured repository.
+        - If no repository is configured, it provides guidance for setting a repository.
+
+    Output:
+        Information about the repository is displayed in the console, including:
+        - Repository URL
+        - Repository name
+        - Branch name
+        - Commit hash of the latest commit
+
+    Example Usage:
+        $ cid config get-repo
+    """
+
     controller = Controller()
-    status, repo_details = controller.get_repo()
+
+    status, message, repo_details = controller.get_repo()
 
     if status and repo_details:
-        click.echo("\nConfigured to current working directory. Current repository configured:\n")
-        click.echo(f"Repository URL: {repo_details['repo_url']}")
-        click.echo(f"Repository Name: {repo_details['repo_name']}")
-        click.echo(f"Branch: {repo_details['branch']}")
-        click.echo(f"Commit Hash: {repo_details['commit_hash']}\n")
+        click.echo(message)
+        click.echo("Current repository configured:\n")
+        click.echo(f"Repository URL: {repo_details.repo_url}")
+        click.echo(f"Repository Name: {repo_details.repo_name}")
+        click.echo(f"Branch: {repo_details.branch}")
+        click.echo(f"Commit Hash: {repo_details.commit_hash}\n")
 
     elif repo_details:
-        click.echo("\nCurrent working directory is not a git repository")
-        click.echo("\nFetching last set repository: \n")
-        click.echo(f"Repository URL: {repo_details['repo_url']}")
-        click.echo(f"Repository Name: {repo_details['repo_name']}")
-        click.echo(f"Branch: {repo_details['branch']}")
-        click.echo(f"Commit Hash: {repo_details['commit_hash']}\n")
-        click.echo("Configure the repository in an empty working directory:\n")
-        click.echo(f"cid config set-repo {repo_details['repo_url']}\n")
+        click.echo(f"{message}")
+        click.echo("Last set repo details:\n")
+        click.echo(f"Repository URL: {repo_details.repo_url}")
+        click.echo(f"Repository Name: {repo_details.repo_name}")
+        click.echo(f"Branch: {repo_details.branch}")
+        click.echo(f"Commit Hash: {repo_details.commit_hash}\n")
 
     else:
         click.echo("\nNo repository has been configured previously.")
-        click.echo("Please navigate to a working directory that is a Git repository project")
+        click.echo("Run the command with specifying repo path in an empty working directory:\n")
         click.echo("OR")
-        click.echo("Please set a remote or local repository in an empty current working directory:\n")
-        click.echo("cid config set-repo <REPO NAME>\n")
+        click.echo("Run the command without specifying repo path in the repository root\n")
 
 
 @config.command()
