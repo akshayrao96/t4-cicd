@@ -31,8 +31,8 @@ Primary keys - repo_name, repo_url and branch
 - repo_name
 - repo_url
 - branch
-- Pipelines: (past and present pipeline information)
-  - pipeline_name (primary key for pipeline)
+- Pipelines: (past and present pipeline information in dictionary)
+  - pipeline_name (primary key for pipeline, key for each pipeline items)
   - pipeline_file_name (can be different from pipeline_name)
   - (validated) pipeline_config - pipeline config that failed validation will not be stored
   - job_run_history (list of job runs id for this pipeline)
