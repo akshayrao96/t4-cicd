@@ -178,7 +178,7 @@ class TestMongoDB(unittest.TestCase):
             'user_id':self.session_data.user_id
         }
         updated_data = self.session_data.model_dump()
-        update_status = mongo_adapter._update_with_query(
+        update_status = mongo_adapter._update_by_query(
             query_data, updated_data, MONGO_DB_NAME, MONGO_REPOS_TABLE)
         assert update_status == True
         retrieved_data = mongo_adapter._retrieve_by_query(
@@ -189,7 +189,7 @@ class TestMongoDB(unittest.TestCase):
         logger.debug(retrieved_data)
         # Now try update the previous data
         updated_data['repo_name'] = 'random_repo2'
-        update_status = mongo_adapter._update_with_query(
+        update_status = mongo_adapter._update_by_query(
             query_data, updated_data, MONGO_DB_NAME, MONGO_REPOS_TABLE)
         assert update_status == True
         retrieved_data = mongo_adapter._retrieve_by_query(

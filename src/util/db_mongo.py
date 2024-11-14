@@ -73,7 +73,7 @@ class MongoAdapter:
         mongo_client.close()
         return result.acknowledged
 
-    def _update_with_query(self, query:dict, data:dict, db_name: str, collection_name: str)-> bool:
+    def _update_by_query(self, query:dict, data:dict, db_name: str, collection_name: str)-> bool:
         """ Generic Helper method to update the selected record based on query, 
         will also insert the new document if no document is present. Do not 
         require mongo object id to be present in the data
@@ -191,7 +191,7 @@ class MongoAdapter:
             updates = repo_config.model_dump()
             if '_id' in updates:
                 updates.pop('_id')
-            acknowledge = self._update_with_query(query_filter, updates, db_name, collection_name)
+            acknowledge = self._update_by_query(query_filter, updates, db_name, collection_name)
             return acknowledge
         except errors.PyMongoError as e:
             logger.warning(
