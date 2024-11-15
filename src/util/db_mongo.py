@@ -557,8 +557,10 @@ class MongoAdapter:
                 pipeline_info = PipelineInfo.model_validate(updates)
                 # Convert it back for later usage
                 updates = pipeline_info.model_dump()
-            update_dict = {f'pipelines.{pipeline_name}.{key}': value for key, value in updates.items()}
-            status = self._update_by_query(query_filter,update_dict,MONGO_DB_NAME,MONGO_PIPELINES_TABLE)
+            update_dict = {f'pipelines.{pipeline_name}.{k}': v for k, v in updates.items()}
+            status = self._update_by_query(
+                query_filter,update_dict,MONGO_DB_NAME,MONGO_PIPELINES_TABLE
+                )
             return status
         except (errors.PyMongoError, ValidationError) as e:
             logger.warning(f"Error updating pipeline config: {str(e)}")

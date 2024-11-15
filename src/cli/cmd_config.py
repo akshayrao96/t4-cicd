@@ -4,7 +4,7 @@
 import os
 import pprint
 import click
-import util.constant as const
+# import util.constant as const
 from util.common_utils import (get_logger, ConfigOverrides)
 from controller.controller import Controller
 
@@ -76,7 +76,6 @@ def config(
     controller = Controller()
     passed = True
     err = ""
-    processed_config = {}
     if check_all:
         config_dir_path = dir
         if not os.path.isdir(config_dir_path):
@@ -90,10 +89,8 @@ def config(
             click.echo(
                 f"set repo, checking and saving all config files in directory {dir}")
             results = controller.validate_n_save_configs(dir)
-        for pipeline_name, res_dict in results.items():
-            valid = res_dict[const.RETURN_KEY_VALID]
-            err = res_dict[const.RETURN_KEY_ERR]
-            pipe_config = res_dict[const.KEY_PIPE_CONFIG]
+        for pipeline_name, res in results.items():
+            valid = res.valid
             click.echo(
                 f"\nStatus for {pipeline_name}: {
                     'passed' if valid else 'failed'}")
@@ -101,6 +98,7 @@ def config(
                 click.echo(f"error message:\n{err}")
             else:
                 click.echo("printing top 10 lines of processed config:")
+                pipe_config = res.pipeline_config.model_dump(by_alias=True)
                 config_str = pprint.pformat(pipe_config)
                 for line in config_str.splitlines()[:10]:
                     click.echo(line)

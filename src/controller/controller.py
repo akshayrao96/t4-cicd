@@ -186,7 +186,7 @@ class Controller:
             is_remote=True,
             commit_hash="abcdef"
         )
-        
+
         status, error_msg, pipeline_info = self.validate_config(
                 file_name, pipeline_name, override_configs
             )
@@ -287,7 +287,7 @@ class Controller:
                 return False, e, None
 
         #pipeline_config = parser.parse_yaml_file(file_name)
-        # Process Override if have. 
+        # Process Override if have.
         if override_configs:
             pipeline_config = ConfigOverrides.apply_overrides(
                 pipeline_config,
@@ -384,7 +384,7 @@ class Controller:
         message = None
         config_dict = None
 
-        # Step 2 - 4 extract yaml content, apply override, validate and 
+        # Step 2 - 4 extract yaml content, apply override, validate and
         # save handled by validate_n_save_config
         status, error_msg, pipeline_info = self.validate_n_save_config(
             config_file, pipeline_name, override_configs)
@@ -630,7 +630,7 @@ class Controller:
                 #                                                 run_number=run_number)
                 run_number = int(pipeline_dict['run']) - 1
                 job_history = self.mongo_ds.get_job(history['job_run_history'][run_number])
-                
+
                 message = PrintMessage(job_history)
                 output_msg = message.print(['pipeline_name', 'run_number', 'git_commit_hash',
                                         'start_time', 'completion_time'])
