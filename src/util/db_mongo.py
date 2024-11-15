@@ -4,10 +4,10 @@ import copy
 from datetime import datetime, timezone
 import time
 import bson
-from bson import ObjectId
+# from bson import ObjectId
 from pymongo import (MongoClient, errors)
 from util.common_utils import (get_env, get_logger, ConfigOverrides)
-from util.model import (PipelineInfo)
+from util.model import (PipelineInfo, RepoConfig)
 
 env = get_env()
 logger = get_logger("util.db_mongo")
@@ -25,32 +25,9 @@ class MongoAdapter:
     def __init__(self):
         """ Default Constructor
         """
-
         # store the mongoDB url in bash rc file. Using atlas for this.
         # self.mongo_uri = os.getenv('MONGO_DB_URL')
         self.mongo_uri = env['MONGO_DB_URL'] if 'MONGO_DB_URL' in env else ""
-
-    def get_controller_history(self) -> dict:
-        """ Retrieve all pipeline history for the controller
-
-        Returns:
-            dict: dictionary contains all pipelines set up before,
-                identified by pipeline['_id'] value
-        """
-        try:
-            mongo_client = MongoClient(self.mongo_uri)
-            database = mongo_client[MONGO_DB_NAME]
-            pipeline_collection = database[MONGO_PIPELINES_TABLE]
-            histories = pipeline_collection.find({})
-            results = {}
-            for pipeline in histories:
-                results[pipeline['_id']] = pipeline
-            mongo_client.close()
-            return results
-        except errors.PyMongoError as e:
-            logger.error(
-                f"Error when retrieving pipeline history, exception is {e}")
-            return None
 
     def _insert(self, data: dict, db_name: str, collection_name: str) -> str:
         """ Generic Helper method to insert the data
@@ -71,7 +48,8 @@ class MongoAdapter:
         return str(result.inserted_id)
 
     def _update(self, data: dict, db_name: str, collection_name: str) -> bool:
-        """ Generic Helper method to update the data
+        """ Generic Helper method to update the data. Assume Mongo object
+        _id present in the data
 
         Args:
             data (dict): data to be inserted, in key=value pairs
@@ -92,6 +70,33 @@ class MongoAdapter:
         update_operation = {'$set': updated_data}
         result = collection.update_one(
             query_filter, update_operation)
+        mongo_client.close()
+        return result.acknowledged
+
+    def _update_by_query(self, query:dict, data:dict, db_name: str, collection_name: str)-> bool:
+        """ Generic Helper method to update the selected record based on query, 
+        will also insert the new document if no document is present. Do not 
+        require mongo object id to be present in the data
+
+        Args:
+            query (dict): field name and value for primary key(s).
+            data (dict): data to be inserted, in key=value pairs
+            db_name (str): database to be updated
+            collection_name (str): collection(table) to be updated
+
+        Returns:
+            bool: boolean indicator if successful
+        """
+        mongo_client = MongoClient(self.mongo_uri)
+        database = mongo_client[db_name]
+        collection = database[collection_name]
+        updated_data = copy.deepcopy(data)
+        # try pop the _id field if present
+        if '_id' in updated_data:
+            updated_data.pop('_id')
+        update_operation = {'$set': updated_data}
+        result = collection.update_one(
+            query, update_operation, upsert=True)
         mongo_client.close()
         return result.acknowledged
 
@@ -118,6 +123,27 @@ class MongoAdapter:
         mongo_client.close()
         return result
 
+    def _retrieve_by_query(self, query:dict, db_name: str,
+            collection_name: str) -> dict:
+        """ Retrieve the first found record based on given query dictionary
+
+        Args:
+            query (dict): query filter parameters (key=value pair). Empty dict
+            will retrieve all documents
+            db_name (str): database to be searched into
+            collection_name (str): collection(table) to be searched into
+
+        Returns:
+            dict: target record in dict form
+        """
+        mongo_client = MongoClient(self.mongo_uri)
+        database = mongo_client[db_name]
+        collection = database[collection_name]
+        result = collection.find_one(query)
+        # Follow best practise to close connection to db immediately
+        mongo_client.close()
+        return result
+
     def _delete(self, doc_id: str, db_name: str, collection_name: str) -> bool:
         """ Delete the first found record based on given id
 
@@ -137,12 +163,15 @@ class MongoAdapter:
         mongo_client.close()
         return result.acknowledged
 
-    def insert_pipeline(
+    def insert_repo_pipelines(
             self,
-            pipeline_history: dict,
+            repo_config:RepoConfig,
             db_name: str = MONGO_DB_NAME,
-            collection_name: str = MONGO_PIPELINES_TABLE) -> str:
-        """ Insert a new pipeline history record for new repository
+            collection_name: str = MONGO_PIPELINES_TABLE) -> bool:
+        """ Insert a new repository record with corresponding pipelines configuration info. 
+        into the repo_configs table. 
+        If the repository with the primary keys (repo_name, url, branch) already exists, 
+        will update instead
 
         Args:
             pipeline_history (dict): dictionary of the history record in key=value pairs
@@ -151,14 +180,23 @@ class MongoAdapter:
                 Defaults to MONGO_PIPELINES_TABLE.
 
         Returns:
-            str: the inserted_id(converted to str) if successful
+            bool: indicator if successful
         """
         try:
-            return self._insert(pipeline_history, db_name, collection_name)
+            query_filter = {
+                'repo_name':repo_config.repo_name,
+                'repo_url': repo_config.repo_url,
+                'branch': repo_config.branch
+            }
+            updates = repo_config.model_dump()
+            if '_id' in updates:
+                updates.pop('_id')
+            acknowledge = self._update_by_query(query_filter, updates, db_name, collection_name)
+            return acknowledge
         except errors.PyMongoError as e:
             logger.warning(
                 f"Error inserting new pipeline, exception is {e}")
-            return None
+            return False
 
     def update_pipeline(
             self,
@@ -181,24 +219,6 @@ class MongoAdapter:
         except errors.PyMongoError as e:
             logger.warning(f"Error updating the pipeline, exception is {e}")
             return False
-
-    def get_pipeline(self, pipeline_id: str, db_name: str = MONGO_DB_NAME,
-                     collection_name: str = MONGO_PIPELINES_TABLE) -> dict:
-        """ Retrieve the pipeline history based on given id
-
-        Args:
-            pipeline_id (str): id of the given pipeline
-            db_name (str, optional): target database. Defaults to MONGO_DB_NAME.
-            collection_name (str, optional): target collection table.
-                Defaults to MONGO_PIPELINES_TABLE.
-        Returns:
-            dict: given pipeline in dict form
-        """
-        try:
-            return self._retrieve(pipeline_id, db_name, collection_name)
-        except errors.PyMongoError as e:
-            logger.warning(f"Error retrieving the pipeline, exception is {e}")
-            return {}
 
     def del_pipeline(self, pipeline_id: str, db_name: str = MONGO_DB_NAME,
                      collection_name: str = MONGO_PIPELINES_TABLE) -> dict:
@@ -499,8 +519,7 @@ class MongoAdapter:
             if pipeline_document:
                 pipeline_config = pipeline_document["pipelines"][pipeline_name]["pipeline_config"]
                 return {"_id": pipeline_document["_id"], "pipeline_config": pipeline_config}
-            else:
-                return {}
+            return {}
         except errors.PyMongoError as e:
             logger.warning(f"Error retrieving pipeline config: {str(e)}")
             return {}
@@ -549,6 +568,7 @@ class MongoAdapter:
             logger.warning(f"pipelines: {pipeline_document} is empty. Error: {str(attr)}")
             print(f"pipelines: {pipeline_document} is empty.\nError: {str(attr)}")
             return {}
+
     def update_pipeline_config(
             self,
             repo_name: str,
@@ -655,6 +675,7 @@ class MongoAdapter:
         except errors.PyMongoError:
             return {}
 
+    #TODO - Discuss - this method can be replaced
     def create_pipeline_document(self, file_name: str, pipeline_config: dict) -> dict:
         """Generate a new pipeline document for insertion into pipelines.
 

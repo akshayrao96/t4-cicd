@@ -237,12 +237,12 @@ class Controller:
         # If validation passes, save to datastore
         if status:
             pipeline_name = resp_pipeline_config['global'].get('pipeline_name')
-            #TODO: replace stubs
+            #TODO: replace stubs. To be update with new get_repo method
             repo_data = self.mongo_ds.get_repo(
                 "sample-repo", "https://github.com/sample-user/sample-repo", "main"
             )
             # Case 1: No Repo Exists - Create New Repo with Pipeline
-            #TODO: replace stubs
+            #TODO: refactor this part
             if not repo_data:
                 new_repo_data = {
                     "repo_name": "sample-repo",
@@ -275,6 +275,17 @@ class Controller:
                     )
                     status = False
         return status, error_msg.strip(), resp_pipeline_config
+
+    def _save_config(self, repo_data:SessionDetail, pipeline_config:PipelineConfig) -> bool:
+        """_summary_
+
+        Args:
+            repo_data (SessionDetail): _description_
+            pipeline_config (PipelineConfig): _description_
+
+        Returns:
+            bool: _description_
+        """
 
     def validate_configs(self, directory: str) -> dict:
         """ Validate configuration file in a directory
