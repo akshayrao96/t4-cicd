@@ -127,32 +127,57 @@ class Controller:
         #return pipelines
 
     ### CONFIG ###
-    def validate_n_save_configs(self, directory: str) -> dict:
+    def validate_n_save_configs(self, directory: str, saving:bool = True) -> dict:
         """ Set Up repo, validate config, and save the config into datastore
 
         Args:
             directory (str): valid directory containing pipeline configuration
+            saving (optional, bool): whether to save the result to db. 
+            Default to True
 
         Returns:
             dict: dictionary of {<pipeline_name>:<single validation results>}
         """
         # stub response for repo set up
+        # stub response for repo set up
+        session_data = SessionDetail(
+            user_id='random',
+            repo_name='cicd-python',
+            repo_url="https://github.com/sjchin88/cicd-python",
+            branch='main',
+            is_remote=True,
+            commit_hash="abcdef"
+        )
         click.echo("Setting Up Repo")
-        validation_results = self.validate_configs(directory)
-        # stub response for save
-        click.echo("Saving into datastore")
+        parser = YamlParser()
         results = {}
-        for pipeline_name, validation_result in validation_results.items():
-            status = validation_result.valid
-            error_msg = validation_result.error_message
-            pipeline_config = validation_result.pipeline_config
-            if status:
-                # TODO - refactor
-                file_path = os.path.join(directory, f"{pipeline_name}.yml")
-                # TODO - Directly save to mongo
-            else:
-                click.echo(f"Validation failed for {pipeline_name}: {error_msg}")
-            results[pipeline_name] = validation_result
+        pipeline_configs = parser.parse_yaml_directory(directory)
+        
+        # Loop through each items
+        for pipeline_name, values in pipeline_configs.items():
+            response = self.config_checker.validate_config(
+                pipeline_name, values.pipeline_config, values.pipeline_file_name, True)
+            results[pipeline_name] = response
+            status = response.valid
+            
+            # Perform saving
+            if status and saving:
+                updates = {
+                    'pipeline_name': pipeline_name,
+                    'pipeline_file_name':values.pipeline_file_name,
+                    'pipeline_config': response.pipeline_config.model_dump(by_alias=True),
+                }
+                status = self.mongo_ds.update_pipeline_info(
+                        repo_name=session_data.repo_name,
+                        repo_url=session_data.repo_url,
+                        branch=session_data.branch,
+                        pipeline_name=pipeline_name,
+                        updates=updates
+                    )
+                if not status:
+                    response.valid = status
+                    response.error_msg = "Fail to save to datastore"
+        # stub response for save
         return results
 
     def validate_n_save_config(
@@ -220,25 +245,6 @@ class Controller:
             error_msg = f"Fail saving pipeline config for {pipeline_name}"
             return status, error_msg, None
         return status, error_msg.strip(), pipeline_info
-
-    def validate_configs(self, directory: str) -> dict:
-        """ Validate configuration file in a directory
-
-        Args:
-            directory (str): valid directory containing pipeline configuration
-
-        Returns:
-            dict: dictionary of {<pipeline_name>:<single validation results>}
-        """
-        # stub response
-        parser = YamlParser()
-        results = {}
-        pipeline_configs = parser.parse_yaml_directory(directory)
-        for pipeline_name, values in pipeline_configs.items():
-            response = self.config_checker.validate_config(
-                pipeline_name, values.pipeline_config, values.pipeline_file_name, True)
-            results[pipeline_name] = response
-        return results
 
     def validate_config(self,
                         file_name: str = None,

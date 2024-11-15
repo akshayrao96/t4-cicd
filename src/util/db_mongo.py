@@ -545,7 +545,7 @@ class MongoAdapter:
                 'repo_name': repo_name,
                 'repo_url': repo_url,
                 'branch': branch,
-                'pipeline_name': pipeline_name
+                #'pipelines': pipeline_name
             }
 
             # Check if the specific repository and pipeline exists

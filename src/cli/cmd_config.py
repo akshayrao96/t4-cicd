@@ -84,7 +84,7 @@ def config(
         click.echo(config_dir_path)
         if no_set:
             click.echo(f"checking all config files in directory {dir}")
-            results = controller.validate_configs(dir)
+            results = controller.validate_n_save_configs(dir, saving=False)
         else:
             click.echo(
                 f"set repo, checking and saving all config files in directory {dir}")

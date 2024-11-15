@@ -60,7 +60,7 @@ def test_config_check_config_file(mock_controller):
 # Patch the validate_config of Controller method in cli.cmd_config module
 
 
-@patch("cli.cmd_config.Controller.validate_config", return_value=(True, "", sample_pipeline_info))
+@patch("cli.cmd_config.Controller.validate_n_save_configs", return_value=(True, "", sample_pipeline_info))
 def test_config_check_with_valid_file_no_set(mock_controller):
     """ Test config command with --check and valid config file (yml extension)
     """
@@ -89,7 +89,7 @@ def test_config_check_all(mock_controller):
 # Patch the validate_configs of Controller method in cli.cmd_config module
 
 
-@patch("cli.cmd_config.Controller.validate_configs", return_value={})
+@patch("cli.cmd_config.Controller.validate_n_save_configs", return_value={})
 @patch("cli.cmd_config.click.Path", return_value="")
 def test_config_check_all_no_set(mock_controller, mock_path):
     """ Test config command with --check and valid config file (yml extension)
