@@ -250,10 +250,10 @@ class TestControllerRepoFunctions(unittest.TestCase):
         self.assertIsNone(repo_details)
 
     @patch("controller.controller.RepoManager")
-    @patch("util.db_mongo.MongoAdapter.upsert_repo", return_value="new_repo_id")
+    @patch("util.db_mongo.MongoAdapter.update_session", return_value="new_repo_id")
     @patch("util.model.SessionDetail")
     @patch("os.getlogin", return_value="test_user")
-    def test_set_repo_success(self, mock_getlogin, MockSessionDetail, mock_upsert_repo, mock_repo_manager):
+    def test_set_repo_success(self, mock_getlogin, MockSessionDetail, mock_update_session, mock_repo_manager):
         """Test successful set_repo call without explicit validation."""
         mock_instance = mock_repo_manager.return_value
         mock_instance.is_current_dir_repo.return_value = (False, None, False)
@@ -281,13 +281,13 @@ class TestControllerRepoFunctions(unittest.TestCase):
         self.assertIn("Repository set successfully", message)
         self.assertIsNotNone(repo_details)
         self.assertEqual(repo_details.repo_name, "sample_repo")
-        mock_upsert_repo.assert_called_once_with(mock_session_detail.model_dump())
+        mock_update_session.assert_called_once_with(mock_session_detail.model_dump())
 
     @patch("controller.controller.RepoManager")
-    @patch("util.db_mongo.MongoAdapter.upsert_repo", return_value="mock_inserted_id")
-    @patch("util.db_mongo.MongoAdapter.get_last_set_repo")
+    @patch("util.db_mongo.MongoAdapter.update_session", return_value="mock_inserted_id")
+    @patch("util.db_mongo.MongoAdapter.get_session")
     @patch("os.getlogin", return_value="test_user")
-    def test_get_repo_in_git_repo(self, mock_getlogin, mock_get_last_set_repo, mock_upsert_repo, mock_repo_manager):
+    def test_get_repo_in_git_repo(self, mock_getlogin, mock_get_session, mock_update_session, mock_repo_manager):
         """Test get_repo when in a Git repository, with dynamic timestamp for time field."""
         mock_instance = mock_repo_manager.return_value
         mock_instance.is_current_dir_repo.return_value = (True, "existing_repo", True)
@@ -329,19 +329,19 @@ class TestControllerRepoFunctions(unittest.TestCase):
             self.assertEqual(repo_data.branch, "main")
             self.assertEqual(repo_data.repo_url, "https://github.com/sample/repo")
             self.assertEqual(repo_data.commit_hash, "latest_commit_hash")
-            mock_get_last_set_repo.assert_not_called()
+            mock_get_session.assert_not_called()
             mock_getlogin.assert_called_once()
-            mock_upsert_repo.assert_called_once_with(mock_session_detail.model_dump())
+            mock_update_session.assert_called_once_with(mock_session_detail.model_dump())
 
     @patch("controller.controller.RepoManager")
-    @patch("util.db_mongo.MongoAdapter.get_last_set_repo")
+    @patch("util.db_mongo.MongoAdapter.get_session")
     @patch("os.getlogin", return_value="test_user")  # Mock os.getlogin
-    def test_get_repo_with_last_set_repo(self, mock_getlogin, mock_get_last_set_repo, mock_repo_manager):
+    def test_get_repo_with_last_set_repo(self, mock_getlogin, mock_get_session, mock_repo_manager):
         """Test get_repo when not in a Git repository but a last set repo exists."""
         mock_instance = mock_repo_manager.return_value
         mock_instance.is_current_dir_repo.return_value = (False, None, False)
 
-        mock_get_last_set_repo.return_value = {
+        mock_get_session.return_value = {
             "user_id": "test_user",
             "repo_url": "https://github.com/sample/last_repo",
             "repo_name": "last_repo",
@@ -370,9 +370,9 @@ class TestControllerRepoFunctions(unittest.TestCase):
             self.assertEqual(repo_data.commit_hash, "456def")
 
     @patch("controller.controller.RepoManager")
-    @patch("util.db_mongo.MongoAdapter.get_last_set_repo", return_value=None)
+    @patch("util.db_mongo.MongoAdapter.get_session", return_value=None)
     @patch("os.getlogin", return_value="test_user")  # Mock os.getlogin
-    def test_get_repo_no_repo_found(self, mock_getlogin, mock_get_last_set_repo, mock_repo_manager):
+    def test_get_repo_no_repo_found(self, mock_getlogin, mock_get_session, mock_repo_manager):
         """Test get_repo when neither a Git repository nor a last set repo exists."""
         mock_instance = mock_repo_manager.return_value
         mock_instance.is_current_dir_repo.return_value = (False, None, False)
@@ -383,3 +383,45 @@ class TestControllerRepoFunctions(unittest.TestCase):
         self.assertFalse(status)
         self.assertEqual(message, "No repository found to run command.")
         self.assertIsNone(repo_data)
+
+    @patch("controller.controller.Controller.set_repo")
+    @patch("controller.controller.Controller.get_repo")
+    def test_handle_repo_with_repo_url(self, mock_get_repo, mock_set_repo):
+        """Test handle_repo when repo_url is provided."""
+        mock_set_repo.return_value = (True, "Repository set successfully.", None)
+
+        controller = Controller()
+        result = controller.handle_repo(repo_url="https://github.com/sample/repo", branch="main", commit_hash="abc123")
+
+        # Assert that set_repo was called with correct parameters
+        mock_set_repo.assert_called_once_with(
+            repo_url="https://github.com/sample/repo",
+            branch="main",
+            commit_hash="abc123"
+        )
+        # Assert that get_repo was not called
+        mock_get_repo.assert_not_called()
+
+        # Assert the result
+        self.assertTrue(result[0])
+        self.assertEqual(result[1], "Repository set successfully.")
+        self.assertIsNone(result[2])
+
+    @patch("controller.controller.Controller.set_repo")
+    @patch("controller.controller.Controller.get_repo")
+    def test_handle_repo_without_repo_url(self, mock_get_repo, mock_set_repo):
+        """Test handle_repo when repo_url is not provided."""
+        mock_get_repo.return_value = (False, "No repository found to run command.", None)
+
+        controller = Controller()
+        result = controller.handle_repo()
+
+        # Assert that get_repo was called
+        mock_get_repo.assert_called_once()
+        # Assert that set_repo was not called
+        mock_set_repo.assert_not_called()
+
+        # Assert the result
+        self.assertFalse(result[0])
+        self.assertEqual(result[1], "No repository found to run command.")
+        self.assertIsNone(result[2])

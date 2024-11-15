@@ -47,7 +47,31 @@ class Controller:
         # ..and many more
         self.logger = get_logger('cli.controller')
 
-    def set_repo(self, repo_url: str, branch: str = "main",
+    def handle_repo(
+            self,
+            repo_url: str = None, branch: str = "main",
+            commit_hash: str = None) -> tuple[bool, str, SessionDetail | None]:
+        """
+        If repo_url is given, call set_repo for the cloning process.
+        If no repo_url is given, call get_repo to validate $PWD as a git repository.
+
+        Args:
+            repo_url (str, optional): URL of the Git repository to configure. Defaults to None.
+            branch (str, optional): The branch to use, defaults to 'main'.
+            commit_hash (str, optional): Specific commit hash to check out, defaults to None.
+
+        Returns:
+            tuple: (bool, str, SessionDetail | None)
+                - bool: True if successful, False otherwise.
+                - str: Message about the result.
+                - SessionDetail or None: Repository details if available, otherwise None.
+        """
+        if repo_url:
+            return self.set_repo(repo_url=repo_url, branch=branch, commit_hash=commit_hash)
+        else:
+            return self.get_repo()
+
+    def set_repo(self, repo_url: str = None, branch: str = "main",
                  commit_hash: str = None) -> tuple[bool, str, SessionDetail | None]:
         """
         Configure and save a Git repository for CI/CD checks.
@@ -98,7 +122,7 @@ class Controller:
                 "time": time_log
             })
 
-            inserted_id = self.mongo_ds.upsert_repo(repo_data.model_dump())
+            inserted_id = self.mongo_ds.update_session(repo_data.model_dump())
             if not inserted_id:
                 return False, "Failed to store repository details in MongoDB.", None
 
@@ -142,7 +166,7 @@ class Controller:
                     "time": time_log
                 })
 
-                self.mongo_ds.upsert_repo(repo_data.model_dump())
+                self.mongo_ds.update_session(repo_data.model_dump())
 
                 if not is_in_root:
                     return False, "Not in the root of the repository. Please navigate to the root of the repo and try again.", repo_data
@@ -152,7 +176,7 @@ class Controller:
             except ValidationError as e:
                 return False, f"Data validation error: {e}", None
 
-        last_repo = self.mongo_ds.get_last_set_repo(user_id)
+        last_repo = self.mongo_ds.get_session(user_id)
 
         if last_repo:
             try:

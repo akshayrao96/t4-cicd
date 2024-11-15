@@ -162,7 +162,7 @@ def set_repo(repo_url: str, branch: str, commit: str) -> None:
         # message = success if repo is set, otherwise, specific error message of what the error is
         # repo_details = SessionDetails if success, otherwise, none
 
-        status, message, repo_details = controller.set_repo(repo_url, branch=branch, commit_hash=commit)
+        status, message, repo_details = controller.handle_repo(repo_url, branch=branch, commit_hash=commit)
 
         # Display the result message
         click.echo(f"{message}\n")
@@ -207,7 +207,7 @@ def get_repo():
 
     controller = Controller()
 
-    status, message, repo_details = controller.get_repo()
+    status, message, repo_details = controller.handle_repo()
 
     if status and repo_details:
         click.echo(message)

@@ -184,8 +184,8 @@ def test_override_save_to_db_failure(mock_build_nested_dict, mock_override_confi
     mock_override_config.assert_called_once_with('test_pipeline', {"global": {"docker": {"image": "gradle:jdk8"}}})
 
 
-@patch("cli.cmd_config.Controller.set_repo", return_value=(True, "Repository set successfully", MagicMock()))
-def test_set_repo_success(mock_set_repo):
+@patch("cli.cmd_config.Controller.handle_repo", return_value=(True, "Repository set successfully", MagicMock()))
+def test_set_repo_success(mock_handle_repo):
     """Test `set-repo` command with successful repository setup."""
     runner = CliRunner()
     result = runner.invoke(cmd_config.config, [
@@ -194,12 +194,12 @@ def test_set_repo_success(mock_set_repo):
 
     assert result.exit_code == 0
     assert "Repository set successfully" in result.output
-    mock_set_repo.assert_called_once_with("https://github.com/example/repo.git", branch="main", commit_hash="123abc")
+    mock_handle_repo.assert_called_once_with("https://github.com/example/repo.git", branch="main", commit_hash="123abc")
 
 
 # Test case for `set_repo` command with failure in repository setup
-@patch("cli.cmd_config.Controller.set_repo", return_value=(False, "Failed to set repository", None))
-def test_set_repo_failure(mock_set_repo):
+@patch("cli.cmd_config.Controller.handle_repo", return_value=(False, "Failed to set repository", None))
+def test_set_repo_failure(mock_handle_repo):
     """Test `set-repo` command with a failure in repository setup."""
     runner = CliRunner()
     result = runner.invoke(cmd_config.config, [
@@ -208,7 +208,7 @@ def test_set_repo_failure(mock_set_repo):
 
     assert result.exit_code == 0
     assert "Failed to set repository" in result.output
-    mock_set_repo.assert_called_once_with("https://github.com/example/repo.git", branch="invalid", commit_hash="unknown_commit")
+    mock_handle_repo.assert_called_once_with("https://github.com/example/repo.git", branch="invalid", commit_hash="unknown_commit")
 
 
 # Test case for `set_repo` command when no repository URL is provided
