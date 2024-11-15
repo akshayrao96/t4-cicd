@@ -131,10 +131,12 @@ class TestPipelineRun(TestCase):
         result = self.runner.invoke(cmd_pipeline.pipeline, ['run', '--dry-run'])
         assert result.exit_code == 1
     
+    @patch("controller.controller.MongoAdapter.update_pipeline_info")
     @patch("controller.controller.Controller.dry_run")
     @patch("controller.controller.ConfigChecker.validate_config")
     @patch("controller.controller.YamlParser.parse_yaml_file")
-    def test_success_dry_run_with_mock(self, mock_parse, mock_validate, mock_dry_run):
+    def test_success_dry_run_with_mock(
+        self, mock_parse, mock_validate, mock_dry_run, mock_update):
         """ Test the case where the run_pipeline execution reach the dry_run
         and success
 
@@ -146,12 +148,14 @@ class TestPipelineRun(TestCase):
         mock_parse.return_value = self.mock_pipeline_config
         mock_validate.return_value = self.success_validation_res
         mock_dry_run.return_value = (True, "")
+        mock_update.return_value = True
         result = self.runner.invoke(cmd_pipeline.pipeline, ['run', '--dry-run'])
         assert result.exit_code == 0
     
+    @patch("controller.controller.MongoAdapter.update_pipeline_info")
     @patch("controller.controller.ConfigChecker.validate_config")
     @patch("controller.controller.YamlParser.parse_yaml_file")
-    def test_success_integrated_dry_run(self, mock_parse, mock_validate):
+    def test_success_integrated_dry_run(self, mock_parse, mock_validate, mock_update):
         """ Test the case where the run_pipeline execution reach the dry_run
         and success, with integration test on dry run util class
 
@@ -161,15 +165,18 @@ class TestPipelineRun(TestCase):
         """
         mock_parse.return_value = self.mock_pipeline_config
         mock_validate.return_value = self.success_validation_res
+        mock_update.return_value = True
         result = self.runner.invoke(cmd_pipeline.pipeline, ['run', '--dry-run','--yaml'])
         assert result.exit_code == 0
 
     @patch("controller.controller.Controller._actual_pipeline_run")
     @patch("controller.controller.os.getlogin", return_value='user')
+    @patch("controller.controller.MongoAdapter.update_pipeline_info")
     @patch("controller.controller.ConfigChecker.validate_config")
     @patch("controller.controller.YamlParser.parse_yaml_file")
-    def test_success_actual_run(self, mock_parse, mock_validate,
-                                mock_getlogin, mock_actual_run):
+    def test_success_actual_run(
+        self, mock_parse, mock_validate,mock_update,
+        mock_getlogin, mock_actual_run):
         """ Test the case where the run_pipeline execution reach the 
         actual run and success
 
@@ -180,20 +187,20 @@ class TestPipelineRun(TestCase):
             mock_actual_run(MagicMock): mock the actual_run method 
         """
         mock_parse.return_value = self.mock_pipeline_config
-        # status = self.success_validation_res.valid
-        # err_msg = self.success_validation_res.error_msg
-        # pipeline_config = self.success_validation_res.pipeline_config
         mock_validate.return_value = self.success_validation_res
+        mock_update.return_value = True
         mock_actual_run.return_value = (True, "")
         result = self.runner.invoke(cmd_pipeline.pipeline, ['run'])
         assert result.exit_code == 0
 
     @patch("controller.controller.Controller._actual_pipeline_run")
     @patch("controller.controller.os.getlogin", return_value='user')
+    @patch("controller.controller.MongoAdapter.update_pipeline_info")
     @patch("controller.controller.ConfigChecker.validate_config")
     @patch("controller.controller.YamlParser.parse_yaml_file")
-    def test_fail_actual_run(self, mock_parse, mock_validate,
-                                mock_getlogin, mock_actual_run):
+    def test_fail_actual_run(
+        self, mock_parse, mock_validate,mock_update,
+        mock_getlogin, mock_actual_run):
         """ Test the case where the run_pipeline execution reach the 
         actual run and fail
 
@@ -205,6 +212,7 @@ class TestPipelineRun(TestCase):
         """
         mock_parse.return_value = self.mock_pipeline_config
         mock_validate.return_value = self.success_validation_res
+        mock_update.return_value = True
         mock_actual_run.return_value = (False, "")
         result = self.runner.invoke(cmd_pipeline.pipeline, ['run'])
         assert result.exit_code == 1
@@ -216,10 +224,12 @@ class TestPipelineRun(TestCase):
     # Integration test
     @patch("controller.controller.Controller._actual_pipeline_run")
     @patch("controller.controller.os.getlogin", return_value='user')
+    @patch("controller.controller.MongoAdapter.update_pipeline_info")
     @patch("controller.controller.ConfigChecker.validate_config")
     @patch("controller.controller.YamlParser.parse_yaml_file")
-    def test_success_actual_run_with_override(self, mock_parse, mock_validate,
-                                mock_getlogin, mock_actual_run):
+    def test_success_actual_run_with_override(
+        self, mock_parse, mock_validate,mock_update,
+        mock_getlogin, mock_actual_run):
         """ Test the case where the run_pipeline execution reach the 
         actual run and success, with overrides apply
 
@@ -231,6 +241,7 @@ class TestPipelineRun(TestCase):
         """
         mock_parse.return_value = self.mock_pipeline_config
         mock_validate.return_value = self.success_validation_res
+        mock_update.return_value=True
         mock_actual_run.return_value = (True, "")
         cmd_list = ['run', '--override', 'global.docker.image=gradle:jdk8']
         result = self.runner.invoke(cmd_pipeline.pipeline, cmd_list)
