@@ -61,7 +61,7 @@ class TestPipelineRun(TestCase):
         self.mock_pipeline_config = pipeline_config_dict
         #self.logger.debug(self.success_validation_res)
         
-    # Test input check logics
+    #Test input check logics
     def test_both_pipeline_name_file_path(self):
         """test if --file and --pipeline are passed as arguments. it should return error
         as it can't be both.
@@ -180,6 +180,9 @@ class TestPipelineRun(TestCase):
             mock_actual_run(MagicMock): mock the actual_run method 
         """
         mock_parse.return_value = self.mock_pipeline_config
+        # status = self.success_validation_res.valid
+        # err_msg = self.success_validation_res.error_msg
+        # pipeline_config = self.success_validation_res.pipeline_config
         mock_validate.return_value = self.success_validation_res
         mock_actual_run.return_value = (True, "")
         result = self.runner.invoke(cmd_pipeline.pipeline, ['run'])

@@ -74,10 +74,13 @@ def run(ctx, file_path:str, pipeline_name:str, repo:str, branch:str, commit:str,
     if overrides:
         try:
             overrides = ConfigOverrides.build_nested_dict(overrides)
-            # print(override_configs)
         except ValueError as e:
             click.secho(str(e), fg='red')
             sys.exit(2)
+    else:
+        # !! click multiple value option will construct a tuple,
+        # empty override will be an empty tuple.
+        overrides = None
     control = Controller()
 
     # TODO - Del 2024-11-04 Update Note and Fix

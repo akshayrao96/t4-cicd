@@ -118,19 +118,21 @@ def config(
             if no_set:
                 click.echo(f"checking config file at: {dir}/{config_file}")
                 # logger.debug("Checking config file at: %s", config_file)
-                passed, err, processed_config = controller.validate_config(
+                passed, err, pipeline_info = controller.validate_config(
                     config_file_path)
             else:
                 msg = f"set repo, checking and saving config file at: {dir}/{config_file}"
                 click.echo(msg)
-                passed, err, processed_config = controller.validate_n_save_config(
+                passed, err, pipeline_info = controller.validate_n_save_config(
                     config_file_path)
 
         # Print Validation Results
         click.echo(f"Check passed = {passed}")
         click.echo(f"Error message (if any) =\n{err}")
         click.echo("Printing processed_config")
-        pprint.pprint(processed_config)
+        # Note pydantic model can dump json straight with model_dump()
+        # click.echo(pipeline_info.pipeline_config.model_dump_json(by_alias=True))
+        pprint.pprint(pipeline_info.pipeline_config.model_dump(by_alias=True))
 
 
 @config.command()

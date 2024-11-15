@@ -92,9 +92,12 @@ class DockerManager(ContainerManager):
 
         # Extract important values
         container_name = self.vol_name + '-' + job_name
-        # TODO - test different docker_reg
         docker_reg = job_config[c.KEY_DOCKER][c.KEY_DOCKER_REG]
         docker_img = job_config[c.KEY_DOCKER][c.KEY_DOCKER_IMG]
+        # Update docker_img based on docker_reg value
+        if docker_reg != c.DEFAULT_DOCKER_REGISTRY:
+            docker_img = docker_reg + '/' + docker_img
+            print(docker_img)
         upload_path = job_config[c.KEY_ARTIFACT_PATH]
         commands = job_config[c.JOB_SUBKEY_SCRIPTS]
 

@@ -2,6 +2,7 @@
 """
 
 # Pipeline Configurations
+DEFAULT_DOCKER_REGISTRY = 'dockerhub'
 KEY_GLOBAL = 'global'
 KEY_STAGES = 'stages'
 KEY_JOBS = 'jobs'
