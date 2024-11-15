@@ -4,7 +4,7 @@ Note we cant use constant when defining the field here
 """
 import time
 from collections import OrderedDict
-from typing import (Optional, Union)
+from typing import (Dict, Optional, Union)
 from pydantic import (BaseModel, Field, field_validator)
 import util.constant as c
 
@@ -137,6 +137,19 @@ class PipelineInfo(BaseModel):
             list: existing list or new list
         """
         return job_run_history or []
+
+class RepoConfig(BaseModel):
+    """ Class to hold information correspond to one record 
+    in repo_configs table
+
+    Args:
+        BaseModel (BaseModel): Base Pydantic Class
+    """
+    _id: Optional[any] = None
+    repo_name:str
+    repo_url:str
+    branch:str
+    pipelines: Optional[Dict[str,PipelineInfo]] = {}
 
 class PipelineHist(BaseModel):
     """class to hold data to retrieve pipeline history

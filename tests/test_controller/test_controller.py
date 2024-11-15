@@ -32,15 +32,6 @@ logger = get_logger("tests.test_controller.test_controller")
 #     logger.info(error_msg)
 #     logger.info(config_dict)
 
-def test_edit_config():
-    db = MongoAdapter()
-    controller = Controller()
-    # id = db.insert_job("672817cdabdfc031a3ff26f4", pipeline_config)
-    pg = db.create_job_log("checkout", "started")
-    _ = db.update_job_logs("67281a551b30182de9ac740d", "build", "started", pg)
-test_edit_config()
-
-
 class TestController(unittest.TestCase):
 
     @patch("controller.controller.Controller.validate_config")
