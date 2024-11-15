@@ -550,7 +550,7 @@ class MongoAdapter:
 
             # Check if the specific repository and pipeline exists
             exist = self._retrieve_by_query(query_filter, MONGO_DB_NAME, MONGO_PIPELINES_TABLE)
-            if not exist:
+            if not exist or pipeline_name not in exist['pipelines']:
                 # We need to initialize PipelineInfo data for a new pipeline
                 # Try convert the update to a PipelineInfo object matching the
                 # db schema

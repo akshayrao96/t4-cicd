@@ -91,6 +91,7 @@ def config(
             results = controller.validate_n_save_configs(dir)
         for pipeline_name, res in results.items():
             valid = res.valid
+            err = res.error_msg
             click.echo(
                 f"\nStatus for {pipeline_name}: {
                     'passed' if valid else 'failed'}")
