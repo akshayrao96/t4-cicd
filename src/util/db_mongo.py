@@ -8,7 +8,7 @@ import bson
 from pydantic import ValidationError
 from pymongo import (MongoClient, errors)
 from util.common_utils import (get_env, get_logger, ConfigOverrides)
-from util.model import (PipelineInfo, RepoConfig)
+from util.model import (PipelineInfo, RepoConfig, SessionDetail)
 
 env = get_env()
 logger = get_logger("util.db_mongo")
@@ -421,29 +421,92 @@ class MongoAdapter:
             logger.warning(f"Error inserting new repository, exception is {e}")
             return None
 
-    def get_last_set_repo(self, db_name: str = MONGO_DB_NAME,
-                          collection_name: str = MONGO_REPOS_TABLE) -> dict:
-        """ Retrieve the last set repository from the user
+    def get_session(
+            self,
+            user_id: str,
+            db_name: str = MONGO_DB_NAME,
+            collection_name: str = MONGO_REPOS_TABLE) -> dict:
+        """
+        Retrieve the last set repository for a specific user.
 
         Args:
-            db_name (str, optional): target database. Defaults to MONGO_DB_NAME.
-            collection_name (str, optional): collection(table) to retrieve from. 
+            user_id (str): The ID of the user whose last set repository to retrieve.
+            db_name (str, optional): Target database. Defaults to MONGO_DB_NAME.
+            collection_name (str, optional): Collection (table) to retrieve from.
                 Defaults to MONGO_REPOS_TABLE.
 
         Returns:
-            dict: last repository entry in dict form, or None if not found
+            dict: The last repository entry in dictionary form for the user, or None if not found.
         """
         try:
-            mongo_client = MongoClient(self.mongo_uri)
-            database = mongo_client[db_name]
-            collection = database[collection_name]
-            result = collection.find_one(sort=[("time", -1)])
-            mongo_client.close()
-            return result
+            query_filter = {"user_id": user_id}
+
+            result = self._retrieve_by_query(
+                query=query_filter,
+                db_name=db_name,
+                collection_name=collection_name
+            )
+
+            return result if result else {}
+
         except errors.PyMongoError as e:
-            logger.warning(
-                f"Error retrieving last set repository, exception is {e}")
-            return None
+            logger.warning(f"Error retrieving last set repository for user {user_id}: {e}")
+            return {}
+
+    def update_session(
+            self,
+            session_data: dict,
+            db_name: str = MONGO_DB_NAME,
+            collection_name: str = MONGO_REPOS_TABLE) -> bool:
+        """
+        Upsert a session record in the database based on user ID. If a record with the same user_id exists,
+        it will update the record; otherwise, a new record will be inserted.
+
+        Args:
+            session_data (dict): The session data to upsert, including the "user_id" field.
+            db_name (str, optional): The database name. Defaults to MONGO_DB_NAME.
+            collection_name (str, optional): The collection name. Defaults to MONGO_REPOS_TABLE.
+
+        Returns:
+            bool: True if the upsert operation was successful, False otherwise.
+
+        Example:
+            session_data = {
+                "user_id": "12345",
+                "repo_url": "https://github.com/example/repo",
+                "repo_name": "repo",
+                "branch": "main",
+                "commit_hash": "abc123",
+                "is_remote": True,
+                "time": "2024-11-15 12:34:56"
+            }
+
+            result = update_session(session_data)
+            if result:
+                print("Session updated successfully.")
+            else:
+                print("Failed to update session.")
+        """
+        try:
+            # Define the query filter based on user_id
+            query_filter = {"user_id": session_data.get("user_id")}
+
+            if not query_filter["user_id"]:
+                logger.warning("Upsert failed: 'user_id' not found in session_data.")
+                return False
+
+            # Prepare the data for the update
+            updates = session_data.copy()
+            if '_id' in updates:
+                updates.pop('_id')
+
+            # Use the generic helper method for the upsert operation
+            acknowledge = self._update_by_query(query_filter, updates, db_name, collection_name)
+            return acknowledge
+
+        except errors.PyMongoError as e:
+            logger.warning(f"Error in update_session, exception is {e}")
+            return False
 
     def get_pipeline_config(self, repo_name: str, repo_url: str,
                             branch: str, pipeline_name: str) -> dict:

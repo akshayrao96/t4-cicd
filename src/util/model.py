@@ -67,7 +67,6 @@ class SessionDetail(BaseModel):
     branch:str
     commit_hash:str
     is_remote:bool
-    last_temp_working_dir:Optional[str] = None
     time:Optional[str] = time.asctime()
 
 class GlobalConfig(BaseModel):
