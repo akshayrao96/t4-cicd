@@ -63,3 +63,20 @@ Fields required:
     - start_time
     - completion_time
     - job_logs
+
+## Main methods available in db_mongo and Pydantic Models available
+
+### Usecase: Insert a new sessions data
+
+Pydantic Model used : SessionDetail
+
+### Usecase: Adding new / Update Existing Pipeline Configurations
+
+Pydantic Model used :
+
+- PipelineInfo (for new),
+- PipelineConfig (for new and update)
+
+MongoAdapter method :
+
+- update_pipeline_info()

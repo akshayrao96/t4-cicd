@@ -90,7 +90,10 @@ class ValidatedStage(BaseModel):
     job_groups:list[list]
 
 class PipelineConfig(BaseModel):
-    """ class to hold information for a valid pipeline configuration
+    """ class to hold information for a valid pipeline configuration. 
+    Note one of the keyword global is reserved in Python, thus we need 
+    to load by alias='global', when output to dict / json, need to specify
+    model_dump(byalias=True)
 
     Args:
         BaseModel (BaseModel): Base Pydantic Class

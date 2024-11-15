@@ -1,13 +1,28 @@
 """ Test cid config command
 """
+import json
+import os
 from unittest.mock import MagicMock, patch
 from click.testing import CliRunner
 from cli import (__main__, cmd_config)
 from util.common_utils import (get_logger)
 from util.db_mongo import MongoAdapter
+from util.model import (PipelineInfo, ValidationResult)
 
 logger = get_logger("tests.test_cmd_config")
 
+# Load sample validation result from json file
+validation_result_path = os.path.join(os.path.dirname(__file__),'sample_validation_res.json')
+with open(validation_result_path, 'r', encoding='utf-8') as openfile:
+    # Reading from json file
+    validation_result_dict = json.load(openfile)
+success_validation_res = ValidationResult.model_validate(validation_result_dict)
+pipeline_config_dict = success_validation_res.pipeline_config 
+sample_pipeline_info = PipelineInfo(
+    pipeline_name="test_pipeline",
+    pipeline_file_name="test_pipeline.yml",
+    pipeline_config=pipeline_config_dict
+)
 
 def test_config_help():
     """ Test the main config command just by calling it with --help option
@@ -22,7 +37,7 @@ def test_config_help():
 
 
 @patch("cli.cmd_config.Controller.validate_n_save_config",
-       return_value=(True, "", {}))
+       return_value=(True, "", sample_pipeline_info))
 def test_config_check_config_file(mock_controller):
     """ Test the main config command without subcommands. `cid config`
         Expected to parse through pipelines.yml file
@@ -45,7 +60,7 @@ def test_config_check_config_file(mock_controller):
 # Patch the validate_config of Controller method in cli.cmd_config module
 
 
-@patch("cli.cmd_config.Controller.validate_config", return_value=(True, "", {}))
+@patch("cli.cmd_config.Controller.validate_n_save_configs", return_value=(True, "", sample_pipeline_info))
 def test_config_check_with_valid_file_no_set(mock_controller):
     """ Test config command with --check and valid config file (yml extension)
     """
@@ -74,7 +89,7 @@ def test_config_check_all(mock_controller):
 # Patch the validate_configs of Controller method in cli.cmd_config module
 
 
-@patch("cli.cmd_config.Controller.validate_configs", return_value={})
+@patch("cli.cmd_config.Controller.validate_n_save_configs", return_value={})
 @patch("cli.cmd_config.click.Path", return_value="")
 def test_config_check_all_no_set(mock_controller, mock_path):
     """ Test config command with --check and valid config file (yml extension)

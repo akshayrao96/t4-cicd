@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 import time
 import bson
 # from bson import ObjectId
+from pydantic import ValidationError
 from pymongo import (MongoClient, errors)
 from util.common_utils import (get_env, get_logger, ConfigOverrides)
 from util.model import (PipelineInfo, RepoConfig)
@@ -519,54 +520,15 @@ class MongoAdapter:
             print(f"pipelines: {pipeline_document} is empty.\nError: {str(attr)}")
             return {}
 
-    def update_pipeline_config(
-            self,
-            repo_name: str,
-            repo_url: str,
-            branch: str,
-            pipeline_name: str,
-            pipeline_config: dict) -> bool:
-        """Update the pipeline_config field in the repo_configs collection for a specific pipeline.
-
-        Args:
-            repo_name (str): The repository name.
-            repo_url (str): The URL of the repository.
-            branch (str): The branch of the repository.
-            pipeline_name (str): The name of the pipeline to update.
-            pipeline_config (dict): The new pipeline configuration to be updated.
-
-        Returns:
-            bool: True if the update was successful, False otherwise.
-        """
-        try:
-            query_filter = {
-                'repo_name': repo_name,
-                'repo_url': repo_url,
-                'branch': branch,
-            }
-            update_operation = {
-                '$set': {
-                    f'pipelines.{pipeline_name}.pipeline_config': pipeline_config
-                }
-            }
-            mongo_client = MongoClient(self.mongo_uri)
-            database = mongo_client[MONGO_DB_NAME]
-            collection = database[MONGO_PIPELINES_TABLE]
-            result = collection.update_one(query_filter, update_operation)
-            mongo_client.close()
-            return result.acknowledged
-        except errors.PyMongoError as e:
-            logger.warning(f"Error updating pipeline config: {str(e)}")
-            return False
-
-    def update_pipeline_history(
+    def update_pipeline_info(
             self,
             repo_name: str,
             repo_url: str,
             branch: str,
             pipeline_name: str,
             updates: dict) -> bool:
-        """Update the fields in the repo_configs collection for a specific pipeline.
+        """ Update the fields in the repo_configs collection for a specific pipeline.
+        Will catch PyMongoError
 
         Args:
             repo_name (str): The repository name.
@@ -583,20 +545,24 @@ class MongoAdapter:
                 'repo_name': repo_name,
                 'repo_url': repo_url,
                 'branch': branch,
+                #'pipelines': pipeline_name
             }
 
-            update_dict = {f'pipelines.{pipeline_name}.{key}': value for key, value in updates.items()}
-            logger.debug(update_dict)
-            update_operation = {
-                '$set': update_dict
-            }
-            mongo_client = MongoClient(self.mongo_uri)
-            database = mongo_client[MONGO_DB_NAME]
-            collection = database[MONGO_PIPELINES_TABLE]
-            result = collection.update_one(query_filter, update_operation)
-            mongo_client.close()
-            return result.acknowledged
-        except errors.PyMongoError as e:
+            # Check if the specific repository and pipeline exists
+            exist = self._retrieve_by_query(query_filter, MONGO_DB_NAME, MONGO_PIPELINES_TABLE)
+            if not exist or pipeline_name not in exist['pipelines']:
+                # We need to initialize PipelineInfo data for a new pipeline
+                # Try convert the update to a PipelineInfo object matching the
+                # db schema
+                pipeline_info = PipelineInfo.model_validate(updates)
+                # Convert it back for later usage
+                updates = pipeline_info.model_dump()
+            update_dict = {f'pipelines.{pipeline_name}.{k}': v for k, v in updates.items()}
+            status = self._update_by_query(
+                query_filter,update_dict,MONGO_DB_NAME,MONGO_PIPELINES_TABLE
+                )
+            return status
+        except (errors.PyMongoError, ValidationError) as e:
             logger.warning(f"Error updating pipeline config: {str(e)}")
             return False
 

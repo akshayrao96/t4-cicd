@@ -127,161 +127,190 @@ class Controller:
         #return pipelines
 
     ### CONFIG ###
-    def validate_n_save_configs(self, directory: str) -> dict:
+    def validate_n_save_configs(self, directory: str, saving:bool = True) -> dict:
         """ Set Up repo, validate config, and save the config into datastore
 
         Args:
             directory (str): valid directory containing pipeline configuration
+            saving (optional, bool): whether to save the result to db. 
+            Default to True
 
         Returns:
             dict: dictionary of {<pipeline_name>:<single validation results>}
         """
         # stub response for repo set up
+        # stub response for repo set up
+        session_data = SessionDetail(
+            user_id='random',
+            repo_name='cicd-python',
+            repo_url="https://github.com/sjchin88/cicd-python",
+            branch='main',
+            is_remote=True,
+            commit_hash="abcdef"
+        )
         click.echo("Setting Up Repo")
-        validation_results = self.validate_configs(directory)
-        # stub response for save
-        click.echo("Saving into datastore")
-        results = {}
-        for pipeline_name, validation_result in validation_results.items():
-            status = validation_result.get('valid')
-            error_msg = validation_result.get('error_msg')
-            pipeline_config = validation_result.get('pipeline_config')
-            if status:
-                file_path = os.path.join(directory, f"{pipeline_name}.yml")
-                # Pass the pre-validated config and skip validation
-                status, error_msg, saved_config = self.validate_n_save_config(
-                    file_path, pipeline_config=pipeline_config, skip_validation=True
-                )
-                validation_result.update({
-                    'valid': status,
-                    'error_msg': error_msg,
-                    'pipeline_config': saved_config
-                })
-            else:
-                click.echo(f"Validation failed for {pipeline_name}: {error_msg}")
-            results[pipeline_name] = validation_result
-        return results
-
-    def validate_n_save_config(
-        self, file_name: str, pipeline_config: dict = None, skip_validation: bool = False
-    ) -> tuple[bool, str, dict]:
-        """ Set Up repo, validate config, and save the config into datastore
-
-        Args:
-            file_name (str): full absolute path of the file to be validated
-
-        Returns:
-            tuple[bool, str, dict]: status of the config validation and output message
-        """
-        status = True
-        error_msg = ""
-        resp_pipeline_config = pipeline_config
-        # stub response for repo set up
-        if not skip_validation:
-            status, error_msg, resp_pipeline_config = self.validate_config(file_name)
-        # If validation passes, save to datastore
-        if status:
-            pipeline_name = resp_pipeline_config['global'].get('pipeline_name')
-            #TODO: replace stubs. To be update with new get_repo method
-            repo_data = self.mongo_ds.get_repo(
-                "sample-repo", "https://github.com/sample-user/sample-repo", "main"
-            )
-            # Case 1: No Repo Exists - Create New Repo with Pipeline
-            #TODO: refactor this part
-            if not repo_data:
-                new_repo_data = {
-                    "repo_name": "sample-repo",
-                    "repo_url": "https://github.com/sample-user/sample-repo",
-                    "branch": "main",
-                    "pipelines":
-                        self.mongo_ds.create_pipeline_document(file_name, resp_pipeline_config)
-                }
-                repo_id = self.mongo_ds.insert_repo(
-                    new_repo_data, collection_name=MONGO_PIPELINES_TABLE
-                )
-                if not repo_id:
-                    return False, "Error saving repo to datastore.", resp_pipeline_config
-
-            # # Case 2: Existing Repo - Append Pipeline
-            else:
-                if pipeline_name not in repo_data["pipelines"]:
-                    new_pipeline_document = self.mongo_ds.create_pipeline_document(
-                        file_name, resp_pipeline_config
-                    )
-                    repo_data["pipelines"][pipeline_name] = new_pipeline_document
-                    success = self.mongo_ds.update_pipeline(repo_data)
-                    if not success:
-                        error_msg = f"Error add new '{pipeline_name}' to datastore."
-                        status = False
-                else:
-                    error_msg = (
-                        f"Pipeline '{pipeline_name}' already exists"
-                        "Use --override to update."
-                    )
-                    status = False
-        return status, error_msg.strip(), resp_pipeline_config
-
-    def _save_config(self, repo_data:SessionDetail, pipeline_config:PipelineConfig) -> bool:
-        """_summary_
-
-        Args:
-            repo_data (SessionDetail): _description_
-            pipeline_config (PipelineConfig): _description_
-
-        Returns:
-            bool: _description_
-        """
-
-    def validate_configs(self, directory: str) -> dict:
-        """ Validate configuration file in a directory
-
-        Args:
-            directory (str): valid directory containing pipeline configuration
-
-        Returns:
-            dict: dictionary of {<pipeline_name>:<single validation results>}
-        """
-        # stub response
         parser = YamlParser()
         results = {}
         pipeline_configs = parser.parse_yaml_directory(directory)
+        
+        # Loop through each items
         for pipeline_name, values in pipeline_configs.items():
-            response_dict = self.config_checker.validate_config(
+            response = self.config_checker.validate_config(
                 pipeline_name, values.pipeline_config, values.pipeline_file_name, True)
-            results[pipeline_name] = response_dict
+            results[pipeline_name] = response
+            status = response.valid
+            
+            # Perform saving
+            if status and saving:
+                updates = {
+                    'pipeline_name': pipeline_name,
+                    'pipeline_file_name':values.pipeline_file_name,
+                    'pipeline_config': response.pipeline_config.model_dump(by_alias=True),
+                }
+                status = self.mongo_ds.update_pipeline_info(
+                        repo_name=session_data.repo_name,
+                        repo_url=session_data.repo_url,
+                        branch=session_data.branch,
+                        pipeline_name=pipeline_name,
+                        updates=updates
+                    )
+                if not status:
+                    response.valid = status
+                    response.error_msg = "Fail to save to datastore"
+        # stub response for save
         return results
 
-    def validate_config(self, file_name: str) -> tuple[bool, str, dict]:
-        """ Validate a single configuration file
+    def validate_n_save_config(
+        self, file_name: str = None,
+        pipeline_name: str = None,
+        override_configs:dict = None,
+    ) -> tuple[bool, str, PipelineInfo]:
+        """ apply overrides if any, validate config, and save the config into datastore. 
+        The pipeline configuration can come from three sources: (1) file_name, 
+        (2) pipeline_name
 
         Args:
-            file_name (str): full absolute path of the file to be validated
+            file_name (str, optional): target file_name. Defaults to None.
+            pipeline_name (str, optional): target pipeline_name. Defaults to None.
+            override_configs (dict, optional): override if any. Defaults to None.
 
         Returns:
-            tuple[bool, str, dict]: status of the config validation and output message
+            tuple[bool, str, PipelineInfo]: First item is indicator for success or fail. 
+            second item is the error message if any. 
+            third item is the PipelineInfo object. 
+        """
+        status = True
+        error_msg = ""
+
+        # stub response for repo set up
+        session_data = SessionDetail(
+            user_id='random',
+            repo_name='cicd-python',
+            repo_url="https://github.com/sjchin88/cicd-python",
+            branch='main',
+            is_remote=True,
+            commit_hash="abcdef"
+        )
+
+        status, error_msg, pipeline_info = self.validate_config(
+                file_name, pipeline_name, override_configs
+            )
+
+        if not status:
+            return status, error_msg.strip(), pipeline_info
+
+        # If validation passes, save to datastore
+        pipeline_config = pipeline_info.pipeline_config.model_dump(by_alias=True)
+        pipeline_name = pipeline_info.pipeline_name
+
+        # MongoAdapter update_pipeline_info method will take care of initializing
+        # the PipelineInfo record for new pipeline,
+        # We just need to place the pipeline_config in updates, and provide
+        # pipeline_name and pipeline_file_name
+        # We dont use the PipelineInfo object directly as we dont want to
+        # override the existing data in the db
+        updates = {
+            'pipeline_name': pipeline_name,
+            'pipeline_file_name':pipeline_info.pipeline_file_name,
+            'pipeline_config': pipeline_config,
+        }
+        status = self.mongo_ds.update_pipeline_info(
+                repo_name=session_data.repo_name,
+                repo_url=session_data.repo_url,
+                branch=session_data.branch,
+                pipeline_name=pipeline_name,
+                updates=updates
+            )
+        if not status:
+            error_msg = f"Fail saving pipeline config for {pipeline_name}"
+            return status, error_msg, None
+        return status, error_msg.strip(), pipeline_info
+
+    def validate_config(self,
+                        file_name: str = None,
+                        pipeline_name: str = None,
+                        override_configs:dict=None
+                        ) -> tuple[bool, str, PipelineInfo]:
+        """ Apply override if any and Validate a single configuration file. 
+        The pipeline configuration can come from three sources: (1) file_name, 
+        (2) pipeline_name and (3) any pipeline_configuration 
+
+        Args:
+            file_name (str, optional): target file_name. Defaults to None.
+            pipeline_name (str, optional): target pipeline_name. Defaults to None.
+            override_configs (dict, optional): override if any. Defaults to None.
+
+        Returns:
+            tuple[bool, str, PipelineInfo]: First item is indicator for success or fail. 
+            second item is the error message if any. 
+            third item is the PipelineInfo object. 
         """
         parser = YamlParser()
-        pipeline_config = parser.parse_yaml_file(file_name)
+        pipeline_config = None
+        pipeline_file_name = None
+        # At this point will have either config_file or pipeline_name set by upstream but not both
+        # check pipeline_name first
+        if pipeline_name is not None:
+            try:
+                pipeline_info = parser.parse_yaml_by_pipeline_name(
+                    pipeline_name, DEFAULT_CONFIG_DIR)
+                pipeline_file_name = pipeline_info.pipeline_file_name
+                pipeline_config = pipeline_info.pipeline_config
+            except FileNotFoundError as fe:
+            # if 'pipeline' name could not be located, return False and error message
+                self.logger.error(f"error in extracting from pipeline_name, {fe}")
+                return False, fe, None
+        else:
+            try:
+                pipeline_config = parser.parse_yaml_file(file_name)
+                # get the pipeline_name for ConfigChecker
+                pipeline_name = pipeline_config[const.KEY_GLOBAL][const.KEY_PIPE_NAME]
+                # Extract the filename without extension or path
+                pipeline_file_name = os.path.basename(file_name)
+            except (FileNotFoundError, YAMLError) as e:
+            # if cannot extract content, return False and error message
+                self.logger.error(f"error in extracting from file_name, {e}")
+                return False, e, None
 
-        # get the pipeline_name for ConfigChecker
-        pipeline_name = pipeline_config.get('global.pipeline_name')
-        # Extract the filename without extension or path
-        pipeline_file_name = os.path.basename(file_name)
+        #pipeline_config = parser.parse_yaml_file(file_name)
+        # Process Override if have.
+        if override_configs:
+            pipeline_config = ConfigOverrides.apply_overrides(
+                pipeline_config,
+                override_configs)
         click.echo(f"Validating file in {pipeline_file_name}")
-
         # call ConfigChecker to validate the configuration
-        # returns: dict <valid, error_msg, pipeline_config
-        validation_res = self.config_checker.validate_config(pipeline_name,
-                                                            pipeline_config,
-                                                            pipeline_file_name,
-                                                            error_lc=True)
-
-        # store the response to variables
-        status = validation_res.valid
-        error_msg = validation_res.error_msg
-        resp_pipeline_config = validation_res.pipeline_config
-
-        return (status, error_msg, resp_pipeline_config)
+        result = self.config_checker.validate_config(pipeline_name,
+                                                     pipeline_config,
+                                                     pipeline_file_name,
+                                                     error_lc=True)
+        pipeline_info = PipelineInfo(
+            pipeline_name=pipeline_name,
+            pipeline_file_name=pipeline_file_name,
+            pipeline_config=result.pipeline_config
+        )
+        # return validation result as tuple for easier processing
+        return result.valid, result.error_msg, pipeline_info
 
     def override_config(self, pipeline_name: str, overrides: dict) -> bool:
         """Retrieve, apply overrides, validate, and update the pipeline configuration.
@@ -316,12 +345,12 @@ class Controller:
         if not status:
             click.echo("Override pipeline configuration validation failed.")
             return False
-        success = self.mongo_ds.update_pipeline_config(
+        success = self.mongo_ds.update_pipeline_info(
             "sample-repo",
             "https://github.com/sample-user/sample-repo",
             "main",
             pipeline_name,
-            resp_pipeline_config)
+            {'pipeline_config':resp_pipeline_config})
         if not success:
             click.echo("Error updating pipeline configuration.")
             return False
@@ -360,56 +389,27 @@ class Controller:
         status = True
         message = None
         config_dict = None
-        parser = YamlParser()
 
-        # Step 2 extract raw yaml content from given config_file or pipeline_name
-        # At this point will have either config_file or pipeline_name set by upstream but not both
-        # pipeline_name default is None, so we check if pipeline_name is provided first
-        # for --pipeline, need to call YamlParser to retrieve the pipeline_info
-        if pipeline_name:
-            # if 'pipeline' name could not be located, return False and error message
-            try:
-                pipeline_info = parser.parse_yaml_by_pipeline_name(
-                    pipeline_name, DEFAULT_CONFIG_DIR)
-                config_dict = pipeline_info.pipeline_config
-            except FileNotFoundError as fe:
-                self.logger.error(fe)
-                return (False, fe)
-        else:
-            try:
-                config_dict = parser.parse_yaml_file(config_file)
-            except (FileNotFoundError, YAMLError) as e:
-                self.logger.error(e)
-                return (False, e)
-
-        # Step 3 - Process Override if have
-        if override_configs:
-            config_dict = ConfigOverrides.apply_overrides(
-                config_dict,
-                override_configs)
-
-        # Step 4 validate the updated pipeline configuration
-        # TODO - validate and save, need refactor the validate_n_save method
-        validation_res = self.config_checker.validate_config(
-                config_dict[const.KEY_GLOBAL][const.KEY_PIPE_NAME],
-                config_dict)
-        #self.logger.debug(f"validation res:{validation_res}")
-        status = validation_res.valid
+        # Step 2 - 4 extract yaml content, apply override, validate and
+        # save handled by validate_n_save_config
+        status, error_msg, pipeline_info = self.validate_n_save_config(
+            config_file, pipeline_name, override_configs)
 
         # Early Return if override and validation fail
-        #self.logger.debug(f"check status:{status}")
         if not status:
-            return status, validation_res.error_msg
-        config_dict = validation_res.pipeline_config.model_dump(by_alias=True)
+            return status, error_msg
+        config_dict = pipeline_info.pipeline_config.model_dump(by_alias=True)
+
         # Step 5: check if pipeline is  running dry-run or not
         if dry_run:
             # TODO - Update dry_run to take PipelineConfig model instead of dict
             status, dry_run_msg = self.dry_run(config_dict, yaml_output)
+            self.logger.debug(f"dry run status:{status}, {dry_run_msg}")
             return status, dry_run_msg
 
         # Step 6: Actual Pipeline Run
         status = True
-        message = "Pipeline runs successfully"
+        message = "Pipeline runs successfully. "
         #TODO: update method to update git_detail from step 0
         try:
             repo_data = copy.deepcopy(git_details)
@@ -419,8 +419,8 @@ class Controller:
             repo_data = SessionDetail.model_validate(repo_data)
             # pprint.pprint(repo_data.model_dump())
             pipeline_config = PipelineConfig.model_validate(config_dict)
-            status, run_number = self._actual_pipeline_run(repo_data, pipeline_config, local)
-            message += run_number
+            status, run_msg = self._actual_pipeline_run(repo_data, pipeline_config, local)
+            message += run_msg
         except ValidationError as ve:
             message = f"validation error occur, error is {ve}\n"
             self.logger.warning(message)
@@ -428,7 +428,6 @@ class Controller:
 
         if not status:
             message += 'Pipeline runs fail'
-
         return (status, message)
 
     def _actual_pipeline_run(self,
@@ -448,7 +447,8 @@ class Controller:
 
         Returns:
             tuple(bool, str): first flag indicate whether the overall run is 
-                successful(True) or fail(False). Second str is the actual run number
+                successful(True) or fail(False). Second str is the actual run number if success,
+                or error message if fail
         """
         # Step 0: Process local flag. Note feature to run pipeline on remote is not implemented
         if local:
@@ -468,12 +468,13 @@ class Controller:
         except ValidationError as ve:
             self.logger.warning(f"validation error for pipeline_history:{pipeline_history}"+
                                 f"error is {ve}")
-            raise ve
+            return False, "Fail to retrieve pipeline history"
 
         # Early return if pipeline already running
         if pipeline_history['running']:
-            raise ValueError(f"Pipeline {pipeline_config.global_.pipeline_name} Already Running,"+
-                             "Please Stop Before Proceed")
+            error_msg = f"Pipeline {pipeline_config.global_.pipeline_name} Already Running. "
+            error_msg += "Please Stop Before Proceed"
+            return False, error_msg
 
         # Step 2: Insert new job record
         job_id = self.mongo_ds.insert_job(
@@ -488,7 +489,7 @@ class Controller:
             "job_run_history":his_obj.job_run_history,
             'running':True,
         }
-        update_success = self.mongo_ds.update_pipeline_history(
+        update_success = self.mongo_ds.update_pipeline_info(
             repo_data.repo_name,
             repo_data.repo_url,
             repo_data.branch,
@@ -505,7 +506,6 @@ class Controller:
                 run=str(len(his_obj.job_run_history))
             )
         # Step 3: Iterate through all stages, for each jobs
-        # TODO - Update pipeline_status with cancel case
         pipeline_status = const.STATUS_SUCCESS
         early_break = False
         for stage_name, stage_config in pipeline_config.stages.items():
@@ -555,7 +555,7 @@ class Controller:
         final_updates = {
             'running':False
         }
-        update_success = self.mongo_ds.update_pipeline_history(
+        update_success = self.mongo_ds.update_pipeline_info(
             repo_data.repo_name,
             repo_data.repo_url,
             repo_data.branch,
@@ -563,13 +563,8 @@ class Controller:
             final_updates
         )
         pipeline_pass = pipeline_status == const.STATUS_SUCCESS
-        return pipeline_pass, f"run_number:{run_number}"
-
-
-    # def stop_job(self):
-    #     """_summary_
-    #     """
-
+        run_msg = f"run_number:{run_number}" if pipeline_pass else ""
+        return pipeline_pass, run_msg
 
     def display_or_edit_config(self):
         """_summary_
@@ -641,7 +636,7 @@ class Controller:
                 #                                                 run_number=run_number)
                 run_number = int(pipeline_dict['run']) - 1
                 job_history = self.mongo_ds.get_job(history['job_run_history'][run_number])
-                
+
                 message = PrintMessage(job_history)
                 output_msg = message.print(['pipeline_name', 'run_number', 'git_commit_hash',
                                         'start_time', 'completion_time'])

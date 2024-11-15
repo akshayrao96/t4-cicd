@@ -4,7 +4,7 @@
 import os
 import pprint
 import click
-import util.constant as const
+# import util.constant as const
 from util.common_utils import (get_logger, ConfigOverrides)
 from controller.controller import Controller
 
@@ -76,7 +76,6 @@ def config(
     controller = Controller()
     passed = True
     err = ""
-    processed_config = {}
     if check_all:
         config_dir_path = dir
         if not os.path.isdir(config_dir_path):
@@ -85,15 +84,14 @@ def config(
         click.echo(config_dir_path)
         if no_set:
             click.echo(f"checking all config files in directory {dir}")
-            results = controller.validate_configs(dir)
+            results = controller.validate_n_save_configs(dir, saving=False)
         else:
             click.echo(
                 f"set repo, checking and saving all config files in directory {dir}")
             results = controller.validate_n_save_configs(dir)
-        for pipeline_name, res_dict in results.items():
-            valid = res_dict[const.RETURN_KEY_VALID]
-            err = res_dict[const.RETURN_KEY_ERR]
-            pipe_config = res_dict[const.KEY_PIPE_CONFIG]
+        for pipeline_name, res in results.items():
+            valid = res.valid
+            err = res.error_msg
             click.echo(
                 f"\nStatus for {pipeline_name}: {
                     'passed' if valid else 'failed'}")
@@ -101,6 +99,7 @@ def config(
                 click.echo(f"error message:\n{err}")
             else:
                 click.echo("printing top 10 lines of processed config:")
+                pipe_config = res.pipeline_config.model_dump(by_alias=True)
                 config_str = pprint.pformat(pipe_config)
                 for line in config_str.splitlines()[:10]:
                     click.echo(line)
@@ -118,19 +117,21 @@ def config(
             if no_set:
                 click.echo(f"checking config file at: {dir}/{config_file}")
                 # logger.debug("Checking config file at: %s", config_file)
-                passed, err, processed_config = controller.validate_config(
+                passed, err, pipeline_info = controller.validate_config(
                     config_file_path)
             else:
                 msg = f"set repo, checking and saving config file at: {dir}/{config_file}"
                 click.echo(msg)
-                passed, err, processed_config = controller.validate_n_save_config(
+                passed, err, pipeline_info = controller.validate_n_save_config(
                     config_file_path)
 
         # Print Validation Results
         click.echo(f"Check passed = {passed}")
         click.echo(f"Error message (if any) =\n{err}")
         click.echo("Printing processed_config")
-        pprint.pprint(processed_config)
+        # Note pydantic model can dump json straight with model_dump()
+        # click.echo(pipeline_info.pipeline_config.model_dump_json(by_alias=True))
+        pprint.pprint(pipeline_info.pipeline_config.model_dump(by_alias=True))
 
 
 @config.command()

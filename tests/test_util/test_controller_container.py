@@ -197,19 +197,17 @@ class TestRunJob(unittest.TestCase):
     def test_controller_actual_pipeline_run_already_running(self, mock_get):
         mock_get.return_value = self.mock_running_pipeline_history
         controller = Controller()
-        try:
-            repo_data = SessionDetail.model_validate(self.sample_session)
-            pipeline_config = PipelineConfig.model_validate(self.pipeline_config)
-            controller._actual_pipeline_run(repo_data, pipeline_config)
-            assert False
-        except ValueError as ve:
-            assert True
+        repo_data = SessionDetail.model_validate(self.sample_session)
+        pipeline_config = PipelineConfig.model_validate(self.pipeline_config)
+        status, msg = controller._actual_pipeline_run(repo_data, pipeline_config)
+        assert status == False
+
     
     @patch("controller.controller.MongoAdapter.update_job")
     @patch("controller.controller.MongoAdapter.update_job_logs")
     @patch("controller.controller.DockerManager._upload_artifact")
     @patch("controller.controller.DockerManager", return_value=DockerManager(client=MockDockerApi()))
-    @patch("controller.controller.MongoAdapter.update_pipeline_history", return_value=True)
+    @patch("controller.controller.MongoAdapter.update_pipeline_info", return_value=True)
     @patch("controller.controller.MongoAdapter.insert_job", return_value=123)
     @patch("controller.controller.MongoAdapter.get_pipeline_history")
     def test_controller_actual_pipeline_run_fail_job(

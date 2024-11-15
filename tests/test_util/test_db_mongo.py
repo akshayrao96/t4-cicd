@@ -2,6 +2,7 @@
 """
 import copy
 import mongomock
+import pprint
 import pytest
 from pymongo import (errors)
 import unittest
@@ -19,7 +20,9 @@ MONGO_JOBS_TABLE = "jobs_history"
 MONGO_REPOS_TABLE = "sessions"
 
 class TestMongoDB(unittest.TestCase):
+    
     _mock_mongo = mongomock.MongoClient()
+    
     def setUp(self):
         self.session_data = SessionDetail(
             user_id="random",
@@ -72,6 +75,11 @@ class TestMongoDB(unittest.TestCase):
                 c.JOB_SUBKEY_SCRIPTS:['sh','ls'],
                 }
             }
+        }
+        self.pipeline_info = {
+            "pipeline_name": "test_pipeline",
+            "pipeline_file_name": "test_pipeline.yml",
+            "pipeline_config":self.pipeline_config
         }
     
     @patch("util.db_mongo.MongoClient", return_value=_mock_mongo)
@@ -241,43 +249,52 @@ class TestMongoDB(unittest.TestCase):
         )
         assert result == {}
 
-    @patch("util.db_mongo.MongoClient")
+    @patch("util.db_mongo.MongoClient", return_value=_mock_mongo)
     def test_update_pipeline_config(self, mock_client):
         """Test updating pipeline config with success, failure, and exception cases."""
         mongo_adapter = MongoAdapter()
-        collection = mock_client.return_value[MONGO_DB_NAME]['repo_configs']
 
         # Success case
-        mock_update_result = MagicMock(acknowledged=True)
-        collection.update_one.return_value = mock_update_result
-        result = mongo_adapter.update_pipeline_config(
+        # Test new insert
+        result = mongo_adapter.update_pipeline_info(
             repo_name="test_repo",
             repo_url="https://github.com/test/test_repo",
             branch="main",
             pipeline_name="test_pipeline",
-            pipeline_config={"key": "new_value"}
+            updates=self.pipeline_info
         )
         assert result is True
-
-        # Failure case
-        mock_update_result.acknowledged = False
-        result = mongo_adapter.update_pipeline_config(
+        
+        # Test modification
+        pipeline_config = copy.deepcopy(self.pipeline_config)
+        pipeline_config[c.KEY_GLOBAL][c.KEY_ARTIFACT_PATH] = "new_temp"
+        result = mongo_adapter.update_pipeline_info(
             repo_name="test_repo",
             repo_url="https://github.com/test/test_repo",
             branch="main",
             pipeline_name="test_pipeline",
-            pipeline_config={"key": "new_value"}
+            updates={"pipeline_config":pipeline_config}
         )
-        assert result is False
+        
+        assert result is True
+        query_filter = {
+            "repo_name":"test_repo",
+            "repo_url":"https://github.com/test/test_repo",
+            "branch":"main"
+        }
+        stored_data = mongo_adapter._retrieve_by_query(
+            query_filter, MONGO_DB_NAME, MONGO_PIPELINES_TABLE
+        )
+        logger.debug(pprint.pformat(stored_data))
 
         # Exception case
-        collection.update_one.side_effect = errors.PyMongoError("Database error")
-        result = mongo_adapter.update_pipeline_config(
+        mock_client.side_effect = errors.PyMongoError("Database error")
+        result = mongo_adapter.update_pipeline_info(
             repo_name="test_repo",
             repo_url="https://github.com/test/test_repo",
             branch="main",
             pipeline_name="test_pipeline",
-            pipeline_config={"key": "new_value"}
+            updates={"pipeline_config":pipeline_config}
         )
         assert result is False
 
