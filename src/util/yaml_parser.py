@@ -135,13 +135,15 @@ class YamlParser:
 
     def parse_yaml_directory(self, directory:str) -> dict:
         """
-        Parse all YAML files in the given directory.
+        Parse all YAML files in the given directory. Check for duplicate 
+        pipeline name
         
         Args:
             directory (str): directory to search for
         
         Raises:
             FileNotFoundError: if the directory does not exist
+            ValueError: for duplicate pipeline_name
             
         Returns:
             dict: A nested dictionary with pipeline_name as main key, 
@@ -174,6 +176,7 @@ class YamlParser:
 
     def parse_yaml_file(self, file_path: str) -> dict:
         """ Parse a single YAML file and return the content as a dictionary.
+        Ignore potential duplicate pipeline name with other file. 
 
         Args:
             file_path (str): the absolute path of the yaml file
@@ -200,7 +203,7 @@ class YamlParser:
 
     def parse_yaml_by_pipeline_name(self, pipeline_name:str, directory:str) -> RawPipelineInfo:
         """ Parse a single YAML file from a given directory with the pipeline_name
-        as specified. 
+        as specified. Check for duplicate pipeline name
 
         Args:
             pipeline_name (str): target pipeline_name to parse
@@ -208,6 +211,7 @@ class YamlParser:
 
         Raises:
             FileNotFoundError: if the pipeline name dont exist
+            ValueError: for duplicate pipeline_name
             
         Returns:
             PipelineInfo: the Pydantic model contains key-value pairs of pipeline 

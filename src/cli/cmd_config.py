@@ -4,7 +4,7 @@
 import os
 import pprint
 import click
-import util.constant as const
+# import util.constant as const
 from util.common_utils import (get_logger, ConfigOverrides)
 from controller.controller import Controller
 
@@ -76,7 +76,6 @@ def config(
     controller = Controller()
     passed = True
     err = ""
-    processed_config = {}
     if check_all:
         config_dir_path = dir
         if not os.path.isdir(config_dir_path):
@@ -85,15 +84,14 @@ def config(
         click.echo(config_dir_path)
         if no_set:
             click.echo(f"checking all config files in directory {dir}")
-            results = controller.validate_configs(dir)
+            results = controller.validate_n_save_configs(dir, saving=False)
         else:
             click.echo(
                 f"set repo, checking and saving all config files in directory {dir}")
             results = controller.validate_n_save_configs(dir)
-        for pipeline_name, res_dict in results.items():
-            valid = res_dict[const.RETURN_KEY_VALID]
-            err = res_dict[const.RETURN_KEY_ERR]
-            pipe_config = res_dict[const.KEY_PIPE_CONFIG]
+        for pipeline_name, res in results.items():
+            valid = res.valid
+            err = res.error_msg
             click.echo(
                 f"\nStatus for {pipeline_name}: {
                     'passed' if valid else 'failed'}")
@@ -101,6 +99,7 @@ def config(
                 click.echo(f"error message:\n{err}")
             else:
                 click.echo("printing top 10 lines of processed config:")
+                pipe_config = res.pipeline_config.model_dump(by_alias=True)
                 config_str = pprint.pformat(pipe_config)
                 for line in config_str.splitlines()[:10]:
                     click.echo(line)
@@ -118,19 +117,21 @@ def config(
             if no_set:
                 click.echo(f"checking config file at: {dir}/{config_file}")
                 # logger.debug("Checking config file at: %s", config_file)
-                passed, err, processed_config = controller.validate_config(
+                passed, err, pipeline_info = controller.validate_config(
                     config_file_path)
             else:
                 msg = f"set repo, checking and saving config file at: {dir}/{config_file}"
                 click.echo(msg)
-                passed, err, processed_config = controller.validate_n_save_config(
+                passed, err, pipeline_info = controller.validate_n_save_config(
                     config_file_path)
 
         # Print Validation Results
         click.echo(f"Check passed = {passed}")
         click.echo(f"Error message (if any) =\n{err}")
         click.echo("Printing processed_config")
-        pprint.pprint(processed_config)
+        # Note pydantic model can dump json straight with model_dump()
+        # click.echo(pipeline_info.pipeline_config.model_dump_json(by_alias=True))
+        pprint.pprint(pipeline_info.pipeline_config.model_dump(by_alias=True))
 
 
 @config.command()
@@ -147,20 +148,33 @@ def set_repo(repo_url: str, branch: str, commit: str) -> None:
         branch (str): Optional branch name; defaults to 'main'.
         commit (str): Optional commit hash; if not provided, the latest commit is used.
     """
+
+    # Checks if user has not given a repo. Return to user error, terminate
     if not repo_url:
-        click.echo(
-            "Error: No repository provided. Please specify a repository URL.")
+        click.echo("Error: No repository provided. Please specify a repository URL.")
         return
 
     controller = Controller()
 
     try:
-        # Pass the repo_url, branch, and commit to the controller's set_repo method
-        success, message = controller.set_repo(repo_url, branch=branch, commit_hash=commit)
-        if success:
-            click.echo(f"Repository set successfully in current working directory: {repo_url}")
-        else:
-            click.echo(f"Error: {message}")
+        # Call the set_repo method
+
+        # success = true is repo is successfully set, otherwise, false if error occurred
+        # message = success if repo is set, otherwise, specific error message of what the error is
+        # repo_details = SessionDetails if success, otherwise, none
+
+        status, message, repo_details = controller.handle_repo(repo_url, branch=branch, commit_hash=commit)
+
+        # Display the result message
+        click.echo(f"{message}\n")
+
+        # If successful, display detailed repository information
+        if status and repo_details:
+            click.echo("Current working directory configured:\n")
+            click.echo(f"Repository URL: {repo_details.repo_url}")
+            click.echo(f"Repository Name: {repo_details.repo_name}")
+            click.echo(f"Branch: {repo_details.branch}")
+            click.echo(f"Commit Hash: {repo_details.commit_hash}\n")
 
     except Exception as e:
         click.echo(f"An unexpected error occurred: {str(e)}")
@@ -168,25 +182,55 @@ def set_repo(repo_url: str, branch: str, commit: str) -> None:
 
 @config.command()
 def get_repo():
-    """Gets the currently set repository."""
+    """
+    Display information about the currently configured repository.
 
-    # Gets the currently set repo from the controller
+    This command retrieves and displays details of the currently configured Git repository,
+    either from the current working directory if it is a Git repository, or from the last
+    set repository stored in the system.
+
+    Behavior:
+        - If the current directory is a Git repository, it displays the URL, branch, and latest commit hash.
+        - If the current directory is not a Git repository but a previous repository configuration exists,
+          it retrieves and displays details of the last configured repository.
+        - If no repository is configured, it provides guidance for setting a repository.
+
+    Output:
+        Information about the repository is displayed in the console, including:
+        - Repository URL
+        - Repository name
+        - Branch name
+        - Commit hash of the latest commit
+
+    Example Usage:
+        $ cid config get-repo
+    """
+
     controller = Controller()
-    status, repo_url = controller.get_repo()
-    if status and repo_url:
-        click.echo(
-            f"Using current directory. \nCurrent repository configured: {repo_url}")
-    elif repo_url:
-        print(
-            "Fetching last set repo...")
-        click.echo(f"Repository configured: {repo_url}")
+
+    status, message, repo_details = controller.handle_repo()
+
+    if status and repo_details:
+        click.echo(message)
+        click.echo("Current repository configured:\n")
+        click.echo(f"Repository URL: {repo_details.repo_url}")
+        click.echo(f"Repository Name: {repo_details.repo_name}")
+        click.echo(f"Branch: {repo_details.branch}")
+        click.echo(f"Commit Hash: {repo_details.commit_hash}\n")
+
+    elif repo_details:
+        click.echo(f"{message}")
+        click.echo("Last set repo details:\n")
+        click.echo(f"Repository URL: {repo_details.repo_url}")
+        click.echo(f"Repository Name: {repo_details.repo_name}")
+        click.echo(f"Branch: {repo_details.branch}")
+        click.echo(f"Commit Hash: {repo_details.commit_hash}\n")
+
     else:
-        click.echo("No repository currently configured.")
-        click.echo(
-            "Please navigate to a working directory that is a git repository project")
+        click.echo("\nNo repository has been configured previously.")
+        click.echo("Run the command with specifying repo path in an empty working directory:\n")
         click.echo("OR")
-        click.echo("Please set an either remote or local repository using in an empty current working directory:")
-        click.echo("cid config set-repo <REPO NAME>")
+        click.echo("Run the command without specifying repo path in the repository root\n")
 
 
 @config.command()

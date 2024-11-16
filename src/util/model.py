@@ -4,7 +4,7 @@ Note we cant use constant when defining the field here
 """
 import time
 from collections import OrderedDict
-from typing import (Optional, Union)
+from typing import (Dict, Optional, Union)
 from pydantic import (BaseModel, Field, field_validator)
 import util.constant as c
 
@@ -67,7 +67,6 @@ class SessionDetail(BaseModel):
     branch:str
     commit_hash:str
     is_remote:bool
-    last_temp_working_dir:Optional[str] = None
     time:Optional[str] = time.asctime()
 
 class GlobalConfig(BaseModel):
@@ -90,7 +89,10 @@ class ValidatedStage(BaseModel):
     job_groups:list[list]
 
 class PipelineConfig(BaseModel):
-    """ class to hold information for a valid pipeline configuration
+    """ class to hold information for a valid pipeline configuration. 
+    Note one of the keyword global is reserved in Python, thus we need 
+    to load by alias='global', when output to dict / json, need to specify
+    model_dump(byalias=True)
 
     Args:
         BaseModel (BaseModel): Base Pydantic Class
@@ -137,6 +139,19 @@ class PipelineInfo(BaseModel):
             list: existing list or new list
         """
         return job_run_history or []
+
+class RepoConfig(BaseModel):
+    """ Class to hold information correspond to one record 
+    in repo_configs table
+
+    Args:
+        BaseModel (BaseModel): Base Pydantic Class
+    """
+    _id: Optional[any] = None
+    repo_name:str
+    repo_url:str
+    branch:str
+    pipelines: Optional[Dict[str,PipelineInfo]] = {}
 
 class PipelineHist(BaseModel):
     """class to hold data to retrieve pipeline history

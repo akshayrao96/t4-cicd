@@ -2,6 +2,7 @@
 """
 import copy
 import mongomock
+import pprint
 import pytest
 from pymongo import (errors)
 import unittest
@@ -11,86 +12,31 @@ from collections import OrderedDict
 import util.constant as c
 from util.db_mongo import MongoAdapter
 from util.common_utils import get_logger
-from util.model import (PipelineInfo)
+from util.model import (PipelineInfo, RepoConfig, SessionDetail)
 logger = get_logger("tests.test_util.test_db_mongo")
 MONGO_DB_NAME = "CICDControllerDB"
 MONGO_PIPELINES_TABLE = "repo_configs"
-
-# def test_insert_pipeline():
-#     """ Test the insert pipeline function
-#     """
-#     mongo_adapter = MongoAdapter()
-#     pipeline_history = {
-#         "pipeline_name": "test_pipeline",
-#         "jobs": {}
-#     }
-#     result_id = mongo_adapter.insert_pipeline(pipeline_history)
-#     print(result_id)
-#     logger.info(result_id)
-
-
-# def test_get_controller_history():
-#     """ Test the get controller history function
-#     """
-#     mongo_adapter = MongoAdapter()
-#     histories = mongo_adapter.get_controller_history()
-
-
-# def test_update_pipeline():
-#     """ Test update
-#     """
-#     mongo_adapter = MongoAdapter()
-#     pipeline_history = {
-#         "_id": "66ffda5ae12f948609e0c7d6",
-#         "pipeline_name": "test_pipeline_2",
-#         "jobs": {}
-#     }
-#     mongo_adapter.update_pipeline(pipeline_history)
-#     pass
-
-
-# def test_get_pipeline():
-#     """ Test retrieve
-#     """
-#     mongo_adapter = MongoAdapter()
-#     mongo_adapter.get_pipeline("66ffda5ae12f948609e0c7d6")
-
-
-# # def test_del_pipeline():
-# #     """ Test Delete
-# #     """
-# #     mongo_adapter = MongoAdapter()
-# #     mongo_adapter.del_pipeline("66ffe21316f6b425edcb9715")
-
-
-# def test_insert_job():
-#     """ Test insert new job
-#     """
-#     mongo_adapter = MongoAdapter()
-#     job_log = {
-#         'pipeline_name': 'test_pipeline',
-#         'job_run': 1,
-#         'job_log': {}
-#     }
-#     mongo_adapter.insert_job(job_log)
-
-
-# def test_update_job():
-#     """ Test update new job
-#     """
-#     mongo_adapter = MongoAdapter()
-#     updated_job_log = {
-#         '_id': '66ffda5ce12f948609e0c7da',
-#         'pipeline_name': 'test_pipeline',
-#         'job_run': 1,
-#         'job_log': {},
-#         'success': True
-#     }
-#     mongo_adapter.update_job(updated_job_log)
-
+MONGO_JOBS_TABLE = "jobs_history"
+MONGO_REPOS_TABLE = "sessions"
 
 class TestMongoDB(unittest.TestCase):
+    
+    _mock_mongo = mongomock.MongoClient()
+    
     def setUp(self):
+        self.session_data = SessionDetail(
+            user_id="random",
+            repo_name="random_repo",
+            repo_url="random_url",
+            branch="main",
+            commit_hash="abcdef",
+            is_remote=True,
+        )
+        self.repo_config_data = RepoConfig(
+            repo_name="random_repo",
+            repo_url="random_url",
+            branch="main"
+        )
         self.pipeline_config = {
             'global':{
                 c.KEY_PIPE_NAME: "test_pipeline",
@@ -130,72 +76,31 @@ class TestMongoDB(unittest.TestCase):
                 }
             }
         }
-    _mock_mongo = mongomock.MongoClient()
-
-    @patch("util.db_mongo.MongoClient", return_value=_mock_mongo)
-    def test_get_controller(self, mock_client):
-        mongo_adapter = MongoAdapter()
-        search_result = mongo_adapter.get_controller_history()
-        assert search_result == {}
-
-    @patch("util.db_mongo.MongoClient", side_effect=errors.PyMongoError())
-    def test_get_controller_exception(self, mock_client):
-        mongo_adapter = MongoAdapter()
-        try:
-            search_result = mongo_adapter.get_controller_history()
-        except errors.PyMongoError as e:
-            pass
-
+        self.pipeline_info = {
+            "pipeline_name": "test_pipeline",
+            "pipeline_file_name": "test_pipeline.yml",
+            "pipeline_config":self.pipeline_config
+        }
+    
     @patch("util.db_mongo.MongoClient", return_value=_mock_mongo)
     def test_pipeline_crud(self, mock_client):
+        """ test crud operation with pipeline
+
+        Args:
+            mock_client (mongomock.MongoClient): mock mongo_db
+        """
         mongo_adapter = MongoAdapter()
-        pipeline_history = {
-            "pipeline_name": "test_pipeline",
-            "jobs": {}
-        }
-        # Test insert and get
-        result_id = mongo_adapter.insert_pipeline(
-            pipeline_history)
-        logger.info(f"log from test mongo adapter:{result_id}")
-        search_result = mongo_adapter.get_pipeline(result_id)
-        assert search_result == pipeline_history
-
-        # Test update
-        updated_history = copy.deepcopy(search_result)
-        updated_history['jobs'] = {'1': 'random_id'}
-        mongo_adapter.update_pipeline(updated_history)
-        new_search_result = mongo_adapter.get_pipeline(result_id)
-        assert new_search_result == updated_history
-
-        # Test delete
-        mongo_adapter.del_pipeline(result_id)
-        new_search_result = mongo_adapter.get_pipeline(result_id)
-        assert new_search_result is None
-
-    @patch("util.db_mongo.MongoAdapter._delete", side_effect=errors.PyMongoError())
-    @patch("util.db_mongo.MongoAdapter._update", side_effect=errors.PyMongoError())
-    @patch("util.db_mongo.MongoAdapter._retrieve", side_effect=errors.PyMongoError())
-    @patch("util.db_mongo.MongoAdapter._insert", side_effect=errors.PyMongoError())
-    @patch("util.db_mongo.MongoClient", return_value=_mock_mongo)
-    def test_pipeline_crud_exception(self, mock_client, insert, get, update, delete):
-        mongo_adapter = MongoAdapter()
-        pipeline_history = {
-            "pipeline_name": "test_pipeline",
-            "jobs": {}
-        }
-        result_id = mongo_adapter.insert_pipeline(
-            pipeline_history)
-        assert result_id is None
-        search_result = mongo_adapter.get_pipeline("")
-        assert search_result == {}
-        update_result = mongo_adapter.update_pipeline(pipeline_history)
-        assert update_result == False
-        del_result = mongo_adapter.del_pipeline("")
-        assert del_result == False
-        pass
+        # Test insert new repo_config_data
+        status = mongo_adapter.insert_repo_pipelines(
+            self.repo_config_data)
+        assert status == True
 
     @patch("util.db_mongo.MongoClient", return_value=_mock_mongo)
     def test_job_crud(self, mock_client):
+        """ Test CRUD operation with job
+        Args:
+            mock_client (mongomock.MongoClient): mock mongo_db
+        """
         mongo_adapter = MongoAdapter()
         job_log = {
             'pipeline_name': 'test_pipeline',
@@ -235,6 +140,15 @@ class TestMongoDB(unittest.TestCase):
     @patch("util.db_mongo.MongoAdapter._insert", side_effect=errors.PyMongoError())
     @patch("util.db_mongo.MongoClient", return_value=_mock_mongo)
     def test_job_crud_exception(self, mock_client, insert, get, update, delete):
+        """ Test exception catching of crud operation with job
+
+        Args:
+            mock_client (mongomock.MongoClient): mock mongo_db
+            insert (MagicMock): mock insert method
+            get (MagicMock): mock get method
+            update (MagicMock): mock update method
+            delete (MagicMock): mock delete method
+        """
         mongo_adapter = MongoAdapter()
         job_log = {
             'pipeline_name': 'test_pipeline',
@@ -258,6 +172,39 @@ class TestMongoDB(unittest.TestCase):
         del_result = mongo_adapter.del_job("")
         assert del_result == False
         pass
+    
+    @patch("util.db_mongo.MongoClient", return_value=_mock_mongo)
+    def test_update_with_query(self, mock_client):
+        """ Test update and retrieve by query method
+
+        Args:
+            mock_client (mongomock.MongoClient): mock mongo_db
+        """
+        mongo_adapter = MongoAdapter()
+        # First try update a data which doesnot exist for the query
+        query_data = {
+            'user_id':self.session_data.user_id
+        }
+        updated_data = self.session_data.model_dump()
+        update_status = mongo_adapter._update_by_query(
+            query_data, updated_data, MONGO_DB_NAME, MONGO_REPOS_TABLE)
+        assert update_status == True
+        retrieved_data = mongo_adapter._retrieve_by_query(
+            query_data, MONGO_DB_NAME, MONGO_REPOS_TABLE
+        )
+        retrieved_data.pop('_id')
+        assert retrieved_data == updated_data
+        logger.debug(retrieved_data)
+        # Now try update the previous data
+        updated_data['repo_name'] = 'random_repo2'
+        update_status = mongo_adapter._update_by_query(
+            query_data, updated_data, MONGO_DB_NAME, MONGO_REPOS_TABLE)
+        assert update_status == True
+        retrieved_data = mongo_adapter._retrieve_by_query(
+            query_data, MONGO_DB_NAME, MONGO_REPOS_TABLE
+        )
+        retrieved_data.pop('_id')
+        assert retrieved_data == updated_data
 
     @patch("util.db_mongo.MongoClient")
     def test_get_pipeline_config(self, mock_client):
@@ -302,43 +249,52 @@ class TestMongoDB(unittest.TestCase):
         )
         assert result == {}
 
-    @patch("util.db_mongo.MongoClient")
+    @patch("util.db_mongo.MongoClient", return_value=_mock_mongo)
     def test_update_pipeline_config(self, mock_client):
         """Test updating pipeline config with success, failure, and exception cases."""
         mongo_adapter = MongoAdapter()
-        collection = mock_client.return_value[MONGO_DB_NAME]['repo_configs']
 
         # Success case
-        mock_update_result = MagicMock(acknowledged=True)
-        collection.update_one.return_value = mock_update_result
-        result = mongo_adapter.update_pipeline_config(
+        # Test new insert
+        result = mongo_adapter.update_pipeline_info(
             repo_name="test_repo",
             repo_url="https://github.com/test/test_repo",
             branch="main",
             pipeline_name="test_pipeline",
-            pipeline_config={"key": "new_value"}
+            updates=self.pipeline_info
         )
         assert result is True
-
-        # Failure case
-        mock_update_result.acknowledged = False
-        result = mongo_adapter.update_pipeline_config(
+        
+        # Test modification
+        pipeline_config = copy.deepcopy(self.pipeline_config)
+        pipeline_config[c.KEY_GLOBAL][c.KEY_ARTIFACT_PATH] = "new_temp"
+        result = mongo_adapter.update_pipeline_info(
             repo_name="test_repo",
             repo_url="https://github.com/test/test_repo",
             branch="main",
             pipeline_name="test_pipeline",
-            pipeline_config={"key": "new_value"}
+            updates={"pipeline_config":pipeline_config}
         )
-        assert result is False
+        
+        assert result is True
+        query_filter = {
+            "repo_name":"test_repo",
+            "repo_url":"https://github.com/test/test_repo",
+            "branch":"main"
+        }
+        stored_data = mongo_adapter._retrieve_by_query(
+            query_filter, MONGO_DB_NAME, MONGO_PIPELINES_TABLE
+        )
+        logger.debug(pprint.pformat(stored_data))
 
         # Exception case
-        collection.update_one.side_effect = errors.PyMongoError("Database error")
-        result = mongo_adapter.update_pipeline_config(
+        mock_client.side_effect = errors.PyMongoError("Database error")
+        result = mongo_adapter.update_pipeline_info(
             repo_name="test_repo",
             repo_url="https://github.com/test/test_repo",
             branch="main",
             pipeline_name="test_pipeline",
-            pipeline_config={"key": "new_value"}
+            updates={"pipeline_config":pipeline_config}
         )
         assert result is False
 
