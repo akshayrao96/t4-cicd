@@ -8,15 +8,8 @@ from cli import (__main__, cmd_pipeline)
 from pydantic import ValidationError
 from unittest import TestCase
 from unittest.mock import MagicMock, patch
-from util.model import (ValidationResult, PipelineConfig)
+from util.model import (PipelineConfig, SessionDetail, ValidationResult)
 from util.common_utils import get_logger
-
-# TODO - pipeline_run integration test cases
-# file and pipeline_name
-# override error handling
-# validation error handling
-# dry_run branch handling
-# local flag handling
 
 def test_cid():
     """ Test the main cid command just by calling it with --help option
@@ -46,8 +39,6 @@ class TestPipelineRun(TestCase):
     """
     def setUp(self):
         self.runner = CliRunner()
-        
-        self.fail_validation = ValidationResult(valid=False, error_msg="", pipeline_config={})
         self.logger = get_logger("tests.test_cli.test_cmd_pipeline.TestPipelineRun")
         
         # Load sample validation result from json file
@@ -55,6 +46,15 @@ class TestPipelineRun(TestCase):
         with open(validation_result_path, 'r', encoding='utf-8') as openfile:
             # Reading from json file
             validation_result_dict = json.load(openfile)
+        self.session_data = SessionDetail(
+            user_id='random',
+            repo_name='cicd-python',
+            repo_url="https://github.com/sjchin88/cicd-python",
+            branch='main',
+            is_remote=True,
+            commit_hash="abcdef"
+        )
+        self.fail_validation = ValidationResult(valid=False, error_msg="", pipeline_config={})
         self.success_validation_res = ValidationResult.model_validate(validation_result_dict)
         pipeline_config_dict = self.success_validation_res.pipeline_config
         self.success_validation_res.pipeline_config = PipelineConfig.model_validate(pipeline_config_dict)
@@ -78,36 +78,55 @@ class TestPipelineRun(TestCase):
         result = self.runner.invoke(cmd_pipeline.pipeline, ['run', '--override', 'no_value_key'])
         assert result.exit_code == 2
     
+    @patch("controller.controller.Controller.handle_repo")
+    def test_error_handling_repo(self, mock_handle):
+        """ test if exit correctly when handling repo return false
+        Args:
+            mock_handle (MagicMock): mock the Controller.handle_repo function
+        """
+        mock_handle.return_value = (False, "error", None)
+        result = self.runner.invoke(cmd_pipeline.pipeline, ['run'])
+        assert result.exit_code == 2
+    
     @patch("controller.controller.YamlParser.parse_yaml_by_pipeline_name", side_effect=FileNotFoundError())
-    def test_fail_yaml_parsing_from_pipeline_name(self, mock_parse):
+    @patch("controller.controller.Controller.handle_repo")
+    def test_fail_yaml_parsing_from_pipeline_name(self, mock_handle, mock_parse):
         """ test the case when attempting to parse pipeline config based on pipeline_name but fail
         
         Args:
+            mock_handle (MagicMock): mock the Controller.handle_repo function
             mock_parse (MagicMock): mock the parse_yaml_by_pipeline_name function
         """
+        mock_handle.return_value = (True, "", self.session_data)
         result = self.runner.invoke(cmd_pipeline.pipeline, ['run', '--pipeline', 'no_value_key'])
         assert result.exit_code == 1
     
     @patch("controller.controller.YamlParser.parse_yaml_file", side_effect=FileNotFoundError())
-    def test_fail_yaml_parsing_from_file_path(self, mock_parse):
+    @patch("controller.controller.Controller.handle_repo")
+    def test_fail_yaml_parsing_from_file_path(self, mock_handle, mock_parse):
         """ test the case when attempting to parse pipeline config based on file_path but fail
         
         Args:
+            mock_handle (MagicMock): mock the Controller.handle_repo function
             mock_parse (MagicMock): mock the parse_yaml_file function
         """
+        mock_handle.return_value = (True, "", self.session_data)
         result = self.runner.invoke(cmd_pipeline.pipeline, ['run'])
         assert result.exit_code == 1
     
     @patch("controller.controller.ConfigChecker.validate_config")
     @patch("controller.controller.YamlParser.parse_yaml_file")
-    def test_fail_validation(self, mock_parse, mock_validate):
+    @patch("controller.controller.Controller.handle_repo")
+    def test_fail_validation(self, mock_handle, mock_parse, mock_validate):
         """ Test the case where the run_pipeline execution reach the validation stage
         but fail
 
         Args:
+            mock_handle (MagicMock): mock the Controller.handle_repo function
             mock_validate (MagicMock): mock the validate_config function
             mock_parse (MagicMock): mock the parse_yaml_file function
         """
+        mock_handle.return_value = (True, "", self.session_data)
         mock_parse.return_value = self.mock_pipeline_config
         mock_validate.return_value = self.fail_validation
         result = self.runner.invoke(cmd_pipeline.pipeline, ['run'])
@@ -116,15 +135,18 @@ class TestPipelineRun(TestCase):
     @patch("controller.controller.Controller.dry_run")
     @patch("controller.controller.ConfigChecker.validate_config")
     @patch("controller.controller.YamlParser.parse_yaml_file")
-    def test_fail_dry_run(self, mock_parse, mock_validate, mock_dry_run):
+    @patch("controller.controller.Controller.handle_repo")
+    def test_fail_dry_run(self, mock_handle, mock_parse, mock_validate, mock_dry_run):
         """ Test the case where the run_pipeline execution reach the dry run stage
         but fail
 
         Args:
-            mock_validate (MagicMock): mock the validate_config method
+            mock_handle (MagicMock): mock the Controller.handle_repo function
             mock_parse (MagicMock): mock the parse_yaml_file method
+            mock_validate (MagicMock): mock the validate_config method
             mock_dry_run(MagicMock): mock the dry_run method 
         """
+        mock_handle.return_value = (True, "", self.session_data)
         mock_parse.return_value = self.mock_pipeline_config
         mock_validate.return_value = self.success_validation_res
         mock_dry_run.return_value = (False, "")
@@ -135,16 +157,20 @@ class TestPipelineRun(TestCase):
     @patch("controller.controller.Controller.dry_run")
     @patch("controller.controller.ConfigChecker.validate_config")
     @patch("controller.controller.YamlParser.parse_yaml_file")
+    @patch("controller.controller.Controller.handle_repo")
     def test_success_dry_run_with_mock(
-        self, mock_parse, mock_validate, mock_dry_run, mock_update):
+        self, mock_handle, mock_parse, mock_validate, mock_dry_run, mock_update):
         """ Test the case where the run_pipeline execution reach the dry_run
         and success
 
         Args:
-            mock_validate (MagicMock): mock the validate_config method
+            mock_handle (MagicMock): mock the Controller.handle_repo function
             mock_parse (MagicMock): mock the parse_yaml_file method
-            mock_dry_run(MagicMock): mock the dry_run method 
+            mock_validate (MagicMock): mock the validate_config method
+            mock_dry_run (MagicMock): mock the dry_run method 
+            mock_update (MagicMock): mock the MongoAdapter.update_pipeline_info
         """
+        mock_handle.return_value = (True, "", self.session_data)
         mock_parse.return_value = self.mock_pipeline_config
         mock_validate.return_value = self.success_validation_res
         mock_dry_run.return_value = (True, "")
@@ -155,14 +181,18 @@ class TestPipelineRun(TestCase):
     @patch("controller.controller.MongoAdapter.update_pipeline_info")
     @patch("controller.controller.ConfigChecker.validate_config")
     @patch("controller.controller.YamlParser.parse_yaml_file")
-    def test_success_integrated_dry_run(self, mock_parse, mock_validate, mock_update):
+    @patch("controller.controller.Controller.handle_repo")
+    def test_success_integrated_dry_run(self, mock_handle, mock_parse, mock_validate, mock_update):
         """ Test the case where the run_pipeline execution reach the dry_run
         and success, with integration test on dry run util class
 
         Args:
-            mock_validate (MagicMock): mock the validate_config method
+            mock_handle (MagicMock): mock the Controller.handle_repo function
             mock_parse (MagicMock): mock the parse_yaml_file method
+            mock_validate (MagicMock): mock the validate_config method
+            mock_update (MagicMock): mock the MongoAdapter.update_pipeline_info
         """
+        mock_handle.return_value = (True, "", self.session_data)
         mock_parse.return_value = self.mock_pipeline_config
         mock_validate.return_value = self.success_validation_res
         mock_update.return_value = True
@@ -174,18 +204,22 @@ class TestPipelineRun(TestCase):
     @patch("controller.controller.MongoAdapter.update_pipeline_info")
     @patch("controller.controller.ConfigChecker.validate_config")
     @patch("controller.controller.YamlParser.parse_yaml_file")
+    @patch("controller.controller.Controller.handle_repo")
     def test_success_actual_run(
-        self, mock_parse, mock_validate,mock_update,
+        self, mock_handle, mock_parse, mock_validate,mock_update,
         mock_getlogin, mock_actual_run):
         """ Test the case where the run_pipeline execution reach the 
         actual run and success
 
         Args:
+            mock_handle (MagicMock): mock the Controller.handle_repo function
             mock_parse (MagicMock): mock the parse_yaml_file method
             mock_validate (MagicMock): mock the validate_config method
+            mock_update (MagicMock): mock the MongoAdapter.update_pipeline_info
             mock_getlogin (MagicMock): mock the os.getlogin() method
             mock_actual_run(MagicMock): mock the actual_run method 
         """
+        mock_handle.return_value = (True, "", self.session_data)
         mock_parse.return_value = self.mock_pipeline_config
         mock_validate.return_value = self.success_validation_res
         mock_update.return_value = True
@@ -198,18 +232,22 @@ class TestPipelineRun(TestCase):
     @patch("controller.controller.MongoAdapter.update_pipeline_info")
     @patch("controller.controller.ConfigChecker.validate_config")
     @patch("controller.controller.YamlParser.parse_yaml_file")
+    @patch("controller.controller.Controller.handle_repo")
     def test_fail_actual_run(
-        self, mock_parse, mock_validate,mock_update,
+        self, mock_handle, mock_parse, mock_validate,mock_update,
         mock_getlogin, mock_actual_run):
         """ Test the case where the run_pipeline execution reach the 
         actual run and fail
 
         Args:
+            mock_handle (MagicMock): mock the Controller.handle_repo function
             mock_parse (MagicMock): mock the parse_yaml_file method
             mock_validate (MagicMock): mock the validate_config method
+            mock_update (MagicMock): mock the MongoAdapter.update_pipeline_info
             mock_getlogin (MagicMock): mock the os.getlogin() method
             mock_actual_run(MagicMock): mock the actual_run method
         """
+        mock_handle.return_value = (True, "", self.session_data)
         mock_parse.return_value = self.mock_pipeline_config
         mock_validate.return_value = self.success_validation_res
         mock_update.return_value = True
@@ -227,18 +265,22 @@ class TestPipelineRun(TestCase):
     @patch("controller.controller.MongoAdapter.update_pipeline_info")
     @patch("controller.controller.ConfigChecker.validate_config")
     @patch("controller.controller.YamlParser.parse_yaml_file")
+    @patch("controller.controller.Controller.handle_repo")
     def test_success_actual_run_with_override(
-        self, mock_parse, mock_validate,mock_update,
+        self, mock_handle, mock_parse, mock_validate,mock_update,
         mock_getlogin, mock_actual_run):
         """ Test the case where the run_pipeline execution reach the 
         actual run and success, with overrides apply
 
         Args:
+            mock_handle (MagicMock): mock the Controller.handle_repo function
             mock_parse (MagicMock): mock the parse_yaml_file method
             mock_validate (MagicMock): mock the validate_config method
+            mock_update (MagicMock): mock the MongoAdapter.update_pipeline_info
             mock_getlogin (MagicMock): mock the os.getlogin() method
             mock_actual_run(MagicMock): mock the actual_run method
         """
+        mock_handle.return_value = (True, "", self.session_data)
         mock_parse.return_value = self.mock_pipeline_config
         mock_validate.return_value = self.success_validation_res
         mock_update.return_value=True

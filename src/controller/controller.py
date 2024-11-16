@@ -5,7 +5,6 @@
 
 
 from datetime import datetime
-import copy
 import os
 import time
 #import pprint
@@ -76,13 +75,15 @@ class Controller:
         """
         Configure and save a Git repository for CI/CD checks.
 
-        Clones the specified Git repository to the current working directory, with an optional branch and commit.
+        Clones the specified Git repository to the current working directory, 
+        with an optional branch and commit.
         If the current directory is already a Git repository, it returns an error.
 
         Args:
             repo_url (str): URL of the Git repository to configure.
             branch (str, optional): The branch to use, defaults to 'main'.
-            commit_hash (str, optional): Specific commit hash to check out, defaults to the latest commit.
+            commit_hash (str, optional): Specific commit hash to check out, 
+            defaults to the latest commit.
 
         Returns:
             tuple: (bool, str, SessionDetail | None)
@@ -231,14 +232,14 @@ class Controller:
         parser = YamlParser()
         results = {}
         pipeline_configs = parser.parse_yaml_directory(directory)
-        
+
         # Loop through each items
         for pipeline_name, values in pipeline_configs.items():
             response = self.config_checker.validate_config(
                 pipeline_name, values.pipeline_config, values.pipeline_file_name, True)
             results[pipeline_name] = response
             status = response.valid
-            
+
             # Perform saving
             if status and saving:
                 updates = {
@@ -263,6 +264,7 @@ class Controller:
         self, file_name: str = None,
         pipeline_name: str = None,
         override_configs:dict = None,
+        session_data:SessionDetail = None,
     ) -> tuple[bool, str, PipelineInfo]:
         """ apply overrides if any, validate config, and save the config into datastore. 
         The pipeline configuration can come from three sources: (1) file_name, 
@@ -280,16 +282,6 @@ class Controller:
         """
         status = True
         error_msg = ""
-
-        # stub response for repo set up
-        session_data = SessionDetail(
-            user_id='random',
-            repo_name='cicd-python',
-            repo_url="https://github.com/sjchin88/cicd-python",
-            branch='main',
-            is_remote=True,
-            commit_hash="abcdef"
-        )
 
         status, error_msg, pipeline_info = self.validate_config(
                 file_name, pipeline_name, override_configs
@@ -371,7 +363,6 @@ class Controller:
                 self.logger.error(f"error in extracting from file_name, {e}")
                 return False, e, None
 
-        #pipeline_config = parser.parse_yaml_file(file_name)
         # Process Override if have.
         if override_configs:
             pipeline_config = ConfigOverrides.apply_overrides(
@@ -442,7 +433,7 @@ class Controller:
         command: `cid pipeline setup`
         """
 
-    def run_pipeline(self, config_file: str, pipeline_name: str, git_details:dict,
+    def run_pipeline(self, config_file: str, pipeline_name: str, git_details:SessionDetail,
                      dry_run:bool = False, local:bool = False, yaml_output: bool = False,
                      override_configs:dict=None
                      ) -> tuple[bool, str]:
@@ -463,8 +454,6 @@ class Controller:
                 bool: status
                 str: message
         """
-
-        ## TODO: Step 1 integrate with get and set repo
         status = True
         message = None
         config_dict = None
@@ -472,7 +461,7 @@ class Controller:
         # Step 2 - 4 extract yaml content, apply override, validate and
         # save handled by validate_n_save_config
         status, error_msg, pipeline_info = self.validate_n_save_config(
-            config_file, pipeline_name, override_configs)
+            config_file, pipeline_name, override_configs, git_details)
 
         # Early Return if override and validation fail
         if not status:
@@ -489,16 +478,10 @@ class Controller:
         # Step 6: Actual Pipeline Run
         status = True
         message = "Pipeline runs successfully. "
-        #TODO: update method to update git_detail from step 0
+
         try:
-            repo_data = copy.deepcopy(git_details)
-            repo_data["is_remote"] = True
-            repo_data['repo_name'] = "cicd-python"
-            repo_data['user_id'] = os.getlogin()
-            repo_data = SessionDetail.model_validate(repo_data)
-            # pprint.pprint(repo_data.model_dump())
             pipeline_config = PipelineConfig.model_validate(config_dict)
-            status, run_msg = self._actual_pipeline_run(repo_data, pipeline_config, local)
+            status, run_msg = self._actual_pipeline_run(git_details, pipeline_config, local)
             message += run_msg
         except ValidationError as ve:
             message = f"validation error occur, error is {ve}\n"
@@ -560,10 +543,9 @@ class Controller:
             his_obj,
             pipeline_config.model_dump(by_alias=True)
         )
-        # print(job_id)
+
         his_obj.job_run_history.append(job_id)
         run_number = len(his_obj.job_run_history)
-        # TODO- Update pipeline config
         updates = {
             "job_run_history":his_obj.job_run_history,
             'running':True,
@@ -578,6 +560,7 @@ class Controller:
         # if update unsuccessful, prompt user.
         if not update_success:
             click.confirm('Cannot update into db, do you want to continue?', abort=True)
+
         # Initialize Docker Manager
         docker_manager = DockerManager(
                 repo=repo_data.repo_name,
