@@ -37,7 +37,7 @@ Next week meeting chairperson - Chin
 | [UC1, UC2, UC4] Integrate usecases from set repo, check config and override config[  # 88](https://github.com/CS6510-SEA-F24/t4-cicd/issues/88)                    | S - 1 day    | Akshay   |
 | [UC5 - Controller & Docker] Implement the methods required to run, stop, cancel pipeline [#17](https://github.com/CS6510-SEA-F24/t4-cicd/issues/17) | L/XL - 2 week | Chin     |
 | [UC1, UC2, UC3] Integrate the usecases from set repo, check config, up to dry run[  # 84](https://github.com/CS6510-SEA-F24/t4-cicd/issues/84)                     | S - 1 day    | Chin    |
-| [Mongo Adapter] update report function to filter jobs / run_number | S - 1 day | Lin |
+| [UC6] Show pipeline run summary, stage summary, job summary (https://github.com/CS6510-SEA-F24/t4-cicd/issues/143) | M - 2/3 day | Lin |
 
 
 # New tasks / Backlog
