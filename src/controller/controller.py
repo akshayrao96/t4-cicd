@@ -16,7 +16,7 @@ from ruamel.yaml import YAMLError
 import util.constant as const
 from util.container import (DockerManager)
 from util.model import (SessionDetail, PipelineConfig, ValidatedStage, PipelineInfo, PipelineHist)
-from util.common_utils import (get_logger, ConfigOverrides, DryRun, PrintMessage)
+from util.common_utils import (get_logger, MongoHelper, DryRun, PrintMessage)
 from util.repo_manager import (RepoManager)
 from util.db_mongo import (MongoAdapter)
 from util.yaml_parser import YamlParser
@@ -374,7 +374,7 @@ class Controller:
         #pipeline_config = parser.parse_yaml_file(file_name)
         # Process Override if have.
         if override_configs:
-            pipeline_config = ConfigOverrides.apply_overrides(
+            pipeline_config = MongoHelper.apply_overrides(
                 pipeline_config,
                 override_configs)
         click.echo(f"Validating file in {pipeline_file_name}")
@@ -413,7 +413,7 @@ class Controller:
         if not pipeline_config:
             click.echo(f"No pipeline config found for '{pipeline_name}'.")
             return False
-        updated_config = ConfigOverrides.apply_overrides(pipeline_config, overrides)
+        updated_config = MongoHelper.apply_overrides(pipeline_config, overrides)
         # validate the updated pipeline configuration
 
         validation_res = self.config_checker.validate_config(pipeline_name,
@@ -700,6 +700,7 @@ class Controller:
                 "is_success": boolean if
         """
         pipeline_dict = pipeline_details.model_dump()
+        print(pipeline_dict)
         pipeline_name = pipeline_dict['pipeline_name']
         repo_url = pipeline_dict['repo_url']
         run_number = pipeline_dict['run']

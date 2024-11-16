@@ -5,7 +5,7 @@ import os
 import pprint
 import click
 # import util.constant as const
-from util.common_utils import (get_logger, ConfigOverrides)
+from util.common_utils import (get_logger, MongoHelper)
 from controller.controller import Controller
 
 logger = get_logger('cli.cmd_config')
@@ -246,7 +246,7 @@ def override(pipeline, overrides):
         cid config override --pipeline pipeline_name --override "global.docker.image=gradle:jdk8"
     """
     try:
-        updates = ConfigOverrides.build_nested_dict(overrides)
+        updates = MongoHelper.build_nested_dict(overrides)
     except ValueError as e:
         click.echo(str(e))
         return
