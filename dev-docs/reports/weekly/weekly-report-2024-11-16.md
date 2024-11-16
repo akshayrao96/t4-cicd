@@ -10,7 +10,9 @@ Meeting notes:
 - align the remaining two weeks before final presentation and distribute tasks accordingly:
   - upload artifacts
   - packaging CLI
-  - finishing remaming pipeline reporting
+  - finishing remaining pipeline reporting
+  - run different project language (Java)
+  - final deliverables
 
 This week meeting chairperson & report writer - Jason
 
