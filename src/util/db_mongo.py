@@ -697,7 +697,7 @@ class MongoAdapter:
             match_filter, pipeline_name=pipeline_name, stage_name=stage_name,
             job_name=job_name, run_number=run_number
         )
-        projection_fields = MongoHelper.build_projection(stage_name, job_name)
+        projection_fields = MongoHelper.build_projection(stage_name, job_name, run_number)
         aggregation_pipeline.append({"$project": projection_fields})
         aggregation_pipeline.append({"$sort": {"job_details.run_number": -1}})
 

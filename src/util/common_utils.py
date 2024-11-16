@@ -281,21 +281,33 @@ class MongoHelper:
                 "from": "jobs_history",
                 "localField": "pipelines_array.v.job_run_history",
                 "foreignField": "_id",
-                "as": "job_details"
+                "as": "job_details_list"
             }
         })
-        pipeline.append({"$unwind": "$job_details"})
-        
+        pipeline.append({"$unwind": "$job_details_list"})
+        match_conditions = {}
         if run_number is not None:
-            pass
-        if stage_name:
-            pass
-        if job_name:
-            pass
+            match_conditions["job_details_list.run_number"] = run_number
+        if match_conditions:
+            pipeline.append({"$match": match_conditions})
+        if run_number is not None or stage_name or job_name:
+            pipeline.append({"$unwind": "$job_details_list.logs"})
+            if stage_name:
+                pipeline.append({"$match": {"job_details_list.logs.stage_name": stage_name}})
+            if job_name:
+                pipeline.append({"$unwind": "$job_details_list.logs.jobs"})
+                pipeline.append({"$match": {"job_details_list.logs.jobs.job_name": job_name}})
+        pipeline.append({
+            "$addFields": {
+                "job_details": "$job_details_list"
+            }
+        })
+        pipeline.append({"$project": {"job_details_list": 0}})
+
         return pipeline
 
     @staticmethod
-    def build_projection(stage_name: str = None, job_name: str = None) -> dict:
+    def build_projection(stage_name: str = None, job_name: str = None, run_number: int = None) -> dict:
         """Builds the projection stage for MongoDB aggregation based on stage and job fields."""
         projection_fields = {
             "pipeline_name": "$pipelines_array.k",
@@ -303,12 +315,24 @@ class MongoHelper:
             "git_commit_hash": "$job_details.git_commit_hash",
             "status": "$job_details.status",
             "start_time": "$job_details.start_time",
-            "completion_time": "$job_details.completion_time"
+            "completion_time": "$job_details.completion_time",
         }
-        if stage_name:
-            pass
-        if job_name:
-            pass
+        if run_number is not None or stage_name or job_name:
+            projection_fields.update({
+                "stage_name": "$job_details.logs.stage_name",
+                "stage_status": "$job_details.logs.stage_status",
+            })
+
+            if stage_name or job_name:
+                projection_fields.update({
+                    "job_name": "$job_details.logs.jobs.job_name",
+                    "job_status": "$job_details.logs.jobs.job_status",
+                    "allows_failure": "$job_details.logs.jobs.allows_failure",
+                    "job_start_time": "$job_details.logs.jobs.start_time",
+                    "job_completion_time": "$job_details.logs.jobs.completion_time",
+                    "job_logs": "$job_details.logs.jobs.job_logs",
+                })
+
         return projection_fields
 
     ## MongoHelper
