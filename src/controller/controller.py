@@ -477,7 +477,7 @@ class Controller:
 
         # Step 6: Actual Pipeline Run
         status = True
-        message = "Pipeline runs successfully. "
+        message = ""
 
         try:
             pipeline_config = PipelineConfig.model_validate(config_dict)
@@ -490,6 +490,8 @@ class Controller:
 
         if not status:
             message += 'Pipeline runs fail'
+        else:
+            message += "Pipeline runs successfully. "
         return (status, message)
 
     def _actual_pipeline_run(self,

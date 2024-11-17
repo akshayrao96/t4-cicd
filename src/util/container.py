@@ -71,7 +71,7 @@ class DockerManager(ContainerManager):
         self.logger = log_tool
         self.vol_name = repo + '-' + pipeline + '-' + run
         self.docker_vol = None
-
+    
     def run_job(self, job_name:str, job_config: dict) -> JobLog:
         """ run a single job and return its output
 
@@ -118,12 +118,9 @@ class DockerManager(ContainerManager):
                             'bind': DEFAULT_DOCKER_DIR,
                             'mode': 'rw'
                         }
-                    }
+                    },
+                    working_dir=DEFAULT_DOCKER_DIR
                 )
-            # container.exec_run(
-            #     cmd=f"sh -c '{' && '.join(commands)}'",
-            #     detach=True,
-            # )
 
             # Wait for the container to finish, required as we are running in detach mode
             container.wait()

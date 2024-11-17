@@ -92,7 +92,7 @@ def run(ctx, file_path:str, pipeline_name:str, repo:str, branch:str, commit:str,
         click.secho(message, fg='red')
         sys.exit(2)
     click.secho(message, fg='green')
-    click.echo(repo_details.model_dump())
+    # click.echo(repo_details.model_dump())
 
     status, message = controller.run_pipeline(config_file=file_path, pipeline_name=pipeline_name,
                     dry_run=dry_run, git_details=repo_details,
