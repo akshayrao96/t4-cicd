@@ -55,6 +55,8 @@ Fields required:
 - logs - organized by stages
   - stage_name
   - stage_status
+  - start_time
+  - completion_time
   - jobs
     <!---Consider using key-values pair here, with key = job_name, values = single job_log info --->
     - job_name

@@ -285,25 +285,77 @@ class MongoHelper:
             }
         })
         pipeline.append({"$unwind": "$job_details_list"})
-        match_conditions = {}
-        if run_number is not None:
-            match_conditions["job_details_list.run_number"] = run_number
-        if match_conditions:
-            pipeline.append({"$match": match_conditions})
-        if run_number is not None or stage_name or job_name:
-            pipeline.append({"$unwind": "$job_details_list.logs"})
-            if stage_name:
-                pipeline.append({"$match": {"job_details_list.logs.stage_name": stage_name}})
-            if job_name:
-                pipeline.append({"$unwind": "$job_details_list.logs.jobs"})
-                pipeline.append({"$match": {"job_details_list.logs.jobs.job_name": job_name}})
-        pipeline.append({
-            "$addFields": {
-                "job_details": "$job_details_list"
-            }
-        })
-        pipeline.append({"$project": {"job_details_list": 0}})
-
+        if run_number or stage_name or job_name:
+            pipeline.append({
+                "$addFields": {
+                    "job_details_list.logs": {
+                        "$map": {
+                            "input": "$job_details_list.logs",
+                            "as": "log",
+                            "in": {
+                                "stage_name": "$$log.stage_name",
+                                "stage_status": "$$log.stage_status",
+                                "start_time": "$$log.start_time",
+                                "completion_time": "$$log.completion_time",
+                                "jobs_array": {
+                                    "$cond": {
+                                        "if": {"$isArray": "$$log.jobs"},
+                                        "then": "$$log.jobs",
+                                        "else": {"$objectToArray": "$$log.jobs"}
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            })
+            if run_number:
+                pipeline.append({"$match": {"job_details_list.run_number": run_number}})
+            if stage_name or job_name:
+                pipeline.extend(MongoHelper._build_filter(stage_name, job_name))
+        return pipeline
+    
+    @staticmethod
+    def _build_filter(stage_name: str = None, job_name: str = None) -> list:
+        """Builds filtering logic for stage_name and job_name."""
+        pipeline = []
+        if stage_name:
+            pipeline.append({
+                    "$addFields": {
+                        "job_details_list.logs": {
+                            "$filter": {
+                                "input": "$job_details_list.logs",
+                                "as": "log",
+                                "cond": {"$eq": ["$$log.stage_name", stage_name]}
+                            }
+                        }
+                    }
+                })
+        if job_name:
+            pipeline.append({
+                "$addFields": {
+                    "job_details_list.logs": {
+                        "$map": {
+                            "input": "$job_details_list.logs",
+                            "as": "log",
+                            "in": {
+                                "$mergeObjects": [
+                                    "$$log",
+                                    {
+                                        "jobs_array": {
+                                            "$filter": {
+                                                "input": "$$log.jobs_array",
+                                                "as": "job",
+                                                "cond": {"$eq": ["$$job.k", job_name]}
+                                            }
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                }
+            })
         return pipeline
 
     @staticmethod
@@ -311,30 +363,53 @@ class MongoHelper:
         """Builds the projection stage for MongoDB aggregation based on stage and job fields."""
         projection_fields = {
             "pipeline_name": "$pipelines_array.k",
-            "run_number": "$job_details.run_number",
-            "git_commit_hash": "$job_details.git_commit_hash",
-            "status": "$job_details.status",
-            "start_time": "$job_details.start_time",
-            "completion_time": "$job_details.completion_time",
+            "run_number": "$job_details_list.run_number",
+            "git_commit_hash": "$job_details_list.git_commit_hash",
+            "status": "$job_details_list.status",
+            "start_time": "$job_details_list.start_time",
+            "completion_time": "$job_details_list.completion_time",
         }
-        if run_number is not None or stage_name or job_name:
-            projection_fields.update({
-                "stage_name": "$job_details.logs.stage_name",
-                "stage_status": "$job_details.logs.stage_status",
-            })
-
-            if stage_name or job_name:
-                projection_fields.update({
-                    "job_name": "$job_details.logs.jobs.job_name",
-                    "job_status": "$job_details.logs.jobs.job_status",
-                    "allows_failure": "$job_details.logs.jobs.allows_failure",
-                    "job_start_time": "$job_details.logs.jobs.start_time",
-                    "job_completion_time": "$job_details.logs.jobs.completion_time",
-                    "job_logs": "$job_details.logs.jobs.job_logs",
-                })
-
+        if run_number:
+            projection_fields["logs"] = {
+                "$map": {
+                    "input": "$job_details_list.logs",
+                    "as": "log",
+                    "in": {
+                        "stage_name": "$$log.stage_name",
+                        "stage_status": "$$log.stage_status",
+                        "start_time": "$$log.start_time",
+                        "completion_time": "$$log.completion_time"
+                    }
+                }
+            }
+        if stage_name or job_name:
+            projection_fields["logs"] = {
+                "$map": {
+                    "input": "$job_details_list.logs",
+                    "as": "log",
+                    "in": {
+                        "stage_name": "$$log.stage_name",
+                        "stage_status": "$$log.stage_status",
+                        "start_time": "$$log.start_time",
+                        "completion_time": "$$log.completion_time",
+                        "jobs": {
+                            "$map": {
+                                "input": "$$log.jobs_array",
+                                "as": "job",
+                                "in": {
+                                    "job_name": "$$job.k",
+                                    "job_status": "$$job.v.job_status",
+                                    "allows_failure": "$$job.v.allow_failure",
+                                    "start_time": "$$job.v.start_time",
+                                    "completion_time": "$$job.v.completion_time"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         return projection_fields
-
+                
     ## MongoHelper
     @staticmethod
     def build_nested_dict(overrides):
