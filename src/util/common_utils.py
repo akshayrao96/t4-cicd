@@ -256,110 +256,82 @@ class MongoHelper:
         return match_filter
 
     @staticmethod
-    def build_aggregation_pipeline(match_filter: dict, pipeline_name: str = None, stage_name: str = None, job_name: str = None, run_number: int = None) -> list:
+    def build_aggregation_pipeline(match_filter: dict, pipeline_name: str = None,
+                                   stage_name: str = None, job_name: str = None, 
+                                   run_number: int = None) -> list:
         """Builds the aggregation pipeline based on stage, job, and run number filters."""
         pipeline = [
             {"$match": match_filter},
-            # {"$project": {"pipelines": 1}},
             {"$addFields": {"pipelines_array": {"$objectToArray": "$pipelines"}}},
             {"$unwind": "$pipelines_array"}]
         if pipeline_name:
             pipeline += [{"$match": {"pipelines_array.k": pipeline_name}}]
-        pipeline.append({
-            "$addFields": {
-                "pipelines_array.v.job_run_history": {
-                    "$map": {
-                        "input": "$pipelines_array.v.job_run_history",
-                        "as": "history_id",
-                        "in": {"$toObjectId": "$$history_id"}
-                    }
-                }
-            }
-        })
-        pipeline.append({
-            "$lookup": {
-                "from": "jobs_history",
-                "localField": "pipelines_array.v.job_run_history",
-                "foreignField": "_id",
-                "as": "job_details_list"
-            }
-        })
-        pipeline.append({"$unwind": "$job_details_list"})
+        pipeline.extend([
+            {"$addFields": {"pipelines_array.v.job_run_history": {
+                "$map": {"input": "$pipelines_array.v.job_run_history", "as": "history_id",
+                        "in": {"$toObjectId": "$$history_id"}}}}},
+            {"$lookup": {
+                "from": "jobs_history", "localField": "pipelines_array.v.job_run_history",
+                "foreignField": "_id", "as": "job_details_list"}},
+            {"$unwind": "$job_details_list"},
+        ])
         if run_number or stage_name or job_name:
-            pipeline.append({
-                "$addFields": {
-                    "job_details_list.logs": {
-                        "$map": {
-                            "input": "$job_details_list.logs",
-                            "as": "log",
-                            "in": {
-                                "stage_name": "$$log.stage_name",
-                                "stage_status": "$$log.stage_status",
-                                "start_time": "$$log.start_time",
-                                "completion_time": "$$log.completion_time",
-                                "jobs_array": {
-                                    "$cond": {
-                                        "if": {"$isArray": "$$log.jobs"},
-                                        "then": "$$log.jobs",
-                                        "else": {"$objectToArray": "$$log.jobs"}
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            })
+            pipeline.append(
+                {"$addFields": {"job_details_list.logs": MongoHelper._transform_logs(job_name)}})
             if run_number:
-                pipeline.append({"$match": {"job_details_list.run_number": run_number}})
+                pipeline.append(
+                    {"$match": {"job_details_list.run_number": run_number}})
             if stage_name or job_name:
-                pipeline.extend(MongoHelper._build_filter(stage_name, job_name))
-        return pipeline
-    
-    @staticmethod
-    def _build_filter(stage_name: str = None, job_name: str = None) -> list:
-        """Builds filtering logic for stage_name and job_name."""
-        pipeline = []
-        if stage_name:
-            pipeline.append({
-                    "$addFields": {
-                        "job_details_list.logs": {
-                            "$filter": {
-                                "input": "$job_details_list.logs",
-                                "as": "log",
-                                "cond": {"$eq": ["$$log.stage_name", stage_name]}
-                            }
-                        }
-                    }
-                })
-        if job_name:
-            pipeline.append({
-                "$addFields": {
-                    "job_details_list.logs": {
-                        "$map": {
-                            "input": "$job_details_list.logs",
-                            "as": "log",
-                            "in": {
-                                "$mergeObjects": [
-                                    "$$log",
-                                    {
-                                        "jobs_array": {
-                                            "$filter": {
-                                                "input": "$$log.jobs_array",
-                                                "as": "job",
-                                                "cond": {"$eq": ["$$job.k", job_name]}
-                                            }
-                                        }
-                                    }
-                                ]
-                            }
-                        }
-                    }
-                }
-            })
+                pipeline.extend(
+                    MongoHelper._build_filter(stage_name, job_name))
         return pipeline
 
     @staticmethod
-    def build_projection(stage_name: str = None, job_name: str = None, run_number: int = None) -> dict:
+    def _build_filter(stage_name: str = None, job_name: str = None) -> list:
+        """Builds filtering logic for stage_name and job_name."""
+        filters = []
+        if stage_name:
+            filters.append({"$addFields": {"job_details_list.logs": {
+                "$filter": {"input": "$job_details_list.logs", "as": "log",
+                            "cond": {"$eq": ["$$log.stage_name", stage_name]}}}}})
+        if job_name:
+            filters.append({"$addFields": {"job_details_list.logs":
+                MongoHelper._transform_logs(job_name)}})
+        return filters
+
+    @staticmethod
+    def _transform_logs(job_name: str = None) -> dict:
+        """Transforms the logs to handle job filtering dynamically."""
+        return {
+            "$map": {
+                "input": "$job_details_list.logs", "as": "log",
+                "in": {"$mergeObjects": [
+                    "$$log",
+                    {"jobs_array": {
+                        "$cond": {
+                            "if": {"$isArray": "$$log.jobs"},
+                            "then": {
+                                "$filter": {
+                                    "input": "$$log.jobs", "as": "job",
+                                    "cond": {"$eq": ["$$job.k", job_name]}
+                                }
+                            } if job_name else "$$log.jobs",
+                            "else": {
+                                "$filter": {
+                                    "input": {"$objectToArray": "$$log.jobs"},
+                                    "as": "job",
+                                    "cond": {"$eq": ["$$job.k", job_name]}
+                                }
+                            } if job_name else {"$objectToArray": "$$log.jobs"},
+                        }
+                    }}
+                ]}
+            }
+        }
+
+    @staticmethod
+    def build_projection(stage_name: str = None, job_name: str = None, 
+                         run_number: int = None) -> dict:
         """Builds the projection stage for MongoDB aggregation based on stage and job fields."""
         projection_fields = {
             "pipeline_name": "$pipelines_array.k",
@@ -372,21 +344,19 @@ class MongoHelper:
         if run_number:
             projection_fields["logs"] = {
                 "$map": {
-                    "input": "$job_details_list.logs",
-                    "as": "log",
+                    "input": "$job_details_list.logs", "as": "log",
                     "in": {
                         "stage_name": "$$log.stage_name",
                         "stage_status": "$$log.stage_status",
                         "start_time": "$$log.start_time",
-                        "completion_time": "$$log.completion_time"
-                    }
+                        "completion_time": "$$log.completion_time",
+                    },
                 }
             }
         if stage_name or job_name:
             projection_fields["logs"] = {
                 "$map": {
-                    "input": "$job_details_list.logs",
-                    "as": "log",
+                    "input": "$job_details_list.logs", "as": "log",
                     "in": {
                         "stage_name": "$$log.stage_name",
                         "stage_status": "$$log.stage_status",
@@ -394,22 +364,21 @@ class MongoHelper:
                         "completion_time": "$$log.completion_time",
                         "jobs": {
                             "$map": {
-                                "input": "$$log.jobs_array",
-                                "as": "job",
+                                "input": "$$log.jobs_array", "as": "job",
                                 "in": {
                                     "job_name": "$$job.k",
                                     "job_status": "$$job.v.job_status",
                                     "allows_failure": "$$job.v.allow_failure",
                                     "start_time": "$$job.v.start_time",
-                                    "completion_time": "$$job.v.completion_time"
-                                }
+                                    "completion_time": "$$job.v.completion_time",
+                                },
                             }
-                        }
-                    }
+                        },
+                    },
                 }
             }
         return projection_fields
-                
+
     ## MongoHelper
     @staticmethod
     def build_nested_dict(overrides):
