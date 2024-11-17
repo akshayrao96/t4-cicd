@@ -264,6 +264,8 @@ class MongoAdapter:
                     stage_log = {
                         "stage_name": stage_name,
                         "stage_status": "pending",
+                        "start_time": "",
+                        "completion_time": "",
                         "jobs": []
                     }
                     stage_logs.append(stage_log)
@@ -308,7 +310,7 @@ class MongoAdapter:
             return False
 
     def update_job_logs(self, jobs_id: str, stage_name: str,
-                        stage_status: str, jobs_log: dict) -> bool:
+                        stage_status: str, jobs_log: dict, stage_time: dict = None) -> bool:
         """
         Updates the status and the jobs log for a specific stage.
 
@@ -333,6 +335,9 @@ class MongoAdapter:
                 return False
             stage_log["stage_status"] = stage_status
             stage_log["jobs"] = jobs_log
+            if stage_time:
+                stage_log["start_time"] = stage_time["start_time"]
+                stage_log["completion_time"] = stage_time["completion_time"]
             return self._update(jobs, MONGO_DB_NAME, MONGO_JOBS_TABLE)
         except errors.PyMongoError as e:
             logger.warning(f"Error updating job log for jobs_id {jobs_id}: {e}")
