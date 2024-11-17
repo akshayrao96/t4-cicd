@@ -15,7 +15,7 @@ from ruamel.yaml import YAMLError
 import util.constant as const
 from util.container import (DockerManager)
 from util.model import (SessionDetail, PipelineConfig, ValidatedStage, PipelineInfo, PipelineHist)
-from util.common_utils import (get_logger, ConfigOverrides, DryRun, PrintMessage)
+from util.common_utils import (get_logger, MongoHelper, DryRun, PrintMessage)
 from util.repo_manager import (RepoManager)
 from util.db_mongo import (MongoAdapter)
 from util.yaml_parser import YamlParser
@@ -365,7 +365,7 @@ class Controller:
 
         # Process Override if have.
         if override_configs:
-            pipeline_config = ConfigOverrides.apply_overrides(
+            pipeline_config = MongoHelper.apply_overrides(
                 pipeline_config,
                 override_configs)
         click.echo(f"Validating file in {pipeline_file_name}")
@@ -404,7 +404,7 @@ class Controller:
         if not pipeline_config:
             click.echo(f"No pipeline config found for '{pipeline_name}'.")
             return False
-        updated_config = ConfigOverrides.apply_overrides(pipeline_config, overrides)
+        updated_config = MongoHelper.apply_overrides(pipeline_config, overrides)
         # validate the updated pipeline configuration
 
         validation_res = self.config_checker.validate_config(pipeline_name,
@@ -576,6 +576,7 @@ class Controller:
             stage_status = const.STATUS_SUCCESS
             stage_config = ValidatedStage.model_validate(stage_config)
             job_logs = {}
+            stage_start_time = time.asctime()
             # run the job, get the record, update job history
             for job_group in stage_config.job_groups:
                 for job_name in job_group:
@@ -598,7 +599,16 @@ class Controller:
                 # If early break, skip next job group execution
                 if early_break:
                     break
-            self.mongo_ds.update_job_logs(job_id, stage_name, stage_status, job_logs)
+            self.mongo_ds.update_job_logs(
+                job_id,
+                stage_name,
+                stage_status,
+                job_logs,
+                stage_time={
+                    "start_time": stage_start_time,
+                    "completion_time": time.asctime()
+                }
+            )
             # single fail stage will switch the pipeline status to fail
             if stage_status == const.STATUS_FAILED:
                 pipeline_status = const.STATUS_FAILED
