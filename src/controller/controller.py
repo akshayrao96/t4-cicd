@@ -7,15 +7,16 @@
 from datetime import datetime
 import copy
 import os
-from typing import Any
-import pprint
+import time
+#import pprint
 import click
-import git.exc
+#import git.exc
 from pydantic import ValidationError
+from ruamel.yaml import YAMLError
 import util.constant as const
 from util.container import (DockerManager)
-from util.model import (SessionDetail, PipelineConfig, ValidatedStage, PipelineInfo)
-from util.common_utils import (get_logger, ConfigOverrides, DryRun)
+from util.model import (SessionDetail, PipelineConfig, ValidatedStage, PipelineInfo, PipelineHist)
+from util.common_utils import (get_logger, ConfigOverrides, DryRun, PrintMessage)
 from util.repo_manager import (RepoManager)
 from util.db_mongo import (MongoAdapter)
 from util.yaml_parser import YamlParser
@@ -25,6 +26,7 @@ REPO_SOURCE = ""
 REPO_TARGET_PATH = ""
 REPO_BRANCH_NAME = "main"
 MONGO_PIPELINES_TABLE = "repo_configs"
+DEFAULT_CONFIG_DIR = ".cicd-pipelines/"
 
 # pylint: disable=logging-fstring-interpolation
 # pylint: disable=logging-not-lazy
@@ -45,68 +47,148 @@ class Controller:
         # ..and many more
         self.logger = get_logger('cli.controller')
 
-    def set_repo(self, repo_url: str, branch: str = "main",
-                 commit_hash: str = None) -> tuple[bool, str]:
+    def handle_repo(
+            self,
+            repo_url: str = None, branch: str = "main",
+            commit_hash: str = None) -> tuple[bool, str, SessionDetail | None]:
         """
-        Set the repository URL, validate it, and store in MongoDB for CID configurations.
+        If repo_url is given, call set_repo for the cloning process.
+        If no repo_url is given, call get_repo to validate $PWD as a git repository.
 
         Args:
-            repo_url (str): The repository URL provided by the user.
-            branch (str): The branch to validate or use, main if not given.
-            commit_hash (str): Commit hash to retrieve, latest commit if not given.
+            repo_url (str, optional): URL of the Git repository to configure. Defaults to None.
+            branch (str, optional): The branch to use, defaults to 'main'.
+            commit_hash (str, optional): Specific commit hash to check out, defaults to None.
 
         Returns:
-            tuple[bool, str]: A tuple indicating success/failure and a message.
+            tuple: (bool, str, SessionDetail | None)
+                - bool: True if successful, False otherwise.
+                - str: Message about the result.
+                - SessionDetail or None: Repository details if available, otherwise None.
+        """
+        if repo_url:
+            return self.set_repo(repo_url=repo_url, branch=branch, commit_hash=commit_hash)
+        else:
+            return self.get_repo()
+
+    def set_repo(self, repo_url: str = None, branch: str = "main",
+                 commit_hash: str = None) -> tuple[bool, str, SessionDetail | None]:
+        """
+        Configure and save a Git repository for CI/CD checks.
+
+        Clones the specified Git repository to the current working directory, with an optional branch and commit.
+        If the current directory is already a Git repository, it returns an error.
+
+        Args:
+            repo_url (str): URL of the Git repository to configure.
+            branch (str, optional): The branch to use, defaults to 'main'.
+            commit_hash (str, optional): Specific commit hash to check out, defaults to the latest commit.
+
+        Returns:
+            tuple: (bool, str, SessionDetail | None)
+                - bool: True if the repository was successfully configured, False otherwise.
+                - str: Message indicating the result.
+                - SessionDetail or None: Session details if successful, or None if it failed.
         """
 
-        in_git_repo, repo_name = self.repo_manager.is_current_repo()
+        # Check : User's $PWD is a git repo. Return failure, error message, and none
+        in_git_repo, message, repo_name = self.repo_manager.is_current_dir_repo()
         if in_git_repo:
-            return False, f"You are currently in a Git repository: '{repo_name}'. Please navigate to an empty directory."
+            return False, f"Currently in a Git repository: '{repo_name}'. Please navigate to an empty directory.", None
 
+
+        # Check : User has cloned a repo successfully, branch and commit are valid
         is_valid, message, repo_details = self.repo_manager.set_repo(
             repo_url, branch, commit_hash)
 
+        # If not, return failure, error message, and none
         if not is_valid:
-            return False, message
+            return False, message, None
 
-        repo_name = repo_details["repo_name"]
         time_log = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         user_id = os.getlogin()
 
-        repo_data = {
-            "user_id": user_id,
-            "repo_url": repo_url,
-            "repo_name": repo_name,
-            "branch": repo_details["branch"],
-            "commit_hash": repo_details["commit_hash"],
-            "is_remote": True,
-            "time": time_log
-        }
+        # Put the information into a SessionDetail Object.
+        # Returns true, message, and the SessionDetail if successful
+        # Else: If not, return false, message, and none
+        try:
+            repo_data = SessionDetail.model_validate({
+                "user_id": user_id,
+                "repo_url": repo_url,
+                "repo_name": repo_details["repo_name"],
+                "branch": repo_details["branch"],
+                "commit_hash": repo_details["commit_hash"],
+                "is_remote": True,
+                "time": time_log
+            })
 
-        inserted_id = self.mongo_ds.insert_repo(repo_data)
-        if not inserted_id:
-            return False, "Failed to set repository."
+            inserted_id = self.mongo_ds.update_session(repo_data.model_dump())
+            if not inserted_id:
+                return False, "Failed to store repository details in MongoDB.", None
 
-        return True, f"Repository set successfully with ID: {inserted_id}"
+            return True, "Repository set successfully.", repo_data
 
-    def get_repo(self) -> tuple[bool, str | None]:
+        except ValidationError as e:
+            return False, f"Data validation error: {e}", None
+
+    def get_repo(self) -> tuple[bool, str, SessionDetail | None]:
         """
-        Check if the current directory is a Git repository or retrieve the last set repository from MongoDB.
+        Retrieve the current or last saved repository details.
+
+        Checks if the current directory is a Git repository:
+        - If yes, returns its details.
+        - If no, returns details of the last configured repository for the user if available.
 
         Returns:
-            tuple[bool, Optional[str]]: (True, repo name) if in a Git repository, or
-            (False, last set repo URL) if not in a Git repo. Returns (False, None) if no last set repo.
+            tuple: (bool, str, SessionDetail | None)
+                - bool: True if in a Git repository, False otherwise.
+                - str: Message about the repository status or any issues.
+                - SessionDetail or None: Repository details if available, otherwise None.
         """
-        in_git_repo, repo_name = self.repo_manager.is_current_repo()
+
+        # Case: check if user is in a $PWD that is a git repo
+        in_git_repo, repo_name, is_in_root = self.repo_manager.is_current_dir_repo()
+        user_id = os.getlogin()
 
         if in_git_repo:
-            return True, repo_name
+            repo_details = self.repo_manager.get_current_repo_details()
 
-        last_repo = self.mongo_ds.get_last_set_repo()
+            time_log = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+            try:
+                repo_data = SessionDetail.model_validate({
+                    "user_id": user_id,
+                    "repo_url": repo_details["repo_url"],
+                    "repo_name": repo_details["repo_name"],
+                    "branch": repo_details["branch"],
+                    "commit_hash": repo_details["commit_hash"],
+                    "is_remote": True,
+                    "time": time_log
+                })
+
+                self.mongo_ds.update_session(repo_data.model_dump())
+
+                if not is_in_root:
+                    return False, "Not in the root of the repository. Please navigate to the root of the repo and try again.", repo_data
+
+                return True, "Repository is configured in current directory", repo_data
+
+            except ValidationError as e:
+                return False, f"Data validation error: {e}", None
+
+        last_repo = self.mongo_ds.get_session(user_id)
+
         if last_repo:
-            return False, last_repo.get('repo_url', '')
+            try:
+                last_repo_data = SessionDetail.model_validate(last_repo)
+                return False, "Current working directory is not a git repository", last_repo_data
 
-        return False, None
+            except ValidationError as e:
+                self.logger.warning(f"Failed to convert last_repo to SessionDetail: {e}")
+                return False, "Failed to convert last repository to SessionDetail.", None
+
+        # No repository information available
+        return False, "No repository found to run command.", None
 
     def get_controller_history(self) -> dict:
         """Retrieve pipeline history from Mongo DB
@@ -124,158 +206,190 @@ class Controller:
         #return pipelines
 
     ### CONFIG ###
-    def validate_n_save_configs(self, directory: str) -> dict:
+    def validate_n_save_configs(self, directory: str, saving:bool = True) -> dict:
         """ Set Up repo, validate config, and save the config into datastore
 
         Args:
             directory (str): valid directory containing pipeline configuration
+            saving (optional, bool): whether to save the result to db. 
+            Default to True
 
         Returns:
             dict: dictionary of {<pipeline_name>:<single validation results>}
         """
         # stub response for repo set up
+        # stub response for repo set up
+        session_data = SessionDetail(
+            user_id='random',
+            repo_name='cicd-python',
+            repo_url="https://github.com/sjchin88/cicd-python",
+            branch='main',
+            is_remote=True,
+            commit_hash="abcdef"
+        )
         click.echo("Setting Up Repo")
-        validation_results = self.validate_configs(directory)
-        # stub response for save
-        click.echo("Saving into datastore")
-        results = {}
-        for pipeline_name, validation_result in validation_results.items():
-            status = validation_result.get('valid')
-            error_msg = validation_result.get('error_msg')
-            pipeline_config = validation_result.get('pipeline_config')
-            if status:
-                file_path = os.path.join(directory, f"{pipeline_name}.yml")
-                # Pass the pre-validated config and skip validation
-                status, error_msg, saved_config = self.validate_n_save_config(
-                    file_path, pipeline_config=pipeline_config, skip_validation=True
-                )
-                validation_result.update({
-                    'valid': status,
-                    'error_msg': error_msg,
-                    'pipeline_config': saved_config
-                })
-            else:
-                click.echo(f"Validation failed for {pipeline_name}: {error_msg}")
-            results[pipeline_name] = validation_result
-        return results
-
-    def validate_n_save_config(
-        self, file_name: str, pipeline_config: dict = None, skip_validation: bool = False
-    ) -> tuple[bool, str, dict]:
-        """ Set Up repo, validate config, and save the config into datastore
-
-        Args:
-            file_name (str): full absolute path of the file to be validated
-
-        Returns:
-            tuple[bool, str, dict]: status of the config validation and output message
-        """
-        status = True
-        error_msg = ""
-        resp_pipeline_config = pipeline_config
-        # stub response for repo set up
-        if not skip_validation:
-            status, error_msg, resp_pipeline_config = self.validate_config(file_name)
-        # If validation passes, save to datastore
-        if status:
-            pipeline_name = resp_pipeline_config['global'].get('pipeline_name')
-            repo_data = self.mongo_ds.get_repo(
-                "sample-repo", "https://github.com/sample-user/sample-repo", "main"
-            )
-            # Case 1: No Repo Exists - Create New Repo with Pipeline
-            if not repo_data:
-                new_repo_data = {
-                    "repo_name": "sample-repo",
-                    "repo_url": "https://github.com/sample-user/sample-repo",
-                    "branch": "main",
-                    "pipelines": [
-                        self.mongo_ds.create_pipeline_document(
-                            pipeline_name, file_name, resp_pipeline_config
-                        )
-                    ]
-                }
-                repo_id = self.mongo_ds.insert_repo(
-                    new_repo_data, collection_name=MONGO_PIPELINES_TABLE
-                )
-                if not repo_id:
-                    return False, "Error saving repo to datastore.", resp_pipeline_config
-
-            # # Case 2: Existing Repo - Append Pipeline
-            else:
-                existing_pipeline = next(
-                    (p for p in repo_data["pipelines"] if p["pipeline_name"] == pipeline_name),
-                    None
-                )
-                if not existing_pipeline:
-                    new_pipeline_document = self.mongo_ds.create_pipeline_document(
-                        pipeline_name, file_name, resp_pipeline_config
-                    )
-                    repo_data["pipelines"].append(new_pipeline_document)
-                    success = self.mongo_ds.update_pipeline(repo_data)
-                    if not success:
-                        error_msg = f"Error add new '{pipeline_name}' to datastore."
-                        status = False
-                else:
-                    error_msg = (
-                        f"Pipeline '{pipeline_name}' already exists in datastore. "
-                        "Use --override to update."
-                    )
-                    status = False
-        return status, error_msg.strip(), resp_pipeline_config
-
-    def validate_configs(self, directory: str) -> dict:
-        """ Validate configuration file in a directory
-
-        Args:
-            directory (str): valid directory containing pipeline configuration
-
-        Returns:
-            dict: dictionary of {<pipeline_name>:<single validation results>}
-        """
-        # stub response
         parser = YamlParser()
         results = {}
         pipeline_configs = parser.parse_yaml_directory(directory)
+        
+        # Loop through each items
         for pipeline_name, values in pipeline_configs.items():
-            pipeline_file_name = values[const.KEY_PIPE_FILE]
-            pipeline_config = values[const.KEY_PIPE_CONFIG]
-            response_dict = self.config_checker.validate_config(
-                pipeline_name, pipeline_config, pipeline_file_name, True)
-            # response_dict[const.KEY_PIPE_FILE] = pipeline_file_name
-            results[pipeline_name] = response_dict
+            response = self.config_checker.validate_config(
+                pipeline_name, values.pipeline_config, values.pipeline_file_name, True)
+            results[pipeline_name] = response
+            status = response.valid
+            
+            # Perform saving
+            if status and saving:
+                updates = {
+                    'pipeline_name': pipeline_name,
+                    'pipeline_file_name':values.pipeline_file_name,
+                    'pipeline_config': response.pipeline_config.model_dump(by_alias=True),
+                }
+                status = self.mongo_ds.update_pipeline_info(
+                        repo_name=session_data.repo_name,
+                        repo_url=session_data.repo_url,
+                        branch=session_data.branch,
+                        pipeline_name=pipeline_name,
+                        updates=updates
+                    )
+                if not status:
+                    response.valid = status
+                    response.error_msg = "Fail to save to datastore"
+        # stub response for save
         return results
 
-    def validate_config(self, file_name: str) -> tuple[bool, str, dict]:
-        """ Validate a single configuration file
+    def validate_n_save_config(
+        self, file_name: str = None,
+        pipeline_name: str = None,
+        override_configs:dict = None,
+    ) -> tuple[bool, str, PipelineInfo]:
+        """ apply overrides if any, validate config, and save the config into datastore. 
+        The pipeline configuration can come from three sources: (1) file_name, 
+        (2) pipeline_name
 
         Args:
-            file_name (str): full absolute path of the file to be validated
+            file_name (str, optional): target file_name. Defaults to None.
+            pipeline_name (str, optional): target pipeline_name. Defaults to None.
+            override_configs (dict, optional): override if any. Defaults to None.
 
         Returns:
-            tuple[bool, str, dict]: status of the config validation and output message
+            tuple[bool, str, PipelineInfo]: First item is indicator for success or fail. 
+            second item is the error message if any. 
+            third item is the PipelineInfo object. 
+        """
+        status = True
+        error_msg = ""
+
+        # stub response for repo set up
+        session_data = SessionDetail(
+            user_id='random',
+            repo_name='cicd-python',
+            repo_url="https://github.com/sjchin88/cicd-python",
+            branch='main',
+            is_remote=True,
+            commit_hash="abcdef"
+        )
+
+        status, error_msg, pipeline_info = self.validate_config(
+                file_name, pipeline_name, override_configs
+            )
+
+        if not status:
+            return status, error_msg.strip(), pipeline_info
+
+        # If validation passes, save to datastore
+        pipeline_config = pipeline_info.pipeline_config.model_dump(by_alias=True)
+        pipeline_name = pipeline_info.pipeline_name
+
+        # MongoAdapter update_pipeline_info method will take care of initializing
+        # the PipelineInfo record for new pipeline,
+        # We just need to place the pipeline_config in updates, and provide
+        # pipeline_name and pipeline_file_name
+        # We dont use the PipelineInfo object directly as we dont want to
+        # override the existing data in the db
+        updates = {
+            'pipeline_name': pipeline_name,
+            'pipeline_file_name':pipeline_info.pipeline_file_name,
+            'pipeline_config': pipeline_config,
+        }
+        status = self.mongo_ds.update_pipeline_info(
+                repo_name=session_data.repo_name,
+                repo_url=session_data.repo_url,
+                branch=session_data.branch,
+                pipeline_name=pipeline_name,
+                updates=updates
+            )
+        if not status:
+            error_msg = f"Fail saving pipeline config for {pipeline_name}"
+            return status, error_msg, None
+        return status, error_msg.strip(), pipeline_info
+
+    def validate_config(self,
+                        file_name: str = None,
+                        pipeline_name: str = None,
+                        override_configs:dict=None
+                        ) -> tuple[bool, str, PipelineInfo]:
+        """ Apply override if any and Validate a single configuration file. 
+        The pipeline configuration can come from three sources: (1) file_name, 
+        (2) pipeline_name and (3) any pipeline_configuration 
+
+        Args:
+            file_name (str, optional): target file_name. Defaults to None.
+            pipeline_name (str, optional): target pipeline_name. Defaults to None.
+            override_configs (dict, optional): override if any. Defaults to None.
+
+        Returns:
+            tuple[bool, str, PipelineInfo]: First item is indicator for success or fail. 
+            second item is the error message if any. 
+            third item is the PipelineInfo object. 
         """
         parser = YamlParser()
-        pipeline_config = parser.parse_yaml_file(file_name)
+        pipeline_config = None
+        pipeline_file_name = None
+        # At this point will have either config_file or pipeline_name set by upstream but not both
+        # check pipeline_name first
+        if pipeline_name is not None:
+            try:
+                pipeline_info = parser.parse_yaml_by_pipeline_name(
+                    pipeline_name, DEFAULT_CONFIG_DIR)
+                pipeline_file_name = pipeline_info.pipeline_file_name
+                pipeline_config = pipeline_info.pipeline_config
+            except FileNotFoundError as fe:
+            # if 'pipeline' name could not be located, return False and error message
+                self.logger.error(f"error in extracting from pipeline_name, {fe}")
+                return False, fe, None
+        else:
+            try:
+                pipeline_config = parser.parse_yaml_file(file_name)
+                # get the pipeline_name for ConfigChecker
+                pipeline_name = pipeline_config[const.KEY_GLOBAL][const.KEY_PIPE_NAME]
+                # Extract the filename without extension or path
+                pipeline_file_name = os.path.basename(file_name)
+            except (FileNotFoundError, YAMLError) as e:
+            # if cannot extract content, return False and error message
+                self.logger.error(f"error in extracting from file_name, {e}")
+                return False, e, None
 
-        # get the pipeline_name for ConfigChecker
-        pipeline_name = pipeline_config.get('global.pipeline_name')
-        # Extract the filename without extension or path
-        pipeline_file_name = os.path.basename(file_name)
+        #pipeline_config = parser.parse_yaml_file(file_name)
+        # Process Override if have.
+        if override_configs:
+            pipeline_config = ConfigOverrides.apply_overrides(
+                pipeline_config,
+                override_configs)
         click.echo(f"Validating file in {pipeline_file_name}")
-
         # call ConfigChecker to validate the configuration
-        # returns: dict <valid, error_msg, pipeline_config
-        response_dict = self.config_checker.validate_config(pipeline_name,
-                                                            pipeline_config,
-                                                            pipeline_file_name,
-                                                            error_lc=True)
-
-        # store the response to variables
-        status = response_dict.get('valid')
-        error_msg = response_dict.get('error_msg')
-        resp_pipeline_config = response_dict.get('pipeline_config')
-
-        return (status, error_msg, resp_pipeline_config)
+        result = self.config_checker.validate_config(pipeline_name,
+                                                     pipeline_config,
+                                                     pipeline_file_name,
+                                                     error_lc=True)
+        pipeline_info = PipelineInfo(
+            pipeline_name=pipeline_name,
+            pipeline_file_name=pipeline_file_name,
+            pipeline_config=result.pipeline_config
+        )
+        # return validation result as tuple for easier processing
+        return result.valid, result.error_msg, pipeline_info
 
     def override_config(self, pipeline_name: str, overrides: dict) -> bool:
         """Retrieve, apply overrides, validate, and update the pipeline configuration.
@@ -290,33 +404,32 @@ class Controller:
             Raises:
                 ValueError: If no pipeline configuration is found for the given pipeline name.
             """
-        pipeline = self.mongo_ds.get_pipeline_config(
+        pipeline_config_data = self.mongo_ds.get_pipeline_config(
             "sample-repo",
             "https://github.com/sample-user/sample-repo",
             "main",
             pipeline_name)
-        if not pipeline.get('pipeline_config'):
+        pipeline_config = pipeline_config_data.get('pipeline_config')
+        if not pipeline_config:
             click.echo(f"No pipeline config found for '{pipeline_name}'.")
             return False
-        data = self.mongo_ds.get_pipeline(
-            pipeline.get('_id'), collection_name=MONGO_PIPELINES_TABLE)
-        data['pipeline_config'] = ConfigOverrides.apply_overrides(
-            pipeline['pipeline_config'], overrides)
+        updated_config = ConfigOverrides.apply_overrides(pipeline_config, overrides)
         # validate the updated pipeline configuration
-        response_dict = self.config_checker.validate_config(pipeline_name,
-                                                            data['pipeline_config'],
+
+        validation_res = self.config_checker.validate_config(pipeline_name,
+                                                            updated_config,
                                                             error_lc=True)
-        status = response_dict.get('valid')
-        resp_pipeline_config = response_dict.get('pipeline_config')
+        status = validation_res.valid
+        resp_pipeline_config = validation_res.pipeline_config
         if not status:
             click.echo("Override pipeline configuration validation failed.")
             return False
-        success = self.mongo_ds.update_pipeline_config(
+        success = self.mongo_ds.update_pipeline_info(
             "sample-repo",
             "https://github.com/sample-user/sample-repo",
             "main",
-            "valid_pipeline",
-            resp_pipeline_config)
+            pipeline_name,
+            {'pipeline_config':resp_pipeline_config})
         if not success:
             click.echo("Error updating pipeline configuration.")
             return False
@@ -329,14 +442,15 @@ class Controller:
         command: `cid pipeline setup`
         """
 
-    def run_pipeline(self, config_file: str, pipeline: str, git_details:dict, dry_run:bool = False,
-                     local:bool = False, yaml_output: bool = False, override_configs:dict=None
-                     ) -> tuple[bool, str, str]:
+    def run_pipeline(self, config_file: str, pipeline_name: str, git_details:dict,
+                     dry_run:bool = False, local:bool = False, yaml_output: bool = False,
+                     override_configs:dict=None
+                     ) -> tuple[bool, str]:
         """Executes the job by coordinating the repository, runner, artifact store, and logger.
 
         Args:
             config_file (str): file path of the configuration file.
-            pipeline (str): pipeline name to be executed.
+            pipeline_name (str): pipeline name to be executed.
             dry_run (bool): set dry_run = True to simulate pipeline order of execution.
             git_details (dict): details of the git repository where to use.
             local (bool): True = run pipeline locally, False = run pipeline remotely.
@@ -345,88 +459,37 @@ class Controller:
             override_configs: to override required configs
 
         Returns:
-            tuple[bool, str, str]:
+            tuple[bool, str]:
                 bool: status
                 str: message
-                str: pipeline_id -- empty string if pipeline is not being run 
-                or failed (dry_run = True)
         """
-        ## TODO: validate the repo has the valid branch name and commit hash
-        # repo_source = git_details.get('repo_source')
-        # branch = git_details.get('branch')
-        # commit = git_details.get('commit_hash')
 
-        ## Step 0: Clone the repo
-        # remote_repo = git_details.get('remote_repo')
-        # repo_manager = RepoManager(repo_source)
-        # repo_manager.setup_repo()
-        # TODO: create method in repo_manager to get cloned folder path
-
-        ## Step 1: check for valid branch / commit
-        ## check for valid git commit / branch to run the pipeline
-        ## this is part of usecase 1 a/b
-
+        ## TODO: Step 1 integrate with get and set repo
         status = True
         message = None
         config_dict = None
-        # for --pipeline, need to call YamlParser to retrieve the pipeline_name
-        # for every config. Currently set default_path to find the config_files
-        # to .cicd-pipelines/
-        if pipeline:
-            parser = YamlParser()
-            default_path = '.cicd-pipelines/'
-            dict_yaml = parser.parse_yaml_directory(default_path)
-            config_dict = dict_yaml.get(pipeline) #get pipeline config
-            # if 'pipeline' name could not be located, return False and
-            # ask user to re-run the command.
-            if config_dict is None:
-                status = False
-                message = f"\ncid: pipeline_name '{pipeline}' is not a valid name."
-                message += " Please re-run the command: cid pipeline run"
-                message += " --pipeline <valid_pipeline_name>"
-                pipeline_id = ""
-                return status, message, pipeline_id
 
-            #get the filename and set the configuration file to be use for validate_config.
-            config_file = default_path + config_dict.get('pipeline_file_name')
+        # Step 2 - 4 extract yaml content, apply override, validate and
+        # save handled by validate_n_save_config
+        status, error_msg, pipeline_info = self.validate_n_save_config(
+            config_file, pipeline_name, override_configs)
 
-        # perform config validation given the config_file/file_path (not pipeline_name).
-        # by default it is set to '.cicd-pipelines/pipelines.yml'
-        status, message, config_dict = self.validate_config(config_file)
-
-        # Process Override if have
-        if override_configs:
-            combined_config = ConfigOverrides.apply_overrides(
-                config_dict,
-                override_configs)
-            # validate the updated pipeline configuration
-            response_dict = self.config_checker.validate_config(
-                config_dict[const.KEY_GLOBAL][const.KEY_PIPE_NAME],
-                combined_config)
-            # Update status and config_dict
-            status = response_dict.get('valid')
-            config_dict = response_dict.get('pipeline_config')
-
-        # Early Return
+        # Early Return if override and validation fail
         if not status:
-            pipeline_id = ""
-            return status, message, pipeline_id
-        # Step 2: check if pipeline is  running dry-run or not
+            return status, error_msg
+        config_dict = pipeline_info.pipeline_config.model_dump(by_alias=True)
+
+        # Step 5: check if pipeline is  running dry-run or not
         if dry_run:
-            status, dry_run_msg, pipeline_id = self.dry_run(config_dict, yaml_output)
-            return status, dry_run_msg, pipeline_id
+            # TODO - Update dry_run to take PipelineConfig model instead of dict
+            status, dry_run_msg = self.dry_run(config_dict, yaml_output)
+            self.logger.debug(f"dry run status:{status}, {dry_run_msg}")
+            return status, dry_run_msg
 
-        # Step 3: Perform pipeline run steps
-        #TODO: need to validate if run local
-        #TODO: need to move local to top so dry-run can also be included if we want
-        # to do local execution
-        if local:
-            print("Flag --local is set. run pipeline locally.")
-
+        # Step 6: Actual Pipeline Run
         status = True
-        message = "Pipeline runs successfully"
-        pipeline_id = "run_number"
-        #TODO: update method to update git_detail
+        message = "Pipeline runs successfully. "
+        #TODO: update method to update git_detail from step 0
         try:
             repo_data = copy.deepcopy(git_details)
             repo_data["is_remote"] = True
@@ -435,16 +498,16 @@ class Controller:
             repo_data = SessionDetail.model_validate(repo_data)
             # pprint.pprint(repo_data.model_dump())
             pipeline_config = PipelineConfig.model_validate(config_dict)
-            status, pipeline_id = self._actual_pipeline_run(repo_data, pipeline_config, local)
+            status, run_msg = self._actual_pipeline_run(repo_data, pipeline_config, local)
+            message += run_msg
         except ValidationError as ve:
-            self.logger.warning(f"validation error occur, error is {ve}")
-            click.secho("Error in running pipeline", fg="red")
+            message = f"validation error occur, error is {ve}\n"
+            self.logger.warning(message)
             status = False
 
         if not status:
-            message = 'Pipeline runs fail'
-
-        return tuple([status, message, pipeline_id])
+            message += 'Pipeline runs fail'
+        return (status, message)
 
     def _actual_pipeline_run(self,
                              repo_data:SessionDetail,
@@ -463,15 +526,16 @@ class Controller:
 
         Returns:
             tuple(bool, str): first flag indicate whether the overall run is 
-                successful(True) or fail(False). Second str is the actual run number
+                successful(True) or fail(False). Second str is the actual run number if success,
+                or error message if fail
         """
-        # TODO - Process local flag
+        # Step 0: Process local flag. Note feature to run pipeline on remote is not implemented
         if local:
             click.echo("Running pipeline on local")
         else:
-            click.echo("Should run pipeline on remote, right now still local")
+            click.echo("Remote run feature is not implemented, still running pipeline on local")
 
-        # Check if pipeline is already running
+        # Step 1: Check if pipeline is already running
         pipeline_history = self.mongo_ds.get_pipeline_history(
             repo_data.repo_name,
             repo_data.repo_url,
@@ -483,21 +547,15 @@ class Controller:
         except ValidationError as ve:
             self.logger.warning(f"validation error for pipeline_history:{pipeline_history}"+
                                 f"error is {ve}")
-            raise ve
+            return False, "Fail to retrieve pipeline history"
 
-        # pprint.pprint(his_obj.model_dump())
+        # Early return if pipeline already running
         if pipeline_history['running']:
-            raise ValueError(f"Pipeline {pipeline_config.global_.pipeline_name} Already Running,"+
-                             "Please Stop Before Proceed")
-        # pprint.pprint(pipeline_history)
-        # TODO - Delete
-        # pipeline_config_with_id = self.mongo_ds.get_pipeline_config(
-        #     repo_data.repo_name,
-        #     repo_data.repo_url,
-        #     repo_data.branch,
-        #     pipeline_config.global_.pipeline_name
-        # )
-        # Insert new job record
+            error_msg = f"Pipeline {pipeline_config.global_.pipeline_name} Already Running. "
+            error_msg += "Please Stop Before Proceed"
+            return False, error_msg
+
+        # Step 2: Insert new job record
         job_id = self.mongo_ds.insert_job(
             his_obj,
             pipeline_config.model_dump(by_alias=True)
@@ -510,14 +568,14 @@ class Controller:
             "job_run_history":his_obj.job_run_history,
             'running':True,
         }
-        update_success = self.mongo_ds.update_pipeline_history(
+        update_success = self.mongo_ds.update_pipeline_info(
             repo_data.repo_name,
             repo_data.repo_url,
             repo_data.branch,
             pipeline_config.global_.pipeline_name,
             updates
         )
-        # TODO - if update unsuccessful, prompt user.
+        # if update unsuccessful, prompt user.
         if not update_success:
             click.confirm('Cannot update into db, do you want to continue?', abort=True)
         # Initialize Docker Manager
@@ -526,8 +584,7 @@ class Controller:
                 pipeline=pipeline_config.global_.pipeline_name,
                 run=str(len(his_obj.job_run_history))
             )
-        # Iterate through all stages, for each jobs
-        # TODO - Update pipeline_status with cancel case
+        # Step 3: Iterate through all stages, for each jobs
         pipeline_status = const.STATUS_SUCCESS
         early_break = False
         for stage_name, stage_config in pipeline_config.stages.items():
@@ -538,13 +595,10 @@ class Controller:
             for job_group in stage_config.job_groups:
                 for job_name in job_group:
                     job_config = pipeline_config.jobs[job_name]
-                    #print(job_name)
-                    #pprint.pprint(job_config)
                     job_log = docker_manager.run_job(job_name, job_config)
                     click.secho(f"Stage:{stage_name} Job:{job_name} - Streaming Job Logs",
                                 fg='green')
                     click.echo(job_log.job_logs)
-                    # click.echo("\n")
                     job_logs[job_name] = job_log.model_dump()
                     # single fail job will switch the stage status to fail
                     if job_log.job_status == const.STATUS_FAILED:
@@ -569,17 +623,18 @@ class Controller:
             # If early break, skip next stages execution
             if early_break:
                 break
-            #pprint.pprint(job_logs)
+
         # Wrap up and return
         docker_manager.remove_vol()
         run_update = {
-            "success":pipeline_status
+            "status":pipeline_status,
+            "completion_time": time.asctime()
         }
         self.mongo_ds.update_job(job_id, run_update)
         final_updates = {
             'running':False
         }
-        update_success = self.mongo_ds.update_pipeline_history(
+        update_success = self.mongo_ds.update_pipeline_info(
             repo_data.repo_name,
             repo_data.repo_url,
             repo_data.branch,
@@ -587,13 +642,8 @@ class Controller:
             final_updates
         )
         pipeline_pass = pipeline_status == const.STATUS_SUCCESS
-        return pipeline_pass, f"run_number:{run_number}"
-
-
-    # def stop_job(self):
-    #     """_summary_
-    #     """
-
+        run_msg = f"run_number:{run_number}" if pipeline_pass else ""
+        return pipeline_pass, run_msg
 
     def display_or_edit_config(self):
         """_summary_
@@ -604,7 +654,7 @@ class Controller:
         """_summary_
         """
 
-    def dry_run(self, config_dict: dict, is_yaml_output:bool) -> tuple[bool, str, str]:
+    def dry_run(self, config_dict: dict, is_yaml_output:bool) -> tuple[bool, str]:
         """dry run methods responsible for the `--dry-run` method for pipelines.
         The function will retrieve any pipeline history from database, then validate
         the configuration file (check hash_commit), and then perform the dry_run
@@ -617,7 +667,7 @@ class Controller:
         Returns:
             str: _description_
         """
-
+        # TODO - Do the clean up on doctsring and methods
         dry_run = DryRun(config_dict)
         dry_run_msg = dry_run.get_plaintext_format()
         yaml_output_msg = dry_run.get_yaml_format()
@@ -630,11 +680,83 @@ class Controller:
 
         # dry-run is not stored to mongo DB
         #pipeline_id = mongo.insert_pipeline(pipeline_history)
-        pipeline_id = "dry_run"
+        #pipeline_id = "dry_run"
 
         # set yaml format if user specify "--yaml" flag.
         if is_yaml_output:
             dry_run_msg = yaml_output_msg
 
-        return True, dry_run_msg, pipeline_id
+        return True, dry_run_msg
 
+    def pipeline_history(self, pipeline_details: PipelineHist) -> tuple[bool, str]:
+        """pipeline history provides user to retrieve the past pipeline runs
+
+        Args:
+            pipeline_details (PipelineHist): pydantic models that contains \
+                user input to query pipeline history to database.
+
+        Returns:
+            dict:
+                "is_success": boolean if
+        """
+        pipeline_dict = pipeline_details.model_dump()
+        pipeline_name = pipeline_dict['pipeline_name']
+        repo_url = pipeline_dict['repo_url']
+        run_number = pipeline_dict['run']
+        output_msg = ""
+        try:
+            #(L4.2) cid pipeline report --repo <repo> --pipeline <pipeline> --run <number>
+            if pipeline_dict['run']: # --run is specified
+
+                #TODO: refactor code to use the `get_pipeline_run_summary()` method
+                history = self.mongo_ds.get_pipeline_history(pipeline_dict['repo_name'],
+                repo_url, pipeline_dict['branch'], pipeline_name)
+                #history = self.mongo_ds.get_pipeline_run_summary(repo_url, pipeline_name,
+                #                                                 run_number=run_number)
+                run_number = int(pipeline_dict['run']) - 1
+                job_history = self.mongo_ds.get_job(history['job_run_history'][run_number])
+
+                message = PrintMessage(job_history)
+                output_msg = message.print(['pipeline_name', 'run_number', 'git_commit_hash',
+                                        'start_time', 'completion_time'])
+                output_msg += message.print_log_status()
+            else:
+                #L4.1. cid pipeline report --repo <repo> | get all pipelines report
+                #--run flag is not specified, so list out the pipeline reports.
+                #by default, "all" will return the history of all pipeline_name.
+                #TODO: add --local flag seen in 4.1.2
+                if pipeline_name == "all": #run all job_history
+                    job_history = self.mongo_ds.get_pipeline_run_summary(repo_url)
+                else:
+                    job_history = self.mongo_ds.get_pipeline_run_summary(repo_url, pipeline_name)
+
+
+                #validation, if job_history is empty from get_pipeline_run_summary(),
+                # this means no data found in DB
+                #TODO: see how to handle the exception in KeyEror
+                if job_history == []:
+                    is_success = False
+                    err_msg = f"There is no job history for pipeline '{pipeline_name}' in {repo_url}!\n"
+                    err_msg += "please ensure that the pipeline_name or repo are valid."
+                    err_msg += "Please run `cid pipeline run` if no reports found"
+                    return is_success, err_msg
+                for job in job_history:
+                    message = PrintMessage(job)
+                    output_msg += message.print(['pipeline_name', 'run_number', 'git_commit_hash',
+                                            'start_time', 'completion_time'])
+        except KeyError as ke:
+            err_msg = f"There is no job history for pipeline '{pipeline_name}' in {repo_url}!\n"
+            err_msg += "please ensure that the pipeline_name or repo are valid."
+            err_msg += "Please run `cid pipeline run` if no reports found"
+            self.logger.warning(f"Key Error in pipeline_history: {ke}")
+            is_success = False
+            return is_success, err_msg
+        except IndexError as ie:
+            self.logger.warning(f"job_number is out of bound. error: {ie}")
+            is_success = False
+            err_msg = f"run_number: {pipeline_dict['run']} does not exist!\n"
+            err_msg += f"do you mean --run {len(history['job_run_history'])}?"
+            return is_success, err_msg
+
+        is_success = True
+        return is_success, output_msg

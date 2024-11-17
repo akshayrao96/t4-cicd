@@ -10,15 +10,19 @@ from dotenv import dotenv_values
 
 
 def get_logger(logger_name='', log_level=logging.DEBUG, log_file='../debug.log') -> logging.Logger:
-    """_summary_
+    """ common function to set the logger for the cicd system. This will add the stream logger 
+    and also the file logger. For production, the stream logger logging level is set to 
+    error to hide the messy debug, info and warning messages from the users. 
 
     Args:
-        logger_name (str, optional): _description_. Defaults to ''.
-        log_level (_type_, optional): _description_. Defaults to logging.DEBUG.
-        log_file (str, optional): _description_. Defaults to 'debug.log'.
+        logger_name (str, optional): name of the logger. Defaults to ''.
+        log_level (int, optional): logging level . Defaults to logging.DEBUG.
+        log_file (str, optional): name of output log file. Defaults to '../debug.log'.
+        This will generate a log file with name debug.log at the parent directory
+        when running the commands
 
     Returns:
-        logging.Logger: _description_
+        logging.Logger: a configured logger
     """
     # Retrieve logger and set log level
     logger = logging.getLogger(logger_name)
@@ -240,8 +244,74 @@ class TopoSort:
         return (result_flag, result_error_msg, order)
 
 class ConfigOverrides:
-    """ConfigOverrides Class to handle building and applying nested dictionary overrides."""
+    """ConfigOverrides class to provide helper functions for MongoDB operations"""
 
+    ## PipelineHistory
+    @staticmethod
+    def build_match_filter(repo_url: str, pipeline_name: str = None) -> dict:
+        """Builds the match filter for a MongoDB aggregation pipeline."""
+        match_filter = {"repo_url": repo_url}
+        if pipeline_name:
+            match_filter["pipelines." + pipeline_name] = {"$exists": True}
+        return match_filter
+
+    @staticmethod
+    def build_aggregation_pipeline(match_filter: dict, pipeline_name: str = None, stage_name: str = None, job_name: str = None, run_number: int = None) -> list:
+        """Builds the aggregation pipeline based on stage, job, and run number filters."""
+        pipeline = [
+            {"$match": match_filter},
+            # {"$project": {"pipelines": 1}},
+            {"$addFields": {"pipelines_array": {"$objectToArray": "$pipelines"}}},
+            {"$unwind": "$pipelines_array"}]
+        if pipeline_name:
+            pipeline += [{"$match": {"pipelines_array.k": pipeline_name}}]
+        pipeline.append({
+            "$addFields": {
+                "pipelines_array.v.job_run_history": {
+                    "$map": {
+                        "input": "$pipelines_array.v.job_run_history",
+                        "as": "history_id",
+                        "in": {"$toObjectId": "$$history_id"}
+                    }
+                }
+            }
+        })
+        pipeline.append({
+            "$lookup": {
+                "from": "jobs_history",
+                "localField": "pipelines_array.v.job_run_history",
+                "foreignField": "_id",
+                "as": "job_details"
+            }
+        })
+        pipeline.append({"$unwind": "$job_details"})
+        
+        if run_number is not None:
+            pass
+        if stage_name:
+            pass
+        if job_name:
+            pass
+        return pipeline
+
+    @staticmethod
+    def build_projection(stage_name: str = None, job_name: str = None) -> dict:
+        """Builds the projection stage for MongoDB aggregation based on stage and job fields."""
+        projection_fields = {
+            "pipeline_name": "$pipelines_array.k",
+            "run_number": "$job_details.run_number",
+            "git_commit_hash": "$job_details.git_commit_hash",
+            "status": "$job_details.status",
+            "start_time": "$job_details.start_time",
+            "completion_time": "$job_details.completion_time"
+        }
+        if stage_name:
+            pass
+        if job_name:
+            pass
+        return projection_fields
+
+    ## ConfigOverrides
     @staticmethod
     def build_nested_dict(overrides):
         """
@@ -267,6 +337,7 @@ class ConfigOverrides:
     def apply_overrides(config, updates):
         """
         Recursively apply updates to a configuration dictionary.
+        Note this will add the key:value pairs into the config is the key is not in originally
 
         Args:
             config (dict): The original dictionary.
@@ -442,3 +513,64 @@ class DryRun:
         formatted_msg += "\n"
 
         return formatted_msg
+
+class PrintMessage:
+    """PrintMessage handles with dict data and format printing for output to CLI
+    """
+    def __init__(self, msg_dict: dict):
+        self.msg_dict = msg_dict
+
+    def _get_nested_value(self, data, key_path):
+        """Helper function to get a value from nested dictionaries."""
+        keys = key_path.split(".")
+        for key in keys:
+            if isinstance(data, dict):
+                data = data.get(key)
+            else:
+                return None
+        return data
+    
+    def print(self, keys=None) -> str:
+        """print message given a dictionary. need to specify the keys in the dict 
+        to print. Example: keys=["name", "job.department"]
+
+        Args:
+            keys (list, optional): specify the key in the dict.
+
+        Returns:
+            str: formatted string in the format key:value
+        """
+        filtered_dict = self.msg_dict
+
+        if keys:
+            filtered_dict = {key: self._get_nested_value(self.msg_dict, key) for key in keys}
+
+        # Plain text formatting
+        message = "\n".join([f"{key:<15}: {value}" for key, value in filtered_dict.items()])
+        message += "\n"
+        return message
+
+    def print_log_status(self) -> str:
+        """print method for outputting the job status for each stages
+
+        Returns:
+            str: message of the output logs.
+        """
+        logs = self.msg_dict['logs']
+        output_logs = ""
+        try:
+            for stage in logs:
+                stage_name = stage['stage_name']
+                output_logs += f"\nstage: {stage_name}"
+                for job_name, job_info in stage['jobs'].items():
+                    start_time = job_info['start_time']
+                    completion_time = job_info['completion_time']
+                    job_status = job_info['job_status']
+                    output_logs += f"\n  Job: {job_name}\n"
+                    output_logs += f"    job_status       : {job_status}\n"
+                    output_logs += f"    start_time       : {start_time}\n"
+                    output_logs += f"    completion_time  : {completion_time}\n"
+        except AttributeError:
+            output_logs += "\n  [no logs available. jobs are empty]"
+
+        return output_logs

@@ -10,7 +10,7 @@ from collections import OrderedDict
 from docker.errors import DockerException
 import util.constant as c
 from controller.controller import Controller
-from util.model import (SessionDetail, PipelineConfig)
+from util.model import (SessionDetail, PipelineConfig, ValidationResult)
 from util.db_mongo import MongoAdapter
 from util.yaml_parser import YamlParser
 from util.config_tools import ConfigChecker
@@ -30,15 +30,17 @@ parser = YamlParser()
 #     except DockerException as de:
 #         logger.warning(f"During stop job, exception thrown, {de}")
 # test_stop()
-def load_pipeline():
+def load_pipeline() -> ValidationResult:
     pipeline_file_path = os.path.join(os.path.dirname(__file__), 'test_data/test_run/pipelines.yml')
     extracted = parser.parse_yaml_file(pipeline_file_path)
     
     checker = ConfigChecker()
-    result_dict = checker.validate_config("cicd_pipeline", extracted, "pipelines.yml", error_lc=True)
-    # with open('test_ans.json', 'w', encoding='utf-8') as f:
+    result = checker.validate_config("cicd_pipeline", extracted, "pipelines.yml", error_lc=True)
+    result_dict = result.model_dump(by_alias=True)
+    # with open('sample_validation_res.json', 'w', encoding='utf-8') as f:
     #     json.dump(result_dict, f, ensure_ascii=True, indent=4)
-    return result_dict
+    return result
+#load_pipeline()
 
 def insert_pipeline_config():
     mongo_adapter = MongoAdapter()
@@ -46,7 +48,7 @@ def insert_pipeline_config():
     with open(sample_repo_path, 'r') as openfile:
     # Reading from json file
        sample_repo_data = json.load(openfile)
-    mongo_adapter.insert_pipeline(sample_repo_data)
+    mongo_adapter.insert_repo_pipelines(sample_repo_data)
 # insert_pipeline_config()
 
 def actual_pipeline_run():
@@ -66,7 +68,7 @@ def actual_pipeline_run():
 # actual_pipeline_run()
 
 # Preparing data for mock return 
-pipeline_config = load_pipeline()[c.KEY_PIPE_CONFIG]
+pipeline_config = load_pipeline().pipeline_config
 TEST_LOG = "success"
 TEST_LOG_ERROR = "error"
 class MockContainer:
@@ -182,7 +184,7 @@ class TestRunJob(unittest.TestCase):
             "commit_hash": "random",
             "is_remote": True, 
         }
-        self.pipeline_config = load_pipeline()[c.KEY_PIPE_CONFIG]
+        self.pipeline_config = load_pipeline().pipeline_config
         self.mock_running_pipeline_history = {
             "pipeline_name": "sample_pipeline",
             "pipeline_file_name": "sample_pipeline.yml",
@@ -195,19 +197,17 @@ class TestRunJob(unittest.TestCase):
     def test_controller_actual_pipeline_run_already_running(self, mock_get):
         mock_get.return_value = self.mock_running_pipeline_history
         controller = Controller()
-        try:
-            repo_data = SessionDetail.model_validate(self.sample_session)
-            pipeline_config = PipelineConfig.model_validate(self.pipeline_config)
-            controller._actual_pipeline_run(repo_data, pipeline_config)
-            assert False
-        except ValueError as ve:
-            assert True
+        repo_data = SessionDetail.model_validate(self.sample_session)
+        pipeline_config = PipelineConfig.model_validate(self.pipeline_config)
+        status, msg = controller._actual_pipeline_run(repo_data, pipeline_config)
+        assert status == False
+
     
     @patch("controller.controller.MongoAdapter.update_job")
     @patch("controller.controller.MongoAdapter.update_job_logs")
     @patch("controller.controller.DockerManager._upload_artifact")
     @patch("controller.controller.DockerManager", return_value=DockerManager(client=MockDockerApi()))
-    @patch("controller.controller.MongoAdapter.update_pipeline_history", return_value=True)
+    @patch("controller.controller.MongoAdapter.update_pipeline_info", return_value=True)
     @patch("controller.controller.MongoAdapter.insert_job", return_value=123)
     @patch("controller.controller.MongoAdapter.get_pipeline_history")
     def test_controller_actual_pipeline_run_fail_job(

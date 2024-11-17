@@ -31,9 +31,8 @@ Primary keys - repo_name, repo_url and branch
 - repo_name
 - repo_url
 - branch
-- Pipelines Information and Status (past and present pipeline)
-  <!---Consider using key-values pair here, with key = pipeline_name, values = single pipelines_info --->
-  - pipeline_name (primary key for pipeline)
+- Pipelines: (past and present pipeline information in dictionary)
+  - pipeline_name (primary key for pipeline, key for each pipeline items)
   - pipeline_file_name (can be different from pipeline_name)
   - (validated) pipeline_config - pipeline config that failed validation will not be stored
   - job_run_history (list of job runs id for this pipeline)
@@ -46,12 +45,13 @@ Primary keys - repo_name, repo_url and branch
 Fields required:
 
 - jobs_id (primary key)
-<!---Should probably change pipeline_number to pipeline_name--->
-- pipeline_number
+- pipeline_name
 - run_number
-- git commit hash
+- git_commit_hash
 - pipeline_config_used
-- pipeline_status (success/failed/cancelled)
+- status (success/failed/cancelled)
+- start_time
+- completion_time
 - logs - organized by stages
   - stage_name
   - stage_status
@@ -62,4 +62,21 @@ Fields required:
     - allows_failure
     - start_time
     - completion_time
-    - logs & error output
+    - job_logs
+
+## Main methods available in db_mongo and Pydantic Models available
+
+### Usecase: Insert a new sessions data
+
+Pydantic Model used : SessionDetail
+
+### Usecase: Adding new / Update Existing Pipeline Configurations
+
+Pydantic Model used :
+
+- PipelineInfo (for new),
+- PipelineConfig (for new and update)
+
+MongoAdapter method :
+
+- update_pipeline_info()

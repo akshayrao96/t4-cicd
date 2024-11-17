@@ -7,6 +7,7 @@ import os
 import ruamel.yaml
 import util.constant as c
 from util.common_utils import get_logger
+from util.model import (RawPipelineInfo)
 
 logger = get_logger(logger_name='util.yaml_parser')
 # pylint: disable=logging-fstring-interpolation
@@ -134,15 +135,19 @@ class YamlParser:
 
     def parse_yaml_directory(self, directory:str) -> dict:
         """
-        Parse all YAML files in the '.cicd-pipelines' directory.
+        Parse all YAML files in the given directory. Check for duplicate 
+        pipeline name
         
         Args:
             directory (str): directory to search for
+        
+        Raises:
+            FileNotFoundError: if the directory does not exist
+            ValueError: for duplicate pipeline_name
             
         Returns:
-            dict: A dictionary with file names (without extensions) as keys 
-            and parsed YAML content as values.
-            If duplicate file names are found, the last parsed file's content will be used.
+            dict: A nested dictionary with pipeline_name as main key, 
+            and RawPipelineInfo object as value
         """
         yaml_files = self._get_yaml_filepaths(directory)
         yaml_dict = {}
@@ -158,10 +163,9 @@ class YamlParser:
                         err_msg += f"Duplicate key error for pipeline_name:{pl_name}"
                         logger.error(err_msg)
                         raise ValueError(err_msg)
-                    yaml_dict[pl_name] = {
-                        c.KEY_PIPE_FILE:pipeline_file_name,
-                        c.KEY_PIPE_CONFIG:yaml_content
-                    }
+                    yaml_dict[pl_name] = RawPipelineInfo(pipeline_name=pl_name,
+                                                      pipeline_file_name=pipeline_file_name,
+                                                      pipeline_config=yaml_content)
             except (FileNotFoundError, ruamel.yaml.YAMLError) as e:
                 # We want to continue process rest of the file, so catch the error here.
                 logger.warning("Failed to parse YAML file at %s. Error: %s", yaml_file, e)
@@ -172,6 +176,7 @@ class YamlParser:
 
     def parse_yaml_file(self, file_path: str) -> dict:
         """ Parse a single YAML file and return the content as a dictionary.
+        Ignore potential duplicate pipeline name with other file. 
 
         Args:
             file_path (str): the absolute path of the yaml file
@@ -195,3 +200,26 @@ class YamlParser:
         except ruamel.yaml.YAMLError as e:
             logger.error("Failed to parse YAML file at %s. Error: %s", file_path, e)
             raise
+
+    def parse_yaml_by_pipeline_name(self, pipeline_name:str, directory:str) -> RawPipelineInfo:
+        """ Parse a single YAML file from a given directory with the pipeline_name
+        as specified. Check for duplicate pipeline name
+
+        Args:
+            pipeline_name (str): target pipeline_name to parse
+            directory (str): directory to search for
+
+        Raises:
+            FileNotFoundError: if the pipeline name dont exist
+            ValueError: for duplicate pipeline_name
+            
+        Returns:
+            PipelineInfo: the Pydantic model contains key-value pairs of pipeline 
+            information
+        """
+        all_yaml_dict = self.parse_yaml_directory(directory)
+        if pipeline_name not in all_yaml_dict:
+            err_msg = f"Target pipeline {pipeline_name} do not exist "
+            err_msg += f"in given directory {directory}"
+            raise FileNotFoundError(err_msg)
+        return all_yaml_dict[pipeline_name]
