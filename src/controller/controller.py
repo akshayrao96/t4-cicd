@@ -710,7 +710,6 @@ class Controller:
                 "is_success": boolean if
         """
         pipeline_dict = pipeline_details.model_dump()
-        print(pipeline_dict)
         pipeline_name = pipeline_dict['pipeline_name']
         repo_url = pipeline_dict['repo_url']
         run_number = pipeline_dict['run']
