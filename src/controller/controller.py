@@ -731,14 +731,6 @@ class Controller:
                                         run_number=run_number)
                     report = PipelineReport(history)
                     output_msg = report.print_job_summary()
-
-        # except KeyError as ke:
-        #     err_msg = f"There is no job history for pipeline '{pipeline_name}' in {repo_url}!\n"
-        #     err_msg += "please ensure that the pipeline_name or repo are valid."
-        #     err_msg += "Please run `cid pipeline run` if no reports found"
-        #     self.logger.warning(f"Key Error in pipeline_history: {ke}")
-        #     is_success = False
-        #     return is_success, err_msg
         except IndexError as ie:
             self.logger.warning(f"job_number is out of bound. error: {ie}")
             is_success = False

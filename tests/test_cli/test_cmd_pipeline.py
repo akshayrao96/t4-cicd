@@ -436,6 +436,6 @@ class TestPipelineHistory(TestCase):
 
         cmd_list = ['report', '--repo', 'https://github.com/sjchin88/cicd-python', '--pipeline',
                     'cicd_pipeline', '--stage', 'build', '--job', 'checkout']
-        
+
         result = self.runner.invoke(cmd_pipeline.pipeline, cmd_list)
         assert result.exit_code == 0
