@@ -95,12 +95,17 @@ class Controller:
         # Check : User's $PWD is a git repo. Return failure, error message, and none
         in_git_repo, message, repo_name = self.repo_manager.is_current_dir_repo()
         if in_git_repo:
-            return False, f"Currently in a Git repository: '{repo_name}'. Please navigate to an empty directory.", None
+            return (False,
+                    f"Currently in a Git repository: '{repo_name}'. Please navigate to an empty directory.", None)
 
+        is_valid, is_remote, message = self.repo_manager.is_valid_git_repo(repo_url)
+
+        if not is_valid:
+            return False, message, None
 
         # Check : User has cloned a repo successfully, branch and commit are valid
         is_valid, message, repo_details = self.repo_manager.set_repo(
-            repo_url, branch, commit_hash)
+            repo_url, is_remote, branch, commit_hash)
 
         # If not, return failure, error message, and none
         if not is_valid:
@@ -119,7 +124,7 @@ class Controller:
                 "repo_name": repo_details["repo_name"],
                 "branch": repo_details["branch"],
                 "commit_hash": repo_details["commit_hash"],
-                "is_remote": True,
+                "is_remote": is_remote,
                 "time": time_log
             })
 
@@ -170,7 +175,8 @@ class Controller:
                 self.mongo_ds.update_session(repo_data.model_dump())
 
                 if not is_in_root:
-                    return False, "Not in the root of the repository. Please navigate to the root of the repo and try again.", repo_data
+                    return False, ("Not in the root of the repository. "
+                                   "Please navigate to the root of the repo and try again."), repo_data
 
                 return True, "Repository is configured in current directory", repo_data
 

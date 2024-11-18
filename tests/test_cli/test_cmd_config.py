@@ -283,3 +283,4 @@ def test_get_repo_no_repo_set(mock_get_repo):
     assert result.exit_code == 0
     assert "No repository has been configured previously." in result.output
     mock_get_repo.assert_called_once()
+

@@ -26,66 +26,69 @@ class RepoManager:
     def set_repo(
             self,
             repo_source: str,
+            is_remote: bool,
             branch: str = "main",
             commit_hash: str = None) -> tuple[bool, str, dict]:
         """
-        Validates the repository, clones it if necessary, and avoids redundant cloning.
+        Validates the repository, clones it, and returns repository details.
 
         Args:
-            repo_source (str): The repository URL.
-            branch (str): The branch to clone (default is "main").
+            repo_source (str): The repository URL or local path.
+            is_remote (bool): Indicates if the source is remote or local.
+            branch (str): The branch to use for remote repositories.
             commit_hash (str): Optional specific commit hash to check out.
 
         Returns:
             tuple: (bool, str, dict) indicating success status, message, and repository details.
         """
-        logger.debug(
-            "Checking if given repo %s is a valid git repo",
-            repo_source)
-        if not self._is_valid_git_repo(repo_source):
-            return False, "Repository is not a valid Git repository.", {}
+        if not repo_source:  # Check for empty path or URL
+            return False, "Provided repository path is empty.", {}
 
         current_directory = Path(os.getcwd())
 
+        # Step 1: Ensure the current directory is empty
         if any(current_directory.iterdir()):
             logger.warning(
                 "Current working directory is not empty. Please use an empty directory.")
-            return False, "Current working directory is not empty. Please use an empty directory.", {}
+            return False, ("Current working directory is not empty. "
+                           "Please use an empty directory."), {}
 
         logger.debug(
-            "Starting repository validation for %s with branch '%s' and commit '%s'.",
-            repo_source,
-            branch,
-            commit_hash)
-
-        success, message, repo_details = self.validate_and_clone_repo(
+            "Repository setup. Repo: %s, Branch: %s, Commit: %s",
             repo_source, branch, commit_hash)
 
+        # Step 2: Handle repository cloning based on whether it's remote or
+        # local
+        success, message, repo_details = self.validate_and_clone_repo(
+            repo_source, branch, commit_hash, is_local=not is_remote
+        )
+
+        # Step 3: Handle errors during setup
         if not success:
+            logger.error("Failed to set up repository: %s", message)
             return False, message, {}
 
-        repo_details = self.get_current_repo_details()
-
-        if not repo_details:
-            return False, "Failed to retrieve repository details after cloning.", {}
-
-        return True, "Repository successfully cloned and set up in the current directory.", repo_details
+        # Step 4: Return success and repository details
+        logger.info("Repository setup completed successfully.")
+        return True, "Repository successfully cloned.", repo_details
 
     def validate_and_clone_repo(
             self,
             repo_source: str,
             branch: str = "main",
-            commit_hash: str = None) -> tuple[bool, str, dict]:
+            commit_hash: str = None,
+            is_local: bool = False) -> tuple[bool, str, dict]:
         """
-        Clones the repository after validating the branch and commit hash.
+        Clones the repository and checks out a specific branch and/or commit if valid
 
         Args:
-            repo_source (str): The repository URL.
-            branch (str): The branch to clone (default is "main").
-            commit_hash (str): Optional commit hash to validate.
+            repo_source (str): The repository URL or local path.
+            branch (str): The branch to clone or validate (default is "main").
+            commit_hash (str): Optional specific commit hash to validate.
+            is_local (bool): Indicates if the source is a local repository.
 
         Returns:
-            tuple: (bool, str, dict) indicating success status, message, and repository details if successful.
+            tuple: (bool, str, dict) indicating success status, message, and repository details.
         """
         logger.debug(
             "Starting validation and cloning for %s with branch '%s' and commit '%s'.",
@@ -94,21 +97,23 @@ class RepoManager:
             commit_hash)
 
         current_directory = Path(os.getcwd())
-        repo_name = self._extract_repo_name_from_url(repo_source)
-
-        # Check if the current directory is empty
-        if any(current_directory.iterdir()):
-            logger.warning("Current working directory is not empty.")
-            return False, "Current working directory is not empty. Please use an empty directory and run the same command.", {}
+        repo_name = self._extract_repo_name_from_url(
+            repo_source) if not is_local else Path(repo_source).name
 
         try:
+            # For local repositories, use the local path as the "URL" for
+            # cloning
+            clone_source = repo_source if not is_local else str(
+                Path(repo_source).resolve())
+
             # Clone the repository contents directly into the current working
             # directory
             repo = Repo.clone_from(
-                repo_source,
+                clone_source,
                 current_directory,
                 branch=branch,
-                single_branch=True)
+                single_branch=True
+            )
             latest_commit_hash = repo.head.commit.hexsha
             logger.debug(
                 "Successfully cloned branch '%s' with latest commit %s.",
@@ -116,7 +121,6 @@ class RepoManager:
                 latest_commit_hash)
 
             # If a specific commit hash is provided, check out that commit
-            # without detaching HEAD
             if commit_hash:
                 success, message = self._checkout_commit(
                     repo, branch, commit_hash)
@@ -133,7 +137,11 @@ class RepoManager:
 
         except GitCommandError as e:
             logger.warning("An error occurred during cloning: %s", e)
-            return False, "Failed to clone given repository. Invalid branch name given.", {}
+            return False, "Failed to clone or validate repository. Invalid branch or commit.", {}
+
+        except Exception as e:
+            logger.error("Unexpected error during cloning: %s", e)
+            return False, f"Unexpected error: {e}", {}
 
     def _checkout_commit(
             self,
@@ -151,44 +159,64 @@ class RepoManager:
         Returns:
             tuple: (bool, str) indicating success status and a message.
         """
-        if any(commit_hash == commit.hexsha for commit in repo.iter_commits(branch)):
-            repo.git.checkout(commit_hash)
-            repo.git.execute(
-                ["git", "update-ref", f"refs/heads/{branch}", commit_hash])
-            repo.git.checkout(branch)
-            logger.debug(
-                "Checked out and reset branch '%s' to commit %s.",
-                branch,
-                commit_hash)
-            return True, f"Checked out branch '{branch}' at commit {commit_hash}."
-        else:
-            logger.warning(
-                "Commit hash %s does not exist on branch '%s'.",
-                commit_hash,
-                branch)
-            return False, f"Commit hash {commit_hash} does not exist on branch '{branch}'."
+        try:
+            if any(
+                    commit_hash == commit.hexsha for commit in repo.iter_commits(branch)):
+                repo.git.checkout(commit_hash)
+                repo.git.execute(
+                    ["git", "update-ref", f"refs/heads/{branch}", commit_hash])
+                repo.git.checkout(branch)
+                logger.debug(
+                    "Checked out and reset branch '%s' to commit %s.",
+                    branch,
+                    commit_hash)
+                return True, f"Checked out branch '{branch}' at commit {commit_hash}."
+            else:
+                logger.warning(
+                    "Commit hash %s does not exist on branch '%s'.",
+                    commit_hash,
+                    branch)
+                return False, f"Commit hash {commit_hash} does not exist on branch '{branch}'."
+        except Exception as e:
+            logger.error("Error during commit checkout: %s", e)
+            return False, f"Error during commit checkout: {e}"
 
-    def _is_valid_git_repo(self, repo_source: str) -> bool:
+    def is_valid_git_repo(self, repo_source: str) -> tuple[bool, bool, str]:
         """
-        Checks if the given URL points to a valid Git repository.
+        Checks if the given source is a valid Git repository (remote or local).
 
         Args:
-            repo_source (str): The repository URL.
+            repo_source (str): The repository URL or local path.
 
         Returns:
-            bool: True if the repository is valid, False otherwise.
+            tuple[bool, bool, str]:
+                - First bool: True if the repository is valid, False otherwise.
+                - Second bool: True if the repository is remote, False if it is local.
+                - str: Message describing the result.
         """
-        logger.debug(
-            "Validating if %s is a valid Git repository.",
-            repo_source)
+        # Check if the source is a local path
+
+        try:
+            local_path = Path(repo_source).resolve()
+            if local_path.is_dir() and (local_path / ".git").is_dir():
+                return True, False, "Local repository is valid."
+        except Exception as e:
+            logger.debug(e)
+            pass
+
+        # Check if the source is a valid remote repository
         try:
             subprocess.run(["git", "ls-remote", repo_source],
                            capture_output=True, check=True, text=True)
-            logger.info("Repository %s is valid.", repo_source)
-            return True
+            return True, True, "Remote repository is valid."
         except subprocess.CalledProcessError:
-            logger.warning("Repository %s is invalid.", repo_source)
-            return False
+            return False, False, f"Repository {repo_source} is invalid."
+        except FileNotFoundError:
+            # `git` is not installed or not in PATH
+            return False, False, "Git is not installed or not available in the given repo file."
+        except Exception as e:
+            # Catch unexpected errors
+            return False, False, f"Unexpected error occurred: {str(e)}"
 
     def _extract_repo_name_from_url(self, url: str) -> str:
         """
@@ -201,23 +229,32 @@ class RepoManager:
             str: The extracted repository name, or an empty string if invalid.
         """
         try:
+            # Parse the URL
             parsed_url = urlparse(url)
-            repo_name = os.path.basename(
-                parsed_url.path.strip("/"))  # Strip any trailing slashes
-            repo_name = repo_name.rstrip(".git")
+
+            # Extract the path and handle any trailing or leading slashes
+            repo_path = parsed_url.path.strip("/")
+            logger.debug("Extracted path from URL: '%s'", repo_path)
+
+            # Extract the base name of the repository
+            repo_name = os.path.basename(repo_path)
+
+            # Remove ".git" extension if present
+            if repo_name.endswith(".git"):
+                repo_name = repo_name[:-4]
+
+            # Log the extracted repo name
             logger.debug(
-                "Extracted repo name '%s' from URL %s.",
+                "Final extracted repo name: '%s' from URL: '%s'",
                 repo_name,
                 url)
+
             return repo_name
         except Exception as e:
-            logger.error(
-                "Failed to extract repo name from URL %s: %s",
-                url,
-                str(e))
+            logger.error("Failed to extract repo name from URL %s: %s", url, e)
             return ""
 
-    def is_current_dir_repo(self) -> tuple[bool, str | None, bool]:
+    def is_current_dir_repo(self) -> tuple[bool, bool, str | None]:
         """
         Checks if the current working directory is a Git repository and if it is at the root.
 
@@ -233,9 +270,9 @@ class RepoManager:
 
             # Check if the current directory is the root of the repository
             is_in_root = os.getcwd() == repo.working_tree_dir
-            return True, repo_name, is_in_root
+            return True, is_in_root, repo_name
         except InvalidGitRepositoryError:
-            return False, None, False
+            return False, False, None
 
     def _safe_cleanup(self, path: Path) -> None:
         """
@@ -252,33 +289,42 @@ class RepoManager:
                     item.unlink()
             except Exception as e:
                 logger.error("Failed to remove %s: %s", item, e)
-        logger.info("Cleaned up all contents inside the directory %s", path)
 
-    def get_current_repo_details(self) -> dict:
+    def get_current_repo_details(self, repo_path: Path = None) -> dict:
         """
-        Retrieves details of the current Git repository.
+        Retrieves details of the current or specified Git repository.
+
+        Args:
+            repo_path (Path, optional): Path to the repository.
+            Defaults to the current working directory.
 
         Returns:
-            dict: Contains repository details such as 'repo_url', 'repo_name', 'branch', and 'commit_hash'.
-                  Returns an empty dictionary if not in a Git repository.
+            dict: Repository details, or an empty dictionary if not a Git repository.
         """
         try:
-            repo = Repo(os.getcwd(), search_parent_directories=True)
-            origin_url = next(repo.remote().urls)
+            repo = Repo(
+                repo_path or os.getcwd(),
+                search_parent_directories=True)
+            origin_url = next(
+                iter(
+                    repo.remote().urls),
+                None) if repo.remotes else None
             branch = repo.active_branch.name
             commit_hash = repo.head.commit.hexsha
-            repo_name = self._extract_repo_name_from_url(origin_url)
+            repo_name = self._extract_repo_name_from_url(
+                origin_url) if origin_url else repo_path.name
 
             return {
-                "repo_url": origin_url,
+                "repo_url": origin_url or str(repo_path),
                 "repo_name": repo_name,
                 "branch": branch,
-                "commit_hash": commit_hash
+                "commit_hash": commit_hash,
             }
-
         except InvalidGitRepositoryError:
+            logger.error(
+                "Invalid Git repository at %s",
+                repo_path or os.getcwd())
             return {}
-
-        except GitCommandError as e:
+        except Exception as e:
             logger.error("Error while retrieving repository details: %s", e)
             return {}

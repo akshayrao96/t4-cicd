@@ -224,15 +224,25 @@ class TestControllerRepoFunctions(unittest.TestCase):
     def test_set_repo_clone_failure(self, mock_repo_manager):
         """Test set_repo when cloning the repository fails."""
         mock_instance = mock_repo_manager.return_value
+
+        # Mocking is_current_dir_repo to indicate not already in a Git repo
         mock_instance.is_current_dir_repo.return_value = (False, None, False)
+
+        # Mocking is_valid_git_repo to validate the repository URL
+        mock_instance.is_valid_git_repo.return_value = (True, True, "Valid remote repository")
+
+        # Mocking set_repo to simulate a failure in cloning the repository
         mock_instance.set_repo.return_value = (False, "Failed to clone repository.", {})
 
         controller = Controller()
+
+        # Call the method under test
         success, message, repo_details = controller.set_repo("https://github.com/sample/repo")
 
+        # Assertions
         self.assertFalse(success)
         self.assertEqual(message, "Failed to clone repository.")
-        self.assertIsNone(repo_details)
+        self.assertIsNone(repo_details)  # Adjusted assertion for None
 
     @patch("controller.controller.RepoManager")
     @patch("util.db_mongo.MongoAdapter.update_session", return_value="new_repo_id")
@@ -241,13 +251,21 @@ class TestControllerRepoFunctions(unittest.TestCase):
     def test_set_repo_success(self, mock_getlogin, MockSessionDetail, mock_update_session, mock_repo_manager):
         """Test successful set_repo call without explicit validation."""
         mock_instance = mock_repo_manager.return_value
+
+        # Mocking `is_current_dir_repo` to indicate not already in a Git repo
         mock_instance.is_current_dir_repo.return_value = (False, None, False)
+
+        # Mocking `is_valid_git_repo` to validate the repository URL
+        mock_instance.is_valid_git_repo.return_value = (True, True, "Valid remote repository")
+
+        # Mocking `set_repo` to simulate a successful repository setup
         mock_instance.set_repo.return_value = (True, "Repository successfully cloned and set up.", {
             "repo_name": "sample_repo",
             "branch": "main",
             "commit_hash": "latest_commit_hash"
         })
 
+        # Mocking session detail validation and dump
         mock_session_detail = MockSessionDetail.return_value
         mock_session_detail.model_dump.return_value = {
             "user_id": "test_user",
@@ -260,8 +278,11 @@ class TestControllerRepoFunctions(unittest.TestCase):
         }
 
         controller = Controller()
+
+        # Call the method under test
         success, message, repo_details = controller.set_repo("https://github.com/sample/repo")
 
+        # Assertions
         self.assertTrue(success)
         self.assertIn("Repository set successfully", message)
         self.assertIsNotNone(repo_details)
