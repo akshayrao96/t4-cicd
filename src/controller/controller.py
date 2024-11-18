@@ -350,7 +350,7 @@ class Controller:
             except FileNotFoundError as fe:
             # if 'pipeline' name could not be located, return False and error message
                 self.logger.error(f"error in extracting from pipeline_name, {fe}")
-                return False, fe, None
+                return False, str(fe), None
         else:
             try:
                 pipeline_config = parser.parse_yaml_file(file_name)
@@ -361,7 +361,7 @@ class Controller:
             except (FileNotFoundError, YAMLError) as e:
             # if cannot extract content, return False and error message
                 self.logger.error(f"error in extracting from file_name, {e}")
-                return False, e, None
+                return False, str(e), None
 
         # Process Override if have.
         if override_configs:
@@ -489,9 +489,9 @@ class Controller:
             status = False
 
         if not status:
-            message += 'Pipeline runs fail'
+            message += '\nPipeline runs fail'
         else:
-            message += "Pipeline runs successfully. "
+            message += "\nPipeline runs successfully. "
         return (status, message)
 
     def _actual_pipeline_run(self,
