@@ -709,7 +709,6 @@ class Controller:
             if not stage and not job:
                 history = self.mongo_ds.get_pipeline_run_summary(repo_url,
                                                             pipeline_name, run_number=run_number)
-                #print(history)
                 report = PipelineReport(history)
                 output_msg = report.print_pipeline_summary()
             else:
@@ -719,17 +718,14 @@ class Controller:
                     return is_success, output_msg
                 #L4.3 Show Stage Summary
                 if not job:
-                    #print("4.3 Stage Summary")
                     #run_number by default is None. if not defined, it will query all runs
                     history = self.mongo_ds.get_pipeline_run_summary(repo_url, pipeline_name,
                                                         stage_name=stage, run_number=run_number)
-                    #print(history)
                     report = PipelineReport(history)
                     output_msg = report.print_stage_summary()
 
                 #L4.4 Show Job Summary
                 else:
-                    #print("4.4 Job Summary")
                     history = self.mongo_ds.get_pipeline_run_summary(repo_url,
                                         pipeline_name, stage_name=stage, job_name=job,
                                         run_number=run_number)

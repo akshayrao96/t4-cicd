@@ -309,10 +309,9 @@ class TestPipelineHistory(TestCase):
         self.runner = CliRunner()
         self.logger = get_logger("tests.test_cli.test_cmd_pipeline.TestPipelineHistory")
 
-    #@patch("controller.controller.Controller.pipeline_history") #mock_pipeline_hist
     @patch("controller.controller.MongoAdapter.get_pipeline_run_summary")
     def test_report_full_summary(self, mock_pipeline_summary):
-        """L4.1 success test scenario
+        """L4.1 success test scenario that returns the whole pipeline history
 
         Args:
             mock_pipeline_summary (MagicMock): mock MongoAdapter.get_pipeline_run_summary func.
@@ -394,3 +393,49 @@ class TestPipelineHistory(TestCase):
         result = self.runner.invoke(cmd_pipeline.pipeline, cmd_list)
 
         assert result.exit_code == 2
+
+    @patch("controller.controller.MongoAdapter.get_pipeline_run_summary")
+    def test_report_stage_build(self, mock_pipeline_summary):
+        """Test L4.3 Stage Summary and L4.4 Job Summary
+
+        Args:
+            mock_pipeline_summary (MagicMock): mock MongoAdapter.get_pipeline_run_summary func.
+        """
+        mock_pipeline_summary.return_value = [
+            {'_id': ObjectId('673139d61c77e7e99afd88ce'), 'pipeline_name': 'cicd_pipeline',
+             'run_number': 1, 'git_commit_hash': '16adc46', 'status': 'success',
+             'start_time': 'Sun Nov 10 17:33:33 2024', 'completion_time':
+             'Sun Nov 10 17:33:48 2024', 
+             'logs': [{'stage_name': 'build', 'stage_status': 'success', 
+                       'jobs': [{'job_name': 'checkout', 'job_status': 'success',
+                                 'allows_failure': False, 'start_time': 'Sun Nov 10 17:33:35 2024',
+                                 'completion_time': 'Sun Nov 10 17:33:37 2024'},
+                                {'job_name': 'compile', 'job_status': 'success',
+                                 'allows_failure': False, 'start_time':'Sun Nov 10 17:33:37 2024',
+                                 'completion_time': 'Sun Nov 10 17:33:41 2024'
+                                }]
+                    }]},
+            {'_id': ObjectId('673139d61c77e7e99afd88ce'), 'pipeline_name': 'cicd_pipeline',
+             'run_number': 2, 'git_commit_hash': '16adc46', 'status': 'success',
+             'start_time': 'Sun Nov 10 19:30:03 2024', 'completion_time':
+             'Sun Nov 10 19:30:18 2024',
+             'logs': [{'stage_name': 'build', 'stage_status': 'success',
+                       'jobs': [{'job_name': 'checkout', 'job_status': 'success',
+                                 'allows_failure': False, 'start_time': 'Sun Nov 10 19:30:05 2024',
+                                 'completion_time': 'Sun Nov 10 19:30:06 2024'},
+                                {'job_name': 'compile', 'job_status': 'success',
+                                 'allows_failure': False, 'start_time': 'Sun Nov 10 19:30:06 2024',
+                                 'completion_time': 'Sun Nov 10 19:30:11 2024'}]
+                    }]}
+        ]
+        cmd_list = ['report', '--repo', 'https://github.com/sjchin88/cicd-python', '--pipeline',
+                    'cicd_pipeline', '--stage', 'build']
+
+        result = self.runner.invoke(cmd_pipeline.pipeline, cmd_list)
+        assert result.exit_code == 0
+
+        cmd_list = ['report', '--repo', 'https://github.com/sjchin88/cicd-python', '--pipeline',
+                    'cicd_pipeline', '--stage', 'build', '--job', 'checkout']
+        
+        result = self.runner.invoke(cmd_pipeline.pipeline, cmd_list)
+        assert result.exit_code == 0
