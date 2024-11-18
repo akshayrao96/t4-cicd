@@ -12,7 +12,7 @@ from util.model import (JobLog)
 logger = get_logger("tests.test_util.test_container")
 
 TEST_LOG = "success"
-TEST_LOG_ERROR = "error"
+TEST_LOG_ERROR = "sh: 1: git: not found"
 
 
 class MockContainer:
@@ -181,14 +181,14 @@ class TestDockerManager(unittest.TestCase):
     def test_check_status_from_log(self):
         """ test the check_status from log
         """
-        stderr = "fatal"
         docker_manager = DockerManager(client=MockDockerApi())
-        assert docker_manager._check_status_from_log(stderr) == False
-        stderr = "error"
-        assert docker_manager._check_status_from_log(stderr) == False
         stderr = "sh: 1: poetry: not found"
         assert docker_manager._check_status_from_log(stderr) == False
-    
+        stderr = "sh: 0:"
+        assert docker_manager._check_status_from_log(stderr) == True
+        stderr = "sh: 0: \n sh: 1:"
+        assert docker_manager._check_status_from_log(stderr) == False
+        
     def test_upload_artifact_fail(self):
         """ test exception catching of _upload_artifact method
         """
@@ -210,75 +210,3 @@ class TestDockerManager(unittest.TestCase):
         docker_manager = DockerManager(client=MockDockerApi())
         docker_manager.stop_job("sample_job")
         assert True
-""" with more set up of python image file
-    
-def test_run_job_docker():
-    docker_manager = DockerManager()
-    sample_job_config = {
-        c.JOB_SUBKEY_STAGE: 'stage',
-        c.JOB_SUBKEY_ALLOW: True,
-        c.JOB_SUBKEY_NEEDS: [],
-        c.KEY_DOCKER:{
-            c.KEY_DOCKER_REG: 'dockerhub',
-            c.KEY_DOCKER_IMG: "python:3.12-slim"
-        },
-        c.KEY_ARTIFACT_PATH: 'path',
-        c.JOB_SUBKEY_SCRIPTS:[
-                              'apt update',
-                              'apt-get install -y git',
-                              'pip install poetry',
-                              'cd app',
-                              'ls -la',
-                              ],
-    }
-    docker_manager.run_job("sample_job", sample_job_config)
-"""
-
-# Test run with preset python-git-poetry image
-# def test_run_job_docker():
-#     docker_manager = DockerManager()
-#     sample_job_config = {
-#         c.JOB_SUBKEY_STAGE: 'stage',
-#         c.JOB_SUBKEY_ALLOW: True,
-#         c.JOB_SUBKEY_NEEDS: [],
-#         c.KEY_DOCKER:{
-#             c.KEY_DOCKER_REG: 'dockerhub',
-#             c.KEY_DOCKER_IMG: "sjchin88/python-git-poetry:latest"
-#         },
-#         c.KEY_ARTIFACT_PATH: 'path',
-#         c.JOB_SUBKEY_SCRIPTS:[
-#                               'git clone https://github.com/sjchin88/cicd-python',
-#                               'ls -la',
-#                               ],
-#     }
-#     job_log = docker_manager.run_job("sample_job", sample_job_config)
-#     print(job_log)
-# test_run_job_docker()
-
-# Test run with preset python-git-poetry image and upload path
-# def test_run_job_docker():
-#     docker_manager = DockerManager()
-#     sample_job_config = {
-#         c.JOB_SUBKEY_STAGE: 'stage',
-#         c.JOB_SUBKEY_ALLOW: True,
-#         c.JOB_SUBKEY_NEEDS: [],
-#         c.KEY_DOCKER:{
-#             c.KEY_DOCKER_REG: 'dockerhub',
-#             c.KEY_DOCKER_IMG: "sjchin88/python-git-poetry:latest"
-#         },
-#         c.KEY_ARTIFACT_PATH: 'D:/OneDrive/DevOps/PlayGround/yaml/test_upload',
-#         c.JOB_SUBKEY_SCRIPTS:[
-#                               'git clone https://github.com/sjchin88/cicd-python',
-#                               'ls -la',
-#                               #'sleep 500' # Uncomment this line for stop testing
-#                               ],
-#         c.JOB_SUBKEY_ARTIFACT:{
-#             c.ARTIFACT_SUBKEY_ONSUCCESS:False,
-#             c.ARTIFACT_SUBKEY_PATH:[
-#                 'cicd-python/src','cicd-python/tests'
-#             ]
-#         }
-#     }
-#     job_log = docker_manager.run_job("sample_job", sample_job_config)
-#     print(job_log)
-# test_run_job_docker()
