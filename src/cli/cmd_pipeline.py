@@ -6,7 +6,7 @@ import time
 import json
 import click
 from pydantic import ValidationError
-from util.common_utils import (get_logger,MongoHelper,PrintMessage)
+from util.common_utils import (get_logger,MongoHelper)
 from util.model import (PipelineHist)
 from controller.controller import (Controller)
 
@@ -145,16 +145,16 @@ def log(tail:str, repo:str):
 @click.pass_context
 @click.option('-r', '--repo', 'repo_url', default='./', help='url of the repository (https://)')
 @click.option('--local', 'local', help='retrieve local pipeline history', is_flag=True)
-@click.option('--pipeline', 'pipeline_name', default='all',
+@click.option('--pipeline', 'pipeline_name', default=None,
               help='pipeline name to get the history')
 @click.option('-b', '--branch', 'branch', default='main',
               help="branch name of the repository; default is 'main'")
-@click.option('-s', '--stage', 'stage', default='all', help='stage name to view report; \
+@click.option('-s', '--stage', 'stage', default=None, help='stage name to view report; \
 default stages options: [build, test, doc, deploy]')
-@click.option('--job', 'job', default='all', help="job name to view report")
+@click.option('--job', 'job', default=None, help="job name to view report")
 @click.option('-r', '--run', 'run_number', default=None, help='run number to get the report')
 def report(ctx, repo_url:str, local:bool, pipeline_name:str, branch:str, stage:str,
-           job:str, run_number:str):
+           job:str, run_number:int):
     """Report pipeline provides user to retrieve the pipeline history. \f 
 
     Args:
@@ -165,7 +165,7 @@ def report(ctx, repo_url:str, local:bool, pipeline_name:str, branch:str, stage:s
         branch (str): _description_
         stage (str): _description_
         job (str): _description_
-        run_number (str): _description_
+        run_number (int): _description_
     """
     ctrl = Controller()
     pipeline_model = {}
@@ -192,30 +192,23 @@ def report(ctx, repo_url:str, local:bool, pipeline_name:str, branch:str, stage:s
         pipeline_model = PipelineHist.model_validate(pipeline_model)
     except ValidationError as ve:
         errors = json.loads(ve.json())
-        missing_locs = [error["loc"] for error in errors if error["type"] == "missing"]
-        click.secho("Error in getting the pipeline report.", fg="red")
-        click.secho("please ensure '--repo <url> --pipeline <pipeline_name>' is present",
-                    fg="red")
-        click.secho(f"missing required keys: {missing_locs}", fg="red")
+        for error in errors:
+            err_type = error['type']
+            if err_type == "int_parsing":
+                err_msg = f"Unknown Input: '{error.get('input', 'N/A')}', "
+                err_msg += f"Flag: {error['loc']}, Message: {error['msg']}"
+            elif err_type == "missing":
+                err_msg = f"missing {error['loc']} input. please run cid pipeline report --help "
+                err_msg += "for valid usage"
+
+            click.secho(err_msg, fg="red")
+        
         sys.exit(2)
 
-    # L4.2.Show pipeline run summary
-    # xx report --repo https://github.com/company/project --pipeline code-review --run 2
-    # show summary without specifying the stage. We can use the method and parse the stage summary
-
-    #TODO: L4.3.Show stage summary |
-    # a) --pipeline and --stage |
-    # xx report --repo https://github.com/company/project --pipeline code-review --stage build
-    # if stage is defined, use the repo, pipeline_name, and stage to print the summary
-    # b) --run
-    # xx report --repo https://github.com/company/project --pipeline code-review --stage
-    #   build --run 2
-
-    #Step 2 call pipeline_history
+    #Step 2. call pipeline_history
     resp_success, resp_message = ctrl.pipeline_history(pipeline_model)
     if not resp_success:
         click.secho(resp_message, fg='red')
         sys.exit(1)
 
-    click.secho("===== Pipeline report =====\n", fg='green')
     click.secho(resp_message, fg='green')

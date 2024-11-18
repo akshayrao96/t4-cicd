@@ -161,11 +161,11 @@ class PipelineHist(BaseModel):
     """
     repo_name:str
     repo_url:str
-    pipeline_name: str
+    pipeline_name: Optional[str] = None
     branch: Optional[str] = "main"
-    stage: Optional[str] = "all"
-    job: Optional[str] = "all"
-    run: Optional[str] = None
+    stage: Optional[str] = None
+    job: Optional[str] = None
+    run: Optional[int] = None
     is_remote: Optional[bool] = False
     # commit_hash: Optional[str] = ""
 

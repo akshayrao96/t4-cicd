@@ -8,7 +8,8 @@ from cli import (__main__, cmd_pipeline)
 from pydantic import ValidationError
 from unittest import TestCase
 from unittest.mock import MagicMock, patch
-from util.model import (PipelineConfig, SessionDetail, ValidationResult)
+from bson import ObjectId
+from util.model import (PipelineConfig, SessionDetail, ValidationResult, PipelineHist)
 from util.common_utils import get_logger
 
 def test_cid():
@@ -254,11 +255,11 @@ class TestPipelineRun(TestCase):
         mock_actual_run.return_value = (False, "")
         result = self.runner.invoke(cmd_pipeline.pipeline, ['run'])
         assert result.exit_code == 1
-        
+
         mock_actual_run.side_effect = ValidationError.from_exception_data("",[])
         result = self.runner.invoke(cmd_pipeline.pipeline, ['run'])
         assert result.exit_code == 1
-    
+
     # Integration test
     @patch("controller.controller.Controller._actual_pipeline_run")
     @patch("controller.controller.os.getlogin", return_value='user')
@@ -288,7 +289,7 @@ class TestPipelineRun(TestCase):
         cmd_list = ['run', '--override', 'global.docker.image=gradle:jdk8']
         result = self.runner.invoke(cmd_pipeline.pipeline, cmd_list)
         assert result.exit_code == 0
-        
+
 def test_pipeline_log():
     """call pipeline log
     """
@@ -297,53 +298,99 @@ def test_pipeline_log():
 
     assert result.exit_code == 0
 
-# class TestPipelineReport(TestCase):
-#     """Test class to perform integration test between the cli cmd 
-#     cid pipeline report and corresponding controller method of 
-#     report(). The downstream method will be patched whenever 
-#     necessary
+class TestPipelineHistory(TestCase):
+    """Test class to handle `cid pipeline history` command that
+    validates the cli and controller class for report history
 
-#     Args:
-#         TestCase (class): base class
-#     """
-#     def setUp(self):
-#         self.runner = CliRunner()
-#         self.fail_validation = ValidationResult(valid=False, error_msg="", pipeline_config={})
-#         self.logger = get_logger("tests.test_cli.test_cmd_pipeline.TestPipelineReport")
+    Args:
+        TestCase (BaseClass): BaseClass
+    """
+    def setUp(self):
+        self.runner = CliRunner()
+        self.logger = get_logger("tests.test_cli.test_cmd_pipeline.TestPipelineHistory")
 
-#     def test_success_report(self):
-#         """test cid pipeline report with required argument
-#         """
-#         result = self.runner.invoke(cmd_pipeline.pipeline, ['report', '--repo',
-#                 'https://github.com/sjchin88/cicd-python', '--pipeline', 'cicd_pipeline'])
+    #@patch("controller.controller.Controller.pipeline_history") #mock_pipeline_hist
+    @patch("controller.controller.MongoAdapter.get_pipeline_run_summary")
+    def test_report_full_summary(self, mock_pipeline_summary):
+        """L4.1 success test scenario
 
-#         assert result.exit_code == 0
+        Args:
+            mock_pipeline_summary (MagicMock): mock MongoAdapter.get_pipeline_run_summary func.
+        """
+        # pipeline_hist_dict = PipelineHist(
+        #     repo_name='cicd-python',
+        #     repo_url='https://github.com/sjchin88/cicd-python',
+        #     pipeline_name=None,
+        #     branch="main",
+        #     stage=None,
+        #     job=None,
+        #     run=None,
+        #     is_remote=False
+        # )
+        #success_validate_hist = PipelineHist.model_validate(pipeline_hist_dict)
+        #mock_pipeline_history.return_value = (True, "all pipeline report")
 
-#     def test_failure_invalid_repo_pipeline_args(self):
-#         """_summary_
-#         """
+        mock_pipeline_summary.return_value = [
+          {'_id': ObjectId('673139d61c77e7e99afd88ce'), 'pipeline_name': 'cicd_pipeline',
+          'run_number': 1, 'git_commit_hash': '16adc46', 'status': 'success',
+          'start_time': 'Sun Nov 10 17:33:33 2024', 'completion_time':
+          'Sun Nov 10 17:33:48 2024'}, 
+          {'_id': ObjectId('673139d61c77e7e99afd88ce'),'pipeline_name': 'cicd_pipeline2',
+          'run_number': 1, 'git_commit_hash': '16adc46', 'status': 'success',
+          'start_time': 'Tue Nov 12 15:25:11 2024', 'completion_time': 'Tue Nov 12 15:25:26 2024'},
+          {'_id': ObjectId('673139d61c77e7e99afd88ce'), 'pipeline_name': 'cicd_pipeline2',
+           'run_number': 2, 'git_commit_hash': '16adc46', 'status': 'success', 'start_time':
+           'Tue Nov 12 18:26:15 2024', 'completion_time': 'Tue Nov 12 18:26:30 2024'}]
 
-#         args = [['report', '--repo',
-#                 'https://github.com/not-exist-repo/repo', '--pipeline', 'cicd_pipeline'],
-#                 ['report', '--repo',
-#                 'https://github.com/sjchin88/cicd-python', '--pipeline', 'not_a_pipeline']]
+        cmd_list = ['report', '--repo', 'https://github.com/sjchin88/cicd-python']
+        result = self.runner.invoke(cmd_pipeline.pipeline, cmd_list)
+        assert result.exit_code == 0
 
-#         for arg in args:
-#             result = self.runner.invoke(cmd_pipeline.pipeline, arg)
-#             assert result.exit_code == 1
+    @patch("controller.controller.MongoAdapter.get_pipeline_run_summary")
+    def test_report_fail_invalid_pipeline_name(self, mock_pipeline_summary):
+        """_summary_
 
-#     def test_failure_no_args_given(self):
-#         """test failure since it needs --repo and --pipeline details
-#         """
-#         result = self.runner.invoke(cmd_pipeline.pipeline, ['report'])
+        Args:
+            mock_pipeline_summary (MagicMock): mock MongoAdapter.get_pipeline_run_summary func.
+        """
+        mock_pipeline_summary.return_value = []
 
-#         assert result.exit_code == 2
+        cmd_list = ['report', '--repo', 'https://github.com/sjchin88/cicd-python', '--pipeline',
+                    'asdf']
+        result = self.runner.invoke(cmd_pipeline.pipeline, cmd_list)
 
-#     def test_failure_invalid_job_index(self):
-#         """test when job_number provided is invalid
-#         """
-#         arg = ['report', '--repo', 'https://github.com/sjchin88/cicd-python', '--pipeline',
-#                'cicd_pipeline', '--run', '-100']
-        
-#         result = self.runner.invoke(cmd_pipeline.pipeline, arg)
-#         assert result.exit_code == 1
+        assert result.exit_code == 1
+        assert result.stdout.rstrip() == "invalid pipeline_name (--pipeline) or run_number \
+(--run). Please try again"
+
+    def test_report_no_stage_given(self):
+        """fail if --job is specified but no --stage is given.
+        """
+        cmd_list = ['report', '--repo', 'https://github.com/sjchin88/cicd-python', '--pipeline',
+                    'cicd_pipeline', '--job', 'checkout']
+        result = self.runner.invoke(cmd_pipeline.pipeline, cmd_list)
+
+        exp_msg = "missing flag. --stage flag must be given along with --job"
+
+        assert result.exit_code == 1
+        assert result.stdout.rstrip() == exp_msg
+
+    def test_report_invalid_type_run(self):
+        """throw error if --run is not an integer (invalid type)
+        """
+        cmd_list = ['report', '--repo', 'https://github.com/sjchin88/cicd-python', '--pipeline',
+                    'cicd_pipeline', '--run', 'asdf']
+        result = self.runner.invoke(cmd_pipeline.pipeline, cmd_list)
+        exp_msg = "Unknown Input: 'asdf', Flag: ['run'], Message: Input should be a valid "
+        exp_msg += "integer, unable to parse string as an integer"
+
+        assert result.exit_code == 2
+        assert result.stdout.rstrip() == exp_msg
+
+    def test_report_missing_flag(self):
+        """throw error --pipeline is provided but --repo is not given
+        """
+        cmd_list = ['report', '--pipeline', 'cicd_pipeline']
+        result = self.runner.invoke(cmd_pipeline.pipeline, cmd_list)
+
+        assert result.exit_code == 2
