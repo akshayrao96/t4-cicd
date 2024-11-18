@@ -6,7 +6,7 @@ import time
 import json
 import click
 from pydantic import ValidationError
-from util.common_utils import (get_logger,ConfigOverrides,PrintMessage)
+from util.common_utils import (get_logger,MongoHelper,PrintMessage)
 from util.model import (PipelineHist)
 from controller.controller import (Controller)
 
@@ -29,10 +29,10 @@ def pipeline():
 @click.option('--file', 'file_path', default=DEFAULT_CONFIG_FILE_PATH, help='configuration \
 file path. if --file not specified, default to .cicd-pipelines/pipelines.yml')
 @click.option('--pipeline', 'pipeline_name', help='pipeline name to run' )
-@click.option('-r', '--repo', 'repo', default='./', help='repository url or \
+@click.option('-r', '--repo', 'repo', default=None, help='repository url or \
 local directory path')
-@click.option('-b', '--branch', 'branch', default='main', help='repository branch name')
-@click.option('-c', '--commit', 'commit', default='HEAD', help='commit hash')
+@click.option('-b', '--branch', 'branch', default="main", help='repository branch name')
+@click.option('-c', '--commit', 'commit', default=None, help='commit hash')
 @click.option('--local', 'local', help='run pipeline locally', is_flag=True)
 @click.option('--dry-run', 'dry_run', help='dry-run options to simulate the pipeline\
 process', is_flag=True)
@@ -73,7 +73,7 @@ def run(ctx, file_path:str, pipeline_name:str, repo:str, branch:str, commit:str,
 
     if overrides:
         try:
-            overrides = ConfigOverrides.build_nested_dict(overrides)
+            overrides = MongoHelper.build_nested_dict(overrides)
         except ValueError as e:
             click.secho(str(e), fg='red')
             sys.exit(2)
@@ -81,27 +81,25 @@ def run(ctx, file_path:str, pipeline_name:str, repo:str, branch:str, commit:str,
         # !! click multiple value option will construct a tuple,
         # empty override will be an empty tuple.
         overrides = None
-    control = Controller()
 
-    # TODO - Del 2024-11-04 Update Note and Fix
-    # To follow the key naming in SessionDetail
-    # change repo_source to repo_url
-    # local flag is to indicate if the run is local or remote.
-    # remote_repo is indicate if the repo itself is on local and remote,
-    git_details = {
-        "repo_url": repo,
-        "branch": branch,
-        "commit_hash": commit,
-        "remote_repo": local,
-    }
+    controller = Controller()
+    status, message, repo_details = controller.handle_repo(
+        repo_url=repo,
+        branch=branch,
+        commit_hash=commit
+    )
+    if not status:
+        click.secho(message, fg='red')
+        sys.exit(2)
+    click.secho(message, fg='green')
+    # click.echo(repo_details.model_dump())
 
-    status, message = control.run_pipeline(config_file=file_path, pipeline_name=pipeline_name,
-                    dry_run=dry_run, git_details=git_details,
+    status, message = controller.run_pipeline(config_file=file_path, pipeline_name=pipeline_name,
+                    dry_run=dry_run, git_details=repo_details,
                     local=local, yaml_output=yaml_output,
                     override_configs=overrides)
 
     logger.debug(f"pipeline run status: {status}, ")
-    #logger.debug(f"pipeline_id: {pipeline_id}")
     if status:
         click.secho(f"{message}", fg='green')
     else:
