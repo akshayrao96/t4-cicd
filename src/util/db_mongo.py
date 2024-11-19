@@ -624,7 +624,7 @@ class MongoAdapter:
                 # db schema
                 pipeline_info = PipelineInfo.model_validate(updates)
                 # Convert it back for later usage
-                updates = pipeline_info.model_dump()
+                updates = pipeline_info.model_dump(by_alias=True)
             update_dict = {f'pipelines.{pipeline_name}.{k}': v for k, v in updates.items()}
             status = self._update_by_query(
                 query_filter,update_dict,MONGO_DB_NAME,MONGO_PIPELINES_TABLE
