@@ -202,7 +202,6 @@ class RepoManager:
                 return True, False, "Local repository is valid."
         except Exception as e:
             logger.debug(e)
-            pass
 
         # Check if the source is a valid remote repository
         try:
@@ -328,3 +327,89 @@ class RepoManager:
         except Exception as e:
             logger.error("Error while retrieving repository details: %s", e)
             return {}
+
+    def checkout_branch_and_commit(
+            self, branch: str = None, commit_hash: str = None) -> tuple[bool, str]:
+        """
+        Checks out the current repository to the specified branch and commit.
+
+        Args:
+            branch (str): The branch to check out. If None, stay on the current branch.
+            commit_hash (str): The commit hash to check out. If None, defaults to latest commit.
+
+        Returns:
+            tuple: (bool, str)
+                - bool: True if successful, False otherwise.
+                - str: Message indicating the outcome.
+        """
+        # Ensure at least a branch or commit is provided
+        if not branch and not commit_hash:
+            return False, "Branch or commit must be provided to check out."
+
+        try:
+            # Validate that the current directory is a valid Git repository
+            repo = Repo(os.getcwd())
+        except InvalidGitRepositoryError:
+            return False, "Current directory is not a valid Git repository."
+        except Exception as e:
+            return False, f"Unexpected error: {e}"
+
+        # Fetch all remote branches to ensure up-to-date information
+        try:
+            repo.remotes.origin.fetch()
+        except GitCommandError as e:
+            return False, "Failed to fetch remote branches. Ensure the remote is accessible."
+
+        # Handle branch validation and checkout
+        if branch:
+            try:
+                if branch not in repo.branches:
+                    # Check if the branch exists on the remote
+                    ls_remote_output = repo.git.ls_remote("--heads", "origin", branch)
+                    if not ls_remote_output.strip():
+                        return False, f"Branch '{branch}' does not exist locally or remotely."
+
+                    # Preserve the original commit_hash if provided
+                    if not commit_hash:
+                        commit_hash = ls_remote_output.split()[0]
+
+                    # Explicitly fetch the branch
+                    try:
+                        repo.git.fetch("origin", branch)
+                    except GitCommandError as fetch_error:
+                        return False, f"Failed to fetch branch '{branch}': {fetch_error}"
+
+                    # Create the local branch to match the remote
+                    remote_branch = f"origin/{branch}"
+                    if remote_branch not in repo.refs:
+                        repo.git.checkout("-b", branch, commit_hash)
+                    else:
+                        repo.git.checkout("-b", branch, remote_branch)
+                else:
+                    # If branch exists locally, check it out
+                    repo.git.checkout(branch)
+            except GitCommandError as e:
+                return False, f"Error while checking out branch '{branch}': {e}"
+
+        # Handle commit validation and checkout
+        if commit_hash:
+            try:
+                # Ensure the commit exists if no branch is provided
+                if not branch and not any(commit_hash == commit.hexsha for commit in repo.iter_commits()):
+                    return False, f"Commit '{commit_hash}' does not exist in the current repository."
+
+                # Use the helper function to validate and checkout the commit
+                success, message = self._checkout_commit(
+                    repo, branch or repo.active_branch.name, commit_hash)
+                if not success:
+                    return False, message
+            except GitCommandError as e:
+                return False, f"Error while checking out commit '{commit_hash}': {e}"
+        elif not commit_hash:
+            # Ensure branch is up-to-date if no specific commit is provided
+            try:
+                repo.git.pull("origin", branch)
+            except GitCommandError as e:
+                return False, f"Error pulling latest changes for branch '{branch}': {e}"
+
+        return True, f"Git repository successfully checked out to branch '{branch}' and commit '{commit_hash or repo.head.commit.hexsha}'."

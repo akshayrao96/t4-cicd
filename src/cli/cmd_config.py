@@ -181,34 +181,55 @@ def set_repo(repo_url: str, branch: str, commit: str) -> None:
 
 
 @config.command()
-def get_repo():
+@click.option('--branch', default=None, help="Specify the branch to retrieve. Defaults to 'main'.")
+@click.option('--commit', default=None, help="Specify the commit hash to retrieve. Defaults to None.")
+def get_repo(branch: str, commit: str):
     """
-    Display information about the currently configured repository.
+       Display information about the currently configured repository.
 
-    This command retrieves and displays details of the currently configured Git repository,
-    either from the current working directory if it is a Git repository, or from the last
-    set repository stored in the system.
+       Behavior:
+           - If no branch or commit is provided:
+               * Checks if the current working directory is a valid Git repository.
+               * Validates if the user is at the root of the repository.
+               * Ensures the repository is correctly set up for further `cid` CLI commands.
+           - If a branch is provided:
+               * Attempts to checkout the specified branch.
+               * Defaults to the latest commit on the branch if no commit is specified.
+           - If a commit is provided:
+               * Attempts to checkout the repository to the specified commit.
+           - If both branch and commit are provided:
+               * Attempts to checkout the repository to the specified branch and commit.
 
-    Behavior:
-        - If the current directory is a Git repository, it displays the URL, branch, and latest commit hash.
-        - If the current directory is not a Git repository but a previous repository configuration exists,
-          it retrieves and displays details of the last configured repository.
-        - If no repository is configured, it provides guidance for setting a repository.
+       Limitations:
+           - If the user is not in a valid Git repository or not at the root of the repository,
+             branch or commit operations will not be performed.
 
-    Output:
-        Information about the repository is displayed in the console, including:
-        - Repository URL
-        - Repository name
-        - Branch name
-        - Commit hash of the latest commit
+       Output:
+           - Displays the current repository details if successfully configured.
+           - Displays the last configured repository details if not in a valid Git repository.
+           - Displays error messages or guidance if no repository is configured or if setup fails.
 
-    Example Usage:
-        $ cid config get-repo
-    """
+       Args:
+           branch (str): The branch to checkout. If None, remains on the current branch.
+           commit (str): The commit hash to checkout. If None, defaults to the latest commit.
+
+       Example Usage:
+           - Display the current repository details:
+               $ cid config get-repo
+
+           - Checkout a specific branch (latest commit):
+               $ cid config get-repo --branch feature-branch
+
+           - Checkout a specific commit on the current branch:
+               $ cid config get-repo --commit abc123
+
+           - Checkout a specific branch and commit:
+               $ cid config get-repo --branch feature-branch --commit abc123
+       """
 
     controller = Controller()
 
-    status, message, repo_details = controller.handle_repo()
+    status, message, repo_details = controller.handle_repo(branch=branch, commit_hash=commit)
 
     if status and repo_details:
         click.echo(message)
@@ -228,9 +249,9 @@ def get_repo():
 
     else:
         click.echo("\nNo repository has been configured previously.")
-        click.echo("Run the command with specifying repo path in an empty working directory:\n")
+        click.echo("Run the command specifying a repository path in an empty working directory:\n")
         click.echo("OR")
-        click.echo("Run the command without specifying repo path in the repository root\n")
+        click.echo("Run the command without specifying a repository path in the repository root\n")
 
 
 @config.command()

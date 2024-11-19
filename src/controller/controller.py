@@ -48,7 +48,7 @@ class Controller:
 
     def handle_repo(
             self,
-            repo_url: str = None, branch: str = "main",
+            repo_url: str = None, branch: str = None,
             commit_hash: str = None) -> tuple[bool, str, SessionDetail | None]:
         """
         If repo_url is given, call set_repo for the cloning process.
@@ -56,7 +56,7 @@ class Controller:
 
         Args:
             repo_url (str, optional): URL of the Git repository to configure. Defaults to None.
-            branch (str, optional): The branch to use, defaults to 'main'.
+            branch (str, optional): The branch to use, defaults to 'main' for set_repo, no default for get_repo.
             commit_hash (str, optional): Specific commit hash to check out, defaults to None.
 
         Returns:
@@ -66,9 +66,12 @@ class Controller:
                 - SessionDetail or None: Repository details if available, otherwise None.
         """
         if repo_url:
+            # Default branch to "main" if repo_url is provided (set_repo scenario)
+            branch = branch or "main"
             return self.set_repo(repo_url=repo_url, branch=branch, commit_hash=commit_hash)
         else:
-            return self.get_repo()
+            # Do not set a default branch when calling get_repo
+            return self.get_repo(branch=branch, commit_hash=commit_hash)
 
     def set_repo(self, repo_url: str = None, branch: str = "main",
                  commit_hash: str = None) -> tuple[bool, str, SessionDetail | None]:
@@ -128,18 +131,22 @@ class Controller:
                 "time": time_log
             })
 
+            # Get id of inserted Session to validate insertion
             inserted_id = self.mongo_ds.update_session(repo_data.model_dump())
             if not inserted_id:
                 return False, "Failed to store repository details in MongoDB.", None
 
+            # Successful execution of repo being cloned and configured in $PWD
             return True, "Repository set successfully.", repo_data
 
         except ValidationError as e:
             return False, f"Data validation error: {e}", None
 
-    def get_repo(self) -> tuple[bool, str, SessionDetail | None]:
+    def get_repo(self, branch: str = None, commit_hash: str = None) -> tuple[bool, str, SessionDetail | None]:
         """
-        Retrieve the current or last saved repository details.
+        Retrieve the current or last saved repository details. If valid branch or valid commit
+        is given, checkout the repository to given branch and given commit. If no commit
+        given, but branch given, checkout the repository to latest commit.
 
         Checks if the current directory is a Git repository:
         - If yes, returns its details.
@@ -152,15 +159,24 @@ class Controller:
                 - SessionDetail or None: Repository details if available, otherwise None.
         """
 
-        # Case: check if user is in a $PWD that is a git repo
+        # Check if the current directory is a Git repository
         in_git_repo, repo_name, is_in_root = self.repo_manager.is_current_dir_repo()
         user_id = os.getlogin()
 
         if in_git_repo:
-            repo_details = self.repo_manager.get_current_repo_details()
 
+            # Only perform checkout if branch or commit_hash was explicitly provided
+            if branch is not None or commit_hash is not None:
+                success, message = self.repo_manager.checkout_branch_and_commit(branch, commit_hash)
+                if not success:
+                    return False, message, None
+
+            # Retrieve details of the current repository
+            repo_details = self.repo_manager.get_current_repo_details()
             time_log = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
+            # Validate and structure repository details into a SessionDetails object
+            # SessionDetails can be found in util/model.py
             try:
                 repo_data = SessionDetail.model_validate({
                     "user_id": user_id,
@@ -172,19 +188,26 @@ class Controller:
                     "time": time_log
                 })
 
+                # Save the session details in the database
                 self.mongo_ds.update_session(repo_data.model_dump())
 
+                # Ensure the user is at the root of the repository. If not
+                # prompt user to navigate to root and run again
                 if not is_in_root:
+                    print("not in root of project.")
                     return False, ("Not in the root of the repository. "
                                    "Please navigate to the root of the repo and try again."), repo_data
 
+                print("success")
                 return True, "Repository is configured in current directory", repo_data
 
             except ValidationError as e:
                 return False, f"Data validation error: {e}", None
 
+        # Retrieve details of the last configured repository if not in a Git repository
         last_repo = self.mongo_ds.get_session(user_id)
 
+        # Validate and return the last session details
         if last_repo:
             try:
                 last_repo_data = SessionDetail.model_validate(last_repo)
@@ -195,7 +218,8 @@ class Controller:
                 return False, "Failed to convert last repository to SessionDetail.", None
 
         # No repository information available
-        return False, "No repository found to run command.", None
+        return False, ("Working directory is not a git repository. No previous"
+                       "repository has been set."), None
 
     def get_controller_history(self) -> dict:
         """Retrieve pipeline history from Mongo DB

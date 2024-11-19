@@ -220,3 +220,99 @@ class TestRepoManager(unittest.TestCase):
         self.assertFalse(success)
         self.assertIn("failed to clone or validate repository. invalid branch or commit", message.lower())
         self.assertEqual(repo_details, {})
+
+    @patch("util.repo_manager.Repo", autospec=True)
+    def test_checkout_branch_and_commit_branch_exists_locally(self, mock_repo):
+        """Test checkout_branch_and_commit when the branch exists locally."""
+        repo_manager = RepoManager()
+        mock_instance = mock_repo.return_value
+        mock_instance.branches = ["main", "feature-branch"]
+
+        # Simulate successful branch checkout
+        mock_instance.git.checkout.return_value = None
+
+        # Call the method
+        success, message = repo_manager.checkout_branch_and_commit(branch="feature-branch")
+
+        self.assertTrue(success)
+        self.assertIn("Git repository successfully checked out to branch 'feature-branch'", message)
+        mock_instance.git.checkout.assert_called_once_with("feature-branch")
+
+    @patch("util.repo_manager.Repo", autospec=True)
+    @patch("util.repo_manager.RepoManager._checkout_commit", return_value=(True, "Commit checked out successfully."))
+    def test_checkout_branch_and_commit_with_commit_hash(self, mock_checkout_commit, mock_repo):
+        """Test checkout_branch_and_commit with a specific commit hash."""
+        repo_manager = RepoManager()
+        mock_instance = mock_repo.return_value
+        mock_instance.branches = ["main"]
+
+        # Simulate successful branch and commit checkout
+        mock_instance.git.checkout.return_value = None
+
+        # Call the method
+        success, message = repo_manager.checkout_branch_and_commit(branch="main", commit_hash="123abc")
+
+        self.assertTrue(success)
+        self.assertIn("Git repository successfully checked out to branch 'main' and commit '123abc'", message)
+        mock_checkout_commit.assert_called_once_with(mock_instance, "main", "123abc")
+
+    @patch("util.repo_manager.Repo", autospec=True)
+    @patch("util.repo_manager.RepoManager._checkout_commit", return_value=(False, "Commit does not exist."))
+    def test_checkout_branch_and_commit_invalid_commit(self, mock_checkout_commit, mock_repo):
+        """Test checkout_branch_and_commit when the commit hash is invalid."""
+        repo_manager = RepoManager()
+        mock_instance = mock_repo.return_value
+        mock_instance.branches = ["main"]
+
+        # Simulate failed commit checkout
+        mock_instance.git.checkout.return_value = None
+
+        # Call the method
+        success, message = repo_manager.checkout_branch_and_commit(branch="main", commit_hash="nonexistent")
+
+        self.assertFalse(success)
+        self.assertIn("Commit does not exist", message)
+        mock_checkout_commit.assert_called_once_with(mock_instance, "main", "nonexistent")
+
+    @patch("util.repo_manager.Repo", side_effect=InvalidGitRepositoryError)
+    def test_checkout_branch_and_commit_not_in_git_repo(self, mock_repo):
+        """Test checkout_branch_and_commit when not in a Git repository."""
+        repo_manager = RepoManager()
+
+        # Call the method
+        success, message = repo_manager.checkout_branch_and_commit(branch="main")
+
+        self.assertFalse(success)
+        self.assertIn("Current directory is not a valid Git repository.", message)
+
+    @patch("util.repo_manager.Repo", autospec=True)
+    def test_checkout_branch_and_commit_remote_branch_not_found(self, mock_repo):
+        """Test checkout_branch_and_commit when the remote branch does not exist."""
+        repo_manager = RepoManager()
+        mock_instance = mock_repo.return_value
+        mock_instance.branches = ["main"]
+        mock_instance.git.ls_remote.return_value = ""
+
+        # Call the method
+        success, message = repo_manager.checkout_branch_and_commit(branch="nonexistent-branch")
+
+        self.assertFalse(success)
+        self.assertIn("Branch 'nonexistent-branch' does not exist locally or remotely.", message)
+        mock_instance.git.ls_remote.assert_called_once_with("--heads", "origin", "nonexistent-branch")
+
+    @patch("util.repo_manager.Repo", autospec=True)
+    def test_checkout_branch_and_commit_pull_latest(self, mock_repo):
+        """Test checkout_branch_and_commit pulling the latest changes when no commit hash is provided."""
+        repo_manager = RepoManager()
+        mock_instance = mock_repo.return_value
+        mock_instance.branches = ["main"]
+
+        # Simulate successful pull
+        mock_instance.git.pull.return_value = None
+
+        # Call the method
+        success, message = repo_manager.checkout_branch_and_commit(branch="main")
+
+        self.assertTrue(success)
+        self.assertIn("Git repository successfully checked out to branch 'main'", message)
+        mock_instance.git.pull.assert_called_once_with("origin", "main")
