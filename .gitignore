@@ -1,6 +1,9 @@
 # ignore documentations for now, include only during final submission
 apidocs
 
+# any temp folder
+temp*
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

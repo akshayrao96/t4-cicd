@@ -5,7 +5,6 @@
 
 
 from datetime import datetime
-import copy
 import os
 import time
 #import pprint
@@ -16,7 +15,7 @@ from ruamel.yaml import YAMLError
 import util.constant as const
 from util.container import (DockerManager)
 from util.model import (SessionDetail, PipelineConfig, ValidatedStage, PipelineInfo, PipelineHist)
-from util.common_utils import (get_logger, ConfigOverrides, DryRun, PrintMessage)
+from util.common_utils import (get_logger, MongoHelper, DryRun, PipelineReport)
 from util.repo_manager import (RepoManager)
 from util.db_mongo import (MongoAdapter)
 from util.yaml_parser import YamlParser
@@ -76,13 +75,15 @@ class Controller:
         """
         Configure and save a Git repository for CI/CD checks.
 
-        Clones the specified Git repository to the current working directory, with an optional branch and commit.
+        Clones the specified Git repository to the current working directory, 
+        with an optional branch and commit.
         If the current directory is already a Git repository, it returns an error.
 
         Args:
             repo_url (str): URL of the Git repository to configure.
             branch (str, optional): The branch to use, defaults to 'main'.
-            commit_hash (str, optional): Specific commit hash to check out, defaults to the latest commit.
+            commit_hash (str, optional): Specific commit hash to check out, 
+            defaults to the latest commit.
 
         Returns:
             tuple: (bool, str, SessionDetail | None)
@@ -231,14 +232,14 @@ class Controller:
         parser = YamlParser()
         results = {}
         pipeline_configs = parser.parse_yaml_directory(directory)
-        
+
         # Loop through each items
         for pipeline_name, values in pipeline_configs.items():
             response = self.config_checker.validate_config(
                 pipeline_name, values.pipeline_config, values.pipeline_file_name, True)
             results[pipeline_name] = response
             status = response.valid
-            
+
             # Perform saving
             if status and saving:
                 updates = {
@@ -263,6 +264,7 @@ class Controller:
         self, file_name: str = None,
         pipeline_name: str = None,
         override_configs:dict = None,
+        session_data:SessionDetail = None,
     ) -> tuple[bool, str, PipelineInfo]:
         """ apply overrides if any, validate config, and save the config into datastore. 
         The pipeline configuration can come from three sources: (1) file_name, 
@@ -280,16 +282,6 @@ class Controller:
         """
         status = True
         error_msg = ""
-
-        # stub response for repo set up
-        session_data = SessionDetail(
-            user_id='random',
-            repo_name='cicd-python',
-            repo_url="https://github.com/sjchin88/cicd-python",
-            branch='main',
-            is_remote=True,
-            commit_hash="abcdef"
-        )
 
         status, error_msg, pipeline_info = self.validate_config(
                 file_name, pipeline_name, override_configs
@@ -358,7 +350,7 @@ class Controller:
             except FileNotFoundError as fe:
             # if 'pipeline' name could not be located, return False and error message
                 self.logger.error(f"error in extracting from pipeline_name, {fe}")
-                return False, fe, None
+                return False, str(fe), None
         else:
             try:
                 pipeline_config = parser.parse_yaml_file(file_name)
@@ -369,12 +361,11 @@ class Controller:
             except (FileNotFoundError, YAMLError) as e:
             # if cannot extract content, return False and error message
                 self.logger.error(f"error in extracting from file_name, {e}")
-                return False, e, None
+                return False, str(e), None
 
-        #pipeline_config = parser.parse_yaml_file(file_name)
         # Process Override if have.
         if override_configs:
-            pipeline_config = ConfigOverrides.apply_overrides(
+            pipeline_config = MongoHelper.apply_overrides(
                 pipeline_config,
                 override_configs)
         click.echo(f"Validating file in {pipeline_file_name}")
@@ -413,7 +404,7 @@ class Controller:
         if not pipeline_config:
             click.echo(f"No pipeline config found for '{pipeline_name}'.")
             return False
-        updated_config = ConfigOverrides.apply_overrides(pipeline_config, overrides)
+        updated_config = MongoHelper.apply_overrides(pipeline_config, overrides)
         # validate the updated pipeline configuration
 
         validation_res = self.config_checker.validate_config(pipeline_name,
@@ -442,7 +433,7 @@ class Controller:
         command: `cid pipeline setup`
         """
 
-    def run_pipeline(self, config_file: str, pipeline_name: str, git_details:dict,
+    def run_pipeline(self, config_file: str, pipeline_name: str, git_details:SessionDetail,
                      dry_run:bool = False, local:bool = False, yaml_output: bool = False,
                      override_configs:dict=None
                      ) -> tuple[bool, str]:
@@ -463,8 +454,6 @@ class Controller:
                 bool: status
                 str: message
         """
-
-        ## TODO: Step 1 integrate with get and set repo
         status = True
         message = None
         config_dict = None
@@ -472,7 +461,7 @@ class Controller:
         # Step 2 - 4 extract yaml content, apply override, validate and
         # save handled by validate_n_save_config
         status, error_msg, pipeline_info = self.validate_n_save_config(
-            config_file, pipeline_name, override_configs)
+            config_file, pipeline_name, override_configs, git_details)
 
         # Early Return if override and validation fail
         if not status:
@@ -488,17 +477,11 @@ class Controller:
 
         # Step 6: Actual Pipeline Run
         status = True
-        message = "Pipeline runs successfully. "
-        #TODO: update method to update git_detail from step 0
+        message = ""
+
         try:
-            repo_data = copy.deepcopy(git_details)
-            repo_data["is_remote"] = True
-            repo_data['repo_name'] = "cicd-python"
-            repo_data['user_id'] = os.getlogin()
-            repo_data = SessionDetail.model_validate(repo_data)
-            # pprint.pprint(repo_data.model_dump())
             pipeline_config = PipelineConfig.model_validate(config_dict)
-            status, run_msg = self._actual_pipeline_run(repo_data, pipeline_config, local)
+            status, run_msg = self._actual_pipeline_run(git_details, pipeline_config, local)
             message += run_msg
         except ValidationError as ve:
             message = f"validation error occur, error is {ve}\n"
@@ -506,7 +489,9 @@ class Controller:
             status = False
 
         if not status:
-            message += 'Pipeline runs fail'
+            message += '\nPipeline runs fail'
+        else:
+            message += "\nPipeline runs successfully. "
         return (status, message)
 
     def _actual_pipeline_run(self,
@@ -560,10 +545,9 @@ class Controller:
             his_obj,
             pipeline_config.model_dump(by_alias=True)
         )
-        # print(job_id)
+
         his_obj.job_run_history.append(job_id)
         run_number = len(his_obj.job_run_history)
-        # TODO- Update pipeline config
         updates = {
             "job_run_history":his_obj.job_run_history,
             'running':True,
@@ -578,6 +562,7 @@ class Controller:
         # if update unsuccessful, prompt user.
         if not update_success:
             click.confirm('Cannot update into db, do you want to continue?', abort=True)
+
         # Initialize Docker Manager
         docker_manager = DockerManager(
                 repo=repo_data.repo_name,
@@ -591,6 +576,7 @@ class Controller:
             stage_status = const.STATUS_SUCCESS
             stage_config = ValidatedStage.model_validate(stage_config)
             job_logs = {}
+            stage_start_time = time.asctime()
             # run the job, get the record, update job history
             for job_group in stage_config.job_groups:
                 for job_name in job_group:
@@ -613,7 +599,16 @@ class Controller:
                 # If early break, skip next job group execution
                 if early_break:
                     break
-            self.mongo_ds.update_job_logs(job_id, stage_name, stage_status, job_logs)
+            self.mongo_ds.update_job_logs(
+                job_id,
+                stage_name,
+                stage_status,
+                job_logs,
+                stage_time={
+                    "start_time": stage_start_time,
+                    "completion_time": time.asctime()
+                }
+            )
             # single fail stage will switch the pipeline status to fail
             if stage_status == const.STATUS_FAILED:
                 pipeline_status = const.STATUS_FAILED
@@ -696,67 +691,51 @@ class Controller:
                 user input to query pipeline history to database.
 
         Returns:
-            dict:
-                "is_success": boolean if
+            tuple[bool, str]:
+                "is_success: bool": true if report is successfully generated
+                "output_msg: str": pipeline report return to user CLI
         """
         pipeline_dict = pipeline_details.model_dump()
         pipeline_name = pipeline_dict['pipeline_name']
         repo_url = pipeline_dict['repo_url']
+        job = pipeline_dict['job']
         run_number = pipeline_dict['run']
+        stage = pipeline_dict['stage']
         output_msg = ""
+
         try:
-            #(L4.2) cid pipeline report --repo <repo> --pipeline <pipeline> --run <number>
-            if pipeline_dict['run']: # --run is specified
-
-                #TODO: refactor code to use the `get_pipeline_run_summary()` method
-                history = self.mongo_ds.get_pipeline_history(pipeline_dict['repo_name'],
-                repo_url, pipeline_dict['branch'], pipeline_name)
-                #history = self.mongo_ds.get_pipeline_run_summary(repo_url, pipeline_name,
-                #                                                 run_number=run_number)
-                run_number = int(pipeline_dict['run']) - 1
-                job_history = self.mongo_ds.get_job(history['job_run_history'][run_number])
-
-                message = PrintMessage(job_history)
-                output_msg = message.print(['pipeline_name', 'run_number', 'git_commit_hash',
-                                        'start_time', 'completion_time'])
-                output_msg += message.print_log_status()
+            # L4.1 Show summary all past pipeline runs for a repository
+            # L4.2 Show pipeline run summary
+            if not stage and not job:
+                history = self.mongo_ds.get_pipeline_run_summary(repo_url,
+                                                            pipeline_name, run_number=run_number)
+                report = PipelineReport(history)
+                output_msg = report.print_pipeline_summary()
             else:
-                #L4.1. cid pipeline report --repo <repo> | get all pipelines report
-                #--run flag is not specified, so list out the pipeline reports.
-                #by default, "all" will return the history of all pipeline_name.
-                #TODO: add --local flag seen in 4.1.2
-                if pipeline_name == "all": #run all job_history
-                    job_history = self.mongo_ds.get_pipeline_run_summary(repo_url)
-                else:
-                    job_history = self.mongo_ds.get_pipeline_run_summary(repo_url, pipeline_name)
-
-
-                #validation, if job_history is empty from get_pipeline_run_summary(),
-                # this means no data found in DB
-                #TODO: see how to handle the exception in KeyEror
-                if job_history == []:
+                if not stage:
                     is_success = False
-                    err_msg = f"There is no job history for pipeline '{pipeline_name}' in {repo_url}!\n"
-                    err_msg += "please ensure that the pipeline_name or repo are valid."
-                    err_msg += "Please run `cid pipeline run` if no reports found"
-                    return is_success, err_msg
-                for job in job_history:
-                    message = PrintMessage(job)
-                    output_msg += message.print(['pipeline_name', 'run_number', 'git_commit_hash',
-                                            'start_time', 'completion_time'])
-        except KeyError as ke:
-            err_msg = f"There is no job history for pipeline '{pipeline_name}' in {repo_url}!\n"
-            err_msg += "please ensure that the pipeline_name or repo are valid."
-            err_msg += "Please run `cid pipeline run` if no reports found"
-            self.logger.warning(f"Key Error in pipeline_history: {ke}")
-            is_success = False
-            return is_success, err_msg
+                    output_msg = "missing flag. --stage flag must be given along with --job"
+                    return is_success, output_msg
+                #L4.3 Show Stage Summary
+                if not job:
+                    #run_number by default is None. if not defined, it will query all runs
+                    history = self.mongo_ds.get_pipeline_run_summary(repo_url, pipeline_name,
+                                                        stage_name=stage, run_number=run_number)
+                    report = PipelineReport(history)
+                    output_msg = report.print_stage_summary()
+
+                #L4.4 Show Job Summary
+                else:
+                    history = self.mongo_ds.get_pipeline_run_summary(repo_url,
+                                        pipeline_name, stage_name=stage, job_name=job,
+                                        run_number=run_number)
+                    report = PipelineReport(history)
+                    output_msg = report.print_job_summary()
         except IndexError as ie:
             self.logger.warning(f"job_number is out of bound. error: {ie}")
             is_success = False
-            err_msg = f"run_number: {pipeline_dict['run']} does not exist!\n"
-            err_msg += f"do you mean --run {len(history['job_run_history'])}?"
+            err_msg = "invalid pipeline_name (--pipeline) or run_number (--run). Please try again"
             return is_success, err_msg
-
+        
         is_success = True
         return is_success, output_msg

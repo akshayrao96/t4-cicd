@@ -4,6 +4,7 @@ for execution of pipeline job
 from pathlib import Path
 import copy
 import os
+import re
 import tarfile
 import time
 from abc import ABC, abstractmethod
@@ -18,6 +19,7 @@ from util.model import (JobConfig, JobLog)
 logger = get_logger("util.docker")
 
 DEFAULT_DOCKER_DIR = '/app'
+REGEX_SHELL_ERR = r'(sh:\s?)(\d+)(:)'
 
 class ContainerManager(ABC):
     """ Abstract base class for Container Management
@@ -71,7 +73,7 @@ class DockerManager(ContainerManager):
         self.logger = log_tool
         self.vol_name = repo + '-' + pipeline + '-' + run
         self.docker_vol = None
-
+    
     def run_job(self, job_name:str, job_config: dict) -> JobLog:
         """ run a single job and return its output
 
@@ -118,12 +120,9 @@ class DockerManager(ContainerManager):
                             'bind': DEFAULT_DOCKER_DIR,
                             'mode': 'rw'
                         }
-                    }
+                    },
+                    working_dir=DEFAULT_DOCKER_DIR
                 )
-            # container.exec_run(
-            #     cmd=f"sh -c '{' && '.join(commands)}'",
-            #     detach=True,
-            # )
 
             # Wait for the container to finish, required as we are running in detach mode
             container.wait()
@@ -173,12 +172,12 @@ class DockerManager(ContainerManager):
         Returns:
             bool: indicator if job success or failure
         """
-        if "fatal" in stderr:
-            return False
-        if "error" in stderr:
-            return False
-        if "not found" in stderr:
-            return False
+        # Look for sh exit status from the log
+        # any sh: <number>: with number != 0 is error
+        shell_results = re.finditer(REGEX_SHELL_ERR, stderr)
+        for match in shell_results:
+            if int(match.group(2)) != 0:
+                return False
         return True
 
     def _upload_artifact(self, container:Container,

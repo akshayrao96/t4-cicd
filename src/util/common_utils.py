@@ -243,8 +243,8 @@ class TopoSort:
             return (result_flag, result_error_msg, [])
         return (result_flag, result_error_msg, order)
 
-class ConfigOverrides:
-    """ConfigOverrides class to provide helper functions for MongoDB operations"""
+class MongoHelper:
+    """MongoHelper class to provide helper functions for MongoDB operations"""
 
     ## PipelineHistory
     @staticmethod
@@ -256,59 +256,127 @@ class ConfigOverrides:
         return match_filter
 
     @staticmethod
-    def build_aggregation_pipeline(match_filter: dict, pipeline_name: str = None, stage_name: str = None, job_name: str = None, run_number: int = None) -> list:
+    def build_aggregation_pipeline(match_filter: dict, pipeline_name: str = None,
+                                   stage_name: str = None, job_name: str = None, 
+                                   run_number: int = None) -> list:
         """Builds the aggregation pipeline based on stage, job, and run number filters."""
         pipeline = [
             {"$match": match_filter},
-            # {"$project": {"pipelines": 1}},
             {"$addFields": {"pipelines_array": {"$objectToArray": "$pipelines"}}},
             {"$unwind": "$pipelines_array"}]
         if pipeline_name:
             pipeline += [{"$match": {"pipelines_array.k": pipeline_name}}]
-        pipeline.append({
-            "$addFields": {
-                "pipelines_array.v.job_run_history": {
-                    "$map": {
-                        "input": "$pipelines_array.v.job_run_history",
-                        "as": "history_id",
-                        "in": {"$toObjectId": "$$history_id"}
-                    }
-                }
-            }
-        })
-        pipeline.append({
-            "$lookup": {
-                "from": "jobs_history",
-                "localField": "pipelines_array.v.job_run_history",
-                "foreignField": "_id",
-                "as": "job_details"
-            }
-        })
-        pipeline.append({"$unwind": "$job_details"})
-        
-        if run_number is not None:
-            pass
-        if stage_name:
-            pass
-        if job_name:
-            pass
+        pipeline.extend([
+            {"$addFields": {"pipelines_array.v.job_run_history": {
+                "$map": {"input": "$pipelines_array.v.job_run_history", "as": "history_id",
+                        "in": {"$toObjectId": "$$history_id"}}}}},
+            {"$lookup": {
+                "from": "jobs_history", "localField": "pipelines_array.v.job_run_history",
+                "foreignField": "_id", "as": "job_details_list"}},
+            {"$unwind": "$job_details_list"},
+        ])
+        if run_number or stage_name or job_name:
+            pipeline.append(
+                {"$addFields": {"job_details_list.logs": MongoHelper._transform_logs(job_name)}})
+            if run_number:
+                pipeline.append(
+                    {"$match": {"job_details_list.run_number": run_number}})
+            if stage_name or job_name:
+                pipeline.extend(
+                    MongoHelper._build_filter(stage_name, job_name))
         return pipeline
 
     @staticmethod
-    def build_projection(stage_name: str = None, job_name: str = None) -> dict:
+    def _build_filter(stage_name: str = None, job_name: str = None) -> list:
+        """Builds filtering logic for stage_name and job_name."""
+        filters = []
+        if stage_name:
+            filters.append({"$addFields": {"job_details_list.logs": {
+                "$filter": {"input": "$job_details_list.logs", "as": "log",
+                            "cond": {"$eq": ["$$log.stage_name", stage_name]}}}}})
+        if job_name:
+            filters.append({"$addFields": {"job_details_list.logs":
+                MongoHelper._transform_logs(job_name)}})
+        return filters
+
+    @staticmethod
+    def _transform_logs(job_name: str = None) -> dict:
+        """Transforms the logs to handle job filtering dynamically."""
+        return {
+            "$map": {
+                "input": "$job_details_list.logs", "as": "log",
+                "in": {"$mergeObjects": [
+                    "$$log",
+                    {"jobs_array": {
+                        "$cond": {
+                            "if": {"$isArray": "$$log.jobs"},
+                            "then": {
+                                "$filter": {
+                                    "input": "$$log.jobs", "as": "job",
+                                    "cond": {"$eq": ["$$job.k", job_name]}
+                                }
+                            } if job_name else "$$log.jobs",
+                            "else": {
+                                "$filter": {
+                                    "input": {"$objectToArray": "$$log.jobs"},
+                                    "as": "job",
+                                    "cond": {"$eq": ["$$job.k", job_name]}
+                                }
+                            } if job_name else {"$objectToArray": "$$log.jobs"},
+                        }
+                    }}
+                ]}
+            }
+        }
+
+    @staticmethod
+    def build_projection(stage_name: str = None, job_name: str = None, 
+                         run_number: int = None) -> dict:
         """Builds the projection stage for MongoDB aggregation based on stage and job fields."""
         projection_fields = {
             "pipeline_name": "$pipelines_array.k",
-            "run_number": "$job_details.run_number",
-            "git_commit_hash": "$job_details.git_commit_hash",
-            "status": "$job_details.status",
-            "start_time": "$job_details.start_time",
-            "completion_time": "$job_details.completion_time"
+            "run_number": "$job_details_list.run_number",
+            "git_commit_hash": "$job_details_list.git_commit_hash",
+            "status": "$job_details_list.status",
+            "start_time": "$job_details_list.start_time",
+            "completion_time": "$job_details_list.completion_time",
         }
-        if stage_name:
-            pass
-        if job_name:
-            pass
+        if run_number:
+            projection_fields["logs"] = {
+                "$map": {
+                    "input": "$job_details_list.logs", "as": "log",
+                    "in": {
+                        "stage_name": "$$log.stage_name",
+                        "stage_status": "$$log.stage_status",
+                        "start_time": "$$log.start_time",
+                        "completion_time": "$$log.completion_time",
+                    },
+                }
+            }
+        if stage_name or job_name:
+            projection_fields["logs"] = {
+                "$map": {
+                    "input": "$job_details_list.logs", "as": "log",
+                    "in": {
+                        "stage_name": "$$log.stage_name",
+                        "stage_status": "$$log.stage_status",
+                        "start_time": "$$log.start_time",
+                        "completion_time": "$$log.completion_time",
+                        "jobs": {
+                            "$map": {
+                                "input": "$$log.jobs_array", "as": "job",
+                                "in": {
+                                    "job_name": "$$job.k",
+                                    "job_status": "$$job.v.job_status",
+                                    "allows_failure": "$$job.v.allow_failure",
+                                    "start_time": "$$job.v.start_time",
+                                    "completion_time": "$$job.v.completion_time",
+                                },
+                            }
+                        },
+                    },
+                }
+            }
         return projection_fields
 
     ## ConfigOverrides
@@ -348,7 +416,7 @@ class ConfigOverrides:
         """
         for key, value in updates.items():
             if isinstance(value, dict):
-                config[key] = ConfigOverrides.apply_overrides(config.get(key, {}), value)
+                config[key] = MongoHelper.apply_overrides(config.get(key, {}), value)
             else:
                 config[key] = value
         return config
@@ -514,63 +582,80 @@ class DryRun:
 
         return formatted_msg
 
-class PrintMessage:
-    """PrintMessage handles with dict data and format printing for output to CLI
-    """
-    def __init__(self, msg_dict: dict):
-        self.msg_dict = msg_dict
+class PipelineReport:
+    """PipelineReport handles dict data type and format printing for output to CLI"""
 
-    def _get_nested_value(self, data, key_path):
-        """Helper function to get a value from nested dictionaries."""
-        keys = key_path.split(".")
-        for key in keys:
-            if isinstance(data, dict):
-                data = data.get(key)
-            else:
-                return None
-        return data
-    
-    def print(self, keys=None) -> str:
-        """print message given a dictionary. need to specify the keys in the dict 
-        to print. Example: keys=["name", "job.department"]
+    def __init__(self, pipeline_data):
+        """Initialize the PipelineReport with data.
 
         Args:
-            keys (list, optional): specify the key in the dict.
+            pipeline_data (dict): A list of dictionaries containing the pipeline information.
+        """
+        if not pipeline_data:
+            raise IndexError("No Report Data")
+        self.pipeline_data = pipeline_data
+    
+    def print_pipeline_summary(self) -> str:
+        """Print the pipeline run summary
 
         Returns:
-            str: formatted string in the format key:value
+            str: output message of the pipeline summary
         """
-        filtered_dict = self.msg_dict
+        output_msg = ""
+        for pipeline in self.pipeline_data:
+            output_msg += f"Pipeline Name: {pipeline['pipeline_name']}\n"
+            output_msg += f"Run Number: {pipeline['run_number']}\n"
+            output_msg += f"Git Commit Hash: {pipeline['git_commit_hash']}\n"
+            output_msg += f"Status: {pipeline['status']}\n"
+            output_msg += f"Start Time: {pipeline['start_time']}\n"
+            output_msg += f"Completion Time: {pipeline['completion_time']}\n"
+            
+            logs = pipeline.get("logs", [])
+            if logs:
+                output_msg += "Stages:\n"
+            for log in logs:
+                output_msg += f"  Stage Name: {log['stage_name']}\n"
+                output_msg += f"  Status: {log['stage_status']}\n"
+                output_msg += f"  Start Time: {pipeline['start_time']}\n"
+                output_msg += f"  Completion Time: {pipeline['completion_time']}\n\n"
+        return output_msg
+    
+    def print_stage_summary(self) -> str:
 
-        if keys:
-            filtered_dict = {key: self._get_nested_value(self.msg_dict, key) for key in keys}
+        output_msg = ""
+        for pipeline in self.pipeline_data:
+            for log in pipeline.get("logs", []):
+                output_msg += f"Pipeline Name: {pipeline['pipeline_name']}\n"
+                output_msg += f"Run Number: {pipeline['run_number']}\n"
+                output_msg += f"Git Commit Hash: {pipeline['git_commit_hash']}\n"
+                output_msg += f"Stage Name: {log['stage_name']}\n"
+                output_msg += f"Stage Status: {log['stage_status']}\n"
+                
+                jobs = log.get("jobs", [])
+                if jobs:
+                    output_msg += "Jobs:\n"
+                for job in jobs:
+                    output_msg += f"  Job Name: {job['job_name']}\n"
+                    output_msg += f"    Job Status: {job['job_status']}\n"
+                    output_msg += f"    Allows Failure: {job['allows_failure']}\n"
+                    output_msg += f"    Start Time: {job['start_time']}\n"
+                    output_msg += f"    Completion Time: {job['completion_time']}\n\n"
+        return output_msg
+    
+    def print_job_summary(self) -> str:
 
-        # Plain text formatting
-        message = "\n".join([f"{key:<15}: {value}" for key, value in filtered_dict.items()])
-        message += "\n"
-        return message
+        output_msg = ""
+        for pipeline in self.pipeline_data:
+            for log in pipeline.get("logs", []):
+                for job in log.get("jobs", []):
+                    output_msg += f"Pipeline Name: {pipeline['pipeline_name']}\n"
+                    output_msg += f"Run Number: {pipeline['run_number']}\n"
+                    output_msg += f"Git Commit Hash: {pipeline['git_commit_hash']}\n"
+                    output_msg += f"Stage Name: {log['stage_name']}\n"
+                    output_msg += f"Job Name: {job['job_name']}\n"
+                    output_msg += f"Job Status: {job['job_status']}\n"
+                    output_msg += f"Allows Failure: {job['allows_failure']}\n"
+                    output_msg += f"Start Time: {job['start_time']}\n"
+                    output_msg += f"Completion Time: {job['completion_time']}\n\n"
 
-    def print_log_status(self) -> str:
-        """print method for outputting the job status for each stages
-
-        Returns:
-            str: message of the output logs.
-        """
-        logs = self.msg_dict['logs']
-        output_logs = ""
-        try:
-            for stage in logs:
-                stage_name = stage['stage_name']
-                output_logs += f"\nstage: {stage_name}"
-                for job_name, job_info in stage['jobs'].items():
-                    start_time = job_info['start_time']
-                    completion_time = job_info['completion_time']
-                    job_status = job_info['job_status']
-                    output_logs += f"\n  Job: {job_name}\n"
-                    output_logs += f"    job_status       : {job_status}\n"
-                    output_logs += f"    start_time       : {start_time}\n"
-                    output_logs += f"    completion_time  : {completion_time}\n"
-        except AttributeError:
-            output_logs += "\n  [no logs available. jobs are empty]"
-
-        return output_logs
+        return output_msg

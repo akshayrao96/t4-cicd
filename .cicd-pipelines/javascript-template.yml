@@ -1,0 +1,50 @@
+# Another valid configuration file that will be called when controller's
+# repo is set and cli does not specify repo and yml file by default
+# Test Pipeline for java repository
+global:
+    pipeline_name: "cicd-javascript"
+    docker:
+        registry: 'dockerhub'
+        image: "node:latest"
+    artifact_upload_path: "temp"
+
+# default stages: [build, test, doc, deploy]
+stages: ['build', 'test', 'doc']
+
+jobs:
+    # Job for build stage
+    checkout:
+        stage: build
+        scripts:
+            - 'git clone https://github.com/sjchin88/cicd-javascript .'
+            - "git submodule init"
+            - "git submodule update"
+            - 'ls -la'
+            
+
+    compile:
+        stage: build
+        allow_failure: False
+        needs: ['checkout']
+        scripts:
+            - 'npm config set strict-ssl false'
+            - 'npm ci'
+            - 'npm run build'
+
+    # Job for test stage
+    test-dist:
+        stage: test
+        allow_failure: True
+        scripts:
+            - 'npm run test:dist'
+
+    documentation:
+        stage: doc
+        allow_failure: True
+        scripts:
+            - 'npm run docs2'
+
+        artifacts:
+            on_success_only: False
+            paths:
+                - "docs2"

@@ -7,7 +7,7 @@ import bson
 # from bson import ObjectId
 from pydantic import ValidationError
 from pymongo import (MongoClient, errors)
-from util.common_utils import (get_env, get_logger, ConfigOverrides)
+from util.common_utils import (get_env, get_logger, MongoHelper)
 from util.model import (PipelineInfo, RepoConfig, SessionDetail)
 
 env = get_env()
@@ -264,6 +264,8 @@ class MongoAdapter:
                     stage_log = {
                         "stage_name": stage_name,
                         "stage_status": "pending",
+                        "start_time": "",
+                        "completion_time": "",
                         "jobs": []
                     }
                     stage_logs.append(stage_log)
@@ -308,7 +310,7 @@ class MongoAdapter:
             return False
 
     def update_job_logs(self, jobs_id: str, stage_name: str,
-                        stage_status: str, jobs_log: dict) -> bool:
+                        stage_status: str, jobs_log: dict, stage_time: dict = None) -> bool:
         """
         Updates the status and the jobs log for a specific stage.
 
@@ -333,6 +335,9 @@ class MongoAdapter:
                 return False
             stage_log["stage_status"] = stage_status
             stage_log["jobs"] = jobs_log
+            if stage_time:
+                stage_log["start_time"] = stage_time["start_time"]
+                stage_log["completion_time"] = stage_time["completion_time"]
             return self._update(jobs, MONGO_DB_NAME, MONGO_JOBS_TABLE)
         except errors.PyMongoError as e:
             logger.warning(f"Error updating job log for jobs_id {jobs_id}: {e}")
@@ -619,7 +624,7 @@ class MongoAdapter:
                 # db schema
                 pipeline_info = PipelineInfo.model_validate(updates)
                 # Convert it back for later usage
-                updates = pipeline_info.model_dump()
+                updates = pipeline_info.model_dump(by_alias=True)
             update_dict = {f'pipelines.{pipeline_name}.{k}': v for k, v in updates.items()}
             status = self._update_by_query(
                 query_filter,update_dict,MONGO_DB_NAME,MONGO_PIPELINES_TABLE
@@ -692,12 +697,12 @@ class MongoAdapter:
             list: A list of dictionaries, where each dictionary contains data for a 
                     pipeline run that matches the filters.
         """
-        match_filter = ConfigOverrides.build_match_filter(repo_url, pipeline_name)
-        aggregation_pipeline = ConfigOverrides.build_aggregation_pipeline(
+        match_filter = MongoHelper.build_match_filter(repo_url, pipeline_name)
+        aggregation_pipeline = MongoHelper.build_aggregation_pipeline(
             match_filter, pipeline_name=pipeline_name, stage_name=stage_name,
             job_name=job_name, run_number=run_number
         )
-        projection_fields = ConfigOverrides.build_projection(stage_name, job_name)
+        projection_fields = MongoHelper.build_projection(stage_name, job_name, run_number)
         aggregation_pipeline.append({"$project": projection_fields})
         aggregation_pipeline.append({"$sort": {"job_details.run_number": -1}})
 

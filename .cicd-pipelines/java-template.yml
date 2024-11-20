@@ -1,0 +1,72 @@
+# Another valid configuration file that will be called when controller's
+# repo is set and cli does not specify repo and yml file by default
+# Test Pipeline for java repository
+global:
+    pipeline_name: "cicd-java-template"
+    docker: 
+        registry: 'dockerhub'
+        image: "gradle:latest"
+    artifact_upload_path: "temp"
+
+# default stages: [build, test, doc, deploy]
+stages: ['build', 'test', 'doc', 'deploy']
+
+jobs:
+    # Job for build stage
+    checkout:
+        stage: build
+        scripts: 
+            - 'ls -la'
+            - 'git clone https://github.com/sjchin88/cicd-java .'
+            - 'ls -la'
+
+    compile:
+        stage: build
+        allow_failure: False
+        needs: ['checkout']
+        scripts: 
+            - 'chmod +x ./gradlew'
+            - './gradlew build'
+        
+
+    # Job for test stage
+    testwithcoverage:
+        stage: test
+        scripts: 
+            - 'chmod +x ./gradlew'
+            - './gradlew test'
+        artifacts:
+            on_success_only: False
+            paths: 
+                - 'build/jacocoHtml'
+                - 'build/reports/tests'
+    
+    checkstyle:
+        stage: test
+        scripts: 
+            - 'chmod +x ./gradlew'
+            - './gradlew check'
+        artifacts:
+            on_success_only: False
+            paths: 
+                - "build/reports/checkstyle"
+    
+    javadoc:
+        stage: doc
+        scripts: 
+            - 'chmod +x ./gradlew'
+            - './gradlew javadoc'
+        artifacts:
+            on_success_only: False
+            paths: 
+                - "build/docs/javadoc"
+    
+    produce-jar:
+        stage: deploy
+        scripts: 
+            - 'chmod +x ./gradlew'
+            - './gradlew jar'
+        artifacts:
+            on_success_only: True
+            paths: 
+                - 'build/libs'

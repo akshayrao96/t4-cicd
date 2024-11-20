@@ -6,7 +6,7 @@ import time
 import json
 import click
 from pydantic import ValidationError
-from util.common_utils import (get_logger,ConfigOverrides,PrintMessage)
+from util.common_utils import (get_logger,MongoHelper)
 from util.model import (PipelineHist)
 from controller.controller import (Controller)
 
@@ -29,10 +29,10 @@ def pipeline():
 @click.option('--file', 'file_path', default=DEFAULT_CONFIG_FILE_PATH, help='configuration \
 file path. if --file not specified, default to .cicd-pipelines/pipelines.yml')
 @click.option('--pipeline', 'pipeline_name', help='pipeline name to run' )
-@click.option('-r', '--repo', 'repo', default='./', help='repository url or \
+@click.option('-r', '--repo', 'repo', default=None, help='repository url or \
 local directory path')
-@click.option('-b', '--branch', 'branch', default='main', help='repository branch name')
-@click.option('-c', '--commit', 'commit', default='HEAD', help='commit hash')
+@click.option('-b', '--branch', 'branch', default="main", help='repository branch name')
+@click.option('-c', '--commit', 'commit', default=None, help='commit hash')
 @click.option('--local', 'local', help='run pipeline locally', is_flag=True)
 @click.option('--dry-run', 'dry_run', help='dry-run options to simulate the pipeline\
 process', is_flag=True)
@@ -73,7 +73,7 @@ def run(ctx, file_path:str, pipeline_name:str, repo:str, branch:str, commit:str,
 
     if overrides:
         try:
-            overrides = ConfigOverrides.build_nested_dict(overrides)
+            overrides = MongoHelper.build_nested_dict(overrides)
         except ValueError as e:
             click.secho(str(e), fg='red')
             sys.exit(2)
@@ -81,27 +81,25 @@ def run(ctx, file_path:str, pipeline_name:str, repo:str, branch:str, commit:str,
         # !! click multiple value option will construct a tuple,
         # empty override will be an empty tuple.
         overrides = None
-    control = Controller()
 
-    # TODO - Del 2024-11-04 Update Note and Fix
-    # To follow the key naming in SessionDetail
-    # change repo_source to repo_url
-    # local flag is to indicate if the run is local or remote.
-    # remote_repo is indicate if the repo itself is on local and remote,
-    git_details = {
-        "repo_url": repo,
-        "branch": branch,
-        "commit_hash": commit,
-        "remote_repo": local,
-    }
+    controller = Controller()
+    status, message, repo_details = controller.handle_repo(
+        repo_url=repo,
+        branch=branch,
+        commit_hash=commit
+    )
+    if not status:
+        click.secho(message, fg='red')
+        sys.exit(2)
+    click.secho(message, fg='green')
+    # click.echo(repo_details.model_dump())
 
-    status, message = control.run_pipeline(config_file=file_path, pipeline_name=pipeline_name,
-                    dry_run=dry_run, git_details=git_details,
+    status, message = controller.run_pipeline(config_file=file_path, pipeline_name=pipeline_name,
+                    dry_run=dry_run, git_details=repo_details,
                     local=local, yaml_output=yaml_output,
                     override_configs=overrides)
 
     logger.debug(f"pipeline run status: {status}, ")
-    #logger.debug(f"pipeline_id: {pipeline_id}")
     if status:
         click.secho(f"{message}", fg='green')
     else:
@@ -147,16 +145,16 @@ def log(tail:str, repo:str):
 @click.pass_context
 @click.option('-r', '--repo', 'repo_url', default='./', help='url of the repository (https://)')
 @click.option('--local', 'local', help='retrieve local pipeline history', is_flag=True)
-@click.option('--pipeline', 'pipeline_name', default='all',
+@click.option('--pipeline', 'pipeline_name', default=None,
               help='pipeline name to get the history')
 @click.option('-b', '--branch', 'branch', default='main',
               help="branch name of the repository; default is 'main'")
-@click.option('-s', '--stage', 'stage', default='all', help='stage name to view report; \
+@click.option('-s', '--stage', 'stage', default=None, help='stage name to view report; \
 default stages options: [build, test, doc, deploy]')
-@click.option('--job', 'job', default='all', help="job name to view report")
+@click.option('--job', 'job', default=None, help="job name to view report")
 @click.option('-r', '--run', 'run_number', default=None, help='run number to get the report')
 def report(ctx, repo_url:str, local:bool, pipeline_name:str, branch:str, stage:str,
-           job:str, run_number:str):
+           job:str, run_number:int):
     """Report pipeline provides user to retrieve the pipeline history. \f 
 
     Args:
@@ -167,7 +165,7 @@ def report(ctx, repo_url:str, local:bool, pipeline_name:str, branch:str, stage:s
         branch (str): _description_
         stage (str): _description_
         job (str): _description_
-        run_number (str): _description_
+        run_number (int): _description_
     """
     ctrl = Controller()
     pipeline_model = {}
@@ -194,30 +192,23 @@ def report(ctx, repo_url:str, local:bool, pipeline_name:str, branch:str, stage:s
         pipeline_model = PipelineHist.model_validate(pipeline_model)
     except ValidationError as ve:
         errors = json.loads(ve.json())
-        missing_locs = [error["loc"] for error in errors if error["type"] == "missing"]
-        click.secho("Error in getting the pipeline report.", fg="red")
-        click.secho("please ensure '--repo <url> --pipeline <pipeline_name>' is present",
-                    fg="red")
-        click.secho(f"missing required keys: {missing_locs}", fg="red")
+        for error in errors:
+            err_type = error['type']
+            if err_type == "int_parsing":
+                err_msg = f"Unknown Input: '{error.get('input', 'N/A')}', "
+                err_msg += f"Flag: {error['loc']}, Message: {error['msg']}"
+            elif err_type == "missing":
+                err_msg = f"missing {error['loc']} input. please run cid pipeline report --help "
+                err_msg += "for valid usage"
+
+            click.secho(err_msg, fg="red")
+        
         sys.exit(2)
 
-    # L4.2.Show pipeline run summary
-    # xx report --repo https://github.com/company/project --pipeline code-review --run 2
-    # show summary without specifying the stage. We can use the method and parse the stage summary
-
-    #TODO: L4.3.Show stage summary |
-    # a) --pipeline and --stage |
-    # xx report --repo https://github.com/company/project --pipeline code-review --stage build
-    # if stage is defined, use the repo, pipeline_name, and stage to print the summary
-    # b) --run
-    # xx report --repo https://github.com/company/project --pipeline code-review --stage
-    #   build --run 2
-
-    #Step 2 call pipeline_history
+    #Step 2. call pipeline_history
     resp_success, resp_message = ctrl.pipeline_history(pipeline_model)
     if not resp_success:
         click.secho(resp_message, fg='red')
         sys.exit(1)
 
-    click.secho("===== Pipeline report =====\n", fg='green')
     click.secho(resp_message, fg='green')
