@@ -196,7 +196,6 @@ class Controller:
 
             # Retrieve existing session
             existing_session = self.mongo_ds.get_session(user_id)
-            print(f"existing_session: {existing_session}")  # Debugging line
             existing_is_remote = existing_session.get("is_remote") \
                 if existing_session and "is_remote" in existing_session else False
 
