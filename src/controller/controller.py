@@ -17,7 +17,7 @@ from ruamel.yaml import YAMLError
 import util.constant as const
 from util.container import (DockerManager)
 from util.model import (SessionDetail, PipelineConfig, ValidatedStage, PipelineInfo, PipelineHist)
-from util.common_utils import (get_logger, MongoHelper, DryRun, PrintMessage)
+from util.common_utils import (get_logger, MongoHelper, DryRun, PipelineReport)
 from util.repo_manager import (RepoManager)
 from util.db_mongo import (MongoAdapter)
 from util.yaml_parser import YamlParser
@@ -446,7 +446,7 @@ class Controller:
             except FileNotFoundError as fe:
             # if 'pipeline' name could not be located, return False and error message
                 self.logger.error(f"error in extracting from pipeline_name, {fe}")
-                return False, fe, None
+                return False, str(fe), None
         else:
             try:
                 pipeline_config = parser.parse_yaml_file(file_name)
@@ -457,7 +457,7 @@ class Controller:
             except (FileNotFoundError, YAMLError) as e:
             # if cannot extract content, return False and error message
                 self.logger.error(f"error in extracting from file_name, {e}")
-                return False, e, None
+                return False, str(e), None
 
         # Process Override if have.
         if override_configs:
@@ -585,9 +585,9 @@ class Controller:
             status = False
 
         if not status:
-            message += 'Pipeline runs fail'
+            message += '\nPipeline runs fail'
         else:
-            message += "Pipeline runs successfully. "
+            message += "\nPipeline runs successfully. "
         return (status, message)
 
     def _actual_pipeline_run(self,
@@ -787,67 +787,51 @@ class Controller:
                 user input to query pipeline history to database.
 
         Returns:
-            dict:
-                "is_success": boolean if
+            tuple[bool, str]:
+                "is_success: bool": true if report is successfully generated
+                "output_msg: str": pipeline report return to user CLI
         """
         pipeline_dict = pipeline_details.model_dump()
         pipeline_name = pipeline_dict['pipeline_name']
         repo_url = pipeline_dict['repo_url']
+        job = pipeline_dict['job']
         run_number = pipeline_dict['run']
+        stage = pipeline_dict['stage']
         output_msg = ""
+
         try:
-            #(L4.2) cid pipeline report --repo <repo> --pipeline <pipeline> --run <number>
-            if pipeline_dict['run']: # --run is specified
-
-                #TODO: refactor code to use the `get_pipeline_run_summary()` method
-                history = self.mongo_ds.get_pipeline_history(pipeline_dict['repo_name'],
-                repo_url, pipeline_dict['branch'], pipeline_name)
-                #history = self.mongo_ds.get_pipeline_run_summary(repo_url, pipeline_name,
-                #                                                 run_number=run_number)
-                run_number = int(pipeline_dict['run']) - 1
-                job_history = self.mongo_ds.get_job(history['job_run_history'][run_number])
-
-                message = PrintMessage(job_history)
-                output_msg = message.print(['pipeline_name', 'run_number', 'git_commit_hash',
-                                        'start_time', 'completion_time'])
-                output_msg += message.print_log_status()
+            # L4.1 Show summary all past pipeline runs for a repository
+            # L4.2 Show pipeline run summary
+            if not stage and not job:
+                history = self.mongo_ds.get_pipeline_run_summary(repo_url,
+                                                            pipeline_name, run_number=run_number)
+                report = PipelineReport(history)
+                output_msg = report.print_pipeline_summary()
             else:
-                #L4.1. cid pipeline report --repo <repo> | get all pipelines report
-                #--run flag is not specified, so list out the pipeline reports.
-                #by default, "all" will return the history of all pipeline_name.
-                #TODO: add --local flag seen in 4.1.2
-                if pipeline_name == "all": #run all job_history
-                    job_history = self.mongo_ds.get_pipeline_run_summary(repo_url)
-                else:
-                    job_history = self.mongo_ds.get_pipeline_run_summary(repo_url, pipeline_name)
-
-
-                #validation, if job_history is empty from get_pipeline_run_summary(),
-                # this means no data found in DB
-                #TODO: see how to handle the exception in KeyEror
-                if job_history == []:
+                if not stage:
                     is_success = False
-                    err_msg = f"There is no job history for pipeline '{pipeline_name}' in {repo_url}!\n"
-                    err_msg += "please ensure that the pipeline_name or repo are valid."
-                    err_msg += "Please run `cid pipeline run` if no reports found"
-                    return is_success, err_msg
-                for job in job_history:
-                    message = PrintMessage(job)
-                    output_msg += message.print(['pipeline_name', 'run_number', 'git_commit_hash',
-                                            'start_time', 'completion_time'])
-        except KeyError as ke:
-            err_msg = f"There is no job history for pipeline '{pipeline_name}' in {repo_url}!\n"
-            err_msg += "please ensure that the pipeline_name or repo are valid."
-            err_msg += "Please run `cid pipeline run` if no reports found"
-            self.logger.warning(f"Key Error in pipeline_history: {ke}")
-            is_success = False
-            return is_success, err_msg
+                    output_msg = "missing flag. --stage flag must be given along with --job"
+                    return is_success, output_msg
+                #L4.3 Show Stage Summary
+                if not job:
+                    #run_number by default is None. if not defined, it will query all runs
+                    history = self.mongo_ds.get_pipeline_run_summary(repo_url, pipeline_name,
+                                                        stage_name=stage, run_number=run_number)
+                    report = PipelineReport(history)
+                    output_msg = report.print_stage_summary()
+
+                #L4.4 Show Job Summary
+                else:
+                    history = self.mongo_ds.get_pipeline_run_summary(repo_url,
+                                        pipeline_name, stage_name=stage, job_name=job,
+                                        run_number=run_number)
+                    report = PipelineReport(history)
+                    output_msg = report.print_job_summary()
         except IndexError as ie:
             self.logger.warning(f"job_number is out of bound. error: {ie}")
             is_success = False
-            err_msg = f"run_number: {pipeline_dict['run']} does not exist!\n"
-            err_msg += f"do you mean --run {len(history['job_run_history'])}?"
+            err_msg = "invalid pipeline_name (--pipeline) or run_number (--run). Please try again"
             return is_success, err_msg
-
+        
         is_success = True
         return is_success, output_msg

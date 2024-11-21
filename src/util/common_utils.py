@@ -582,63 +582,80 @@ class DryRun:
 
         return formatted_msg
 
-class PrintMessage:
-    """PrintMessage handles with dict data and format printing for output to CLI
-    """
-    def __init__(self, msg_dict: dict):
-        self.msg_dict = msg_dict
+class PipelineReport:
+    """PipelineReport handles dict data type and format printing for output to CLI"""
 
-    def _get_nested_value(self, data, key_path):
-        """Helper function to get a value from nested dictionaries."""
-        keys = key_path.split(".")
-        for key in keys:
-            if isinstance(data, dict):
-                data = data.get(key)
-            else:
-                return None
-        return data
-    
-    def print(self, keys=None) -> str:
-        """print message given a dictionary. need to specify the keys in the dict 
-        to print. Example: keys=["name", "job.department"]
+    def __init__(self, pipeline_data):
+        """Initialize the PipelineReport with data.
 
         Args:
-            keys (list, optional): specify the key in the dict.
+            pipeline_data (dict): A list of dictionaries containing the pipeline information.
+        """
+        if not pipeline_data:
+            raise IndexError("No Report Data")
+        self.pipeline_data = pipeline_data
+    
+    def print_pipeline_summary(self) -> str:
+        """Print the pipeline run summary
 
         Returns:
-            str: formatted string in the format key:value
+            str: output message of the pipeline summary
         """
-        filtered_dict = self.msg_dict
+        output_msg = ""
+        for pipeline in self.pipeline_data:
+            output_msg += f"Pipeline Name: {pipeline['pipeline_name']}\n"
+            output_msg += f"Run Number: {pipeline['run_number']}\n"
+            output_msg += f"Git Commit Hash: {pipeline['git_commit_hash']}\n"
+            output_msg += f"Status: {pipeline['status']}\n"
+            output_msg += f"Start Time: {pipeline['start_time']}\n"
+            output_msg += f"Completion Time: {pipeline['completion_time']}\n"
+            
+            logs = pipeline.get("logs", [])
+            if logs:
+                output_msg += "Stages:\n"
+            for log in logs:
+                output_msg += f"  Stage Name: {log['stage_name']}\n"
+                output_msg += f"  Status: {log['stage_status']}\n"
+                output_msg += f"  Start Time: {pipeline['start_time']}\n"
+                output_msg += f"  Completion Time: {pipeline['completion_time']}\n\n"
+        return output_msg
+    
+    def print_stage_summary(self) -> str:
 
-        if keys:
-            filtered_dict = {key: self._get_nested_value(self.msg_dict, key) for key in keys}
+        output_msg = ""
+        for pipeline in self.pipeline_data:
+            for log in pipeline.get("logs", []):
+                output_msg += f"Pipeline Name: {pipeline['pipeline_name']}\n"
+                output_msg += f"Run Number: {pipeline['run_number']}\n"
+                output_msg += f"Git Commit Hash: {pipeline['git_commit_hash']}\n"
+                output_msg += f"Stage Name: {log['stage_name']}\n"
+                output_msg += f"Stage Status: {log['stage_status']}\n"
+                
+                jobs = log.get("jobs", [])
+                if jobs:
+                    output_msg += "Jobs:\n"
+                for job in jobs:
+                    output_msg += f"  Job Name: {job['job_name']}\n"
+                    output_msg += f"    Job Status: {job['job_status']}\n"
+                    output_msg += f"    Allows Failure: {job['allows_failure']}\n"
+                    output_msg += f"    Start Time: {job['start_time']}\n"
+                    output_msg += f"    Completion Time: {job['completion_time']}\n\n"
+        return output_msg
+    
+    def print_job_summary(self) -> str:
 
-        # Plain text formatting
-        message = "\n".join([f"{key:<15}: {value}" for key, value in filtered_dict.items()])
-        message += "\n"
-        return message
+        output_msg = ""
+        for pipeline in self.pipeline_data:
+            for log in pipeline.get("logs", []):
+                for job in log.get("jobs", []):
+                    output_msg += f"Pipeline Name: {pipeline['pipeline_name']}\n"
+                    output_msg += f"Run Number: {pipeline['run_number']}\n"
+                    output_msg += f"Git Commit Hash: {pipeline['git_commit_hash']}\n"
+                    output_msg += f"Stage Name: {log['stage_name']}\n"
+                    output_msg += f"Job Name: {job['job_name']}\n"
+                    output_msg += f"Job Status: {job['job_status']}\n"
+                    output_msg += f"Allows Failure: {job['allows_failure']}\n"
+                    output_msg += f"Start Time: {job['start_time']}\n"
+                    output_msg += f"Completion Time: {job['completion_time']}\n\n"
 
-    def print_log_status(self) -> str:
-        """print method for outputting the job status for each stages
-
-        Returns:
-            str: message of the output logs.
-        """
-        logs = self.msg_dict['logs']
-        output_logs = ""
-        try:
-            for stage in logs:
-                stage_name = stage['stage_name']
-                output_logs += f"\nstage: {stage_name}"
-                for job_name, job_info in stage['jobs'].items():
-                    start_time = job_info['start_time']
-                    completion_time = job_info['completion_time']
-                    job_status = job_info['job_status']
-                    output_logs += f"\n  Job: {job_name}\n"
-                    output_logs += f"    job_status       : {job_status}\n"
-                    output_logs += f"    start_time       : {start_time}\n"
-                    output_logs += f"    completion_time  : {completion_time}\n"
-        except AttributeError:
-            output_logs += "\n  [no logs available. jobs are empty]"
-
-        return output_logs
+        return output_msg
