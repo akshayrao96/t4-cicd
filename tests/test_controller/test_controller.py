@@ -387,7 +387,7 @@ class TestControllerRepoFunctions(unittest.TestCase):
         status, message, repo_data = controller.get_repo()
 
         self.assertFalse(status)
-        self.assertEqual(message, "Working directory is not a git repository. No previous"
+        self.assertEqual(message, "Working directory is not a git repository. No previous "
                        "repository has been set.")
         self.assertIsNone(repo_data)
 

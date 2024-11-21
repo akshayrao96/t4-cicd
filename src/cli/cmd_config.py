@@ -141,13 +141,45 @@ def config(
 @click.option('--commit', default=None, help="Specify the commit hash to retrieve.\
  If not given, latest commit is used.")
 def set_repo(repo_url: str, branch: str, commit: str) -> None:
-    """Sets a new repository for pipeline checks.
-
-    Args:
-        repo_url (str): The repository URL or path that must be provided.
-        branch (str): Optional branch name; defaults to 'main'.
-        commit (str): Optional commit hash; if not provided, the latest commit is used.
     """
+       Configure a new repository for pipeline checks in the current directory.
+
+       This command clones the specified repository into the current working directory (PWD)
+       and optionally checks out the specified branch and commit. The current directory
+       must be empty for this operation to succeed.
+
+       Behavior:
+           - The repository is cloned into the PWD.
+           - If `--branch` is provided, the specified branch is checked out (default: 'main').
+           - If `--commit` is provided, the specified commit is checked out. If not provided,
+             the latest commit on the branch is used.
+           - If the current directory is not empty, the operation will fail with an error message.
+
+       Output:
+           - On success:
+               * Displays the repository details (URL, branch, and commit hash).
+           - On failure:
+               * Displays an error message indicating the reason for failure.
+
+       Args:
+           repo_url (str): The URL or path of the repository to be cloned.
+           branch (str): The branch to retrieve (optional; defaults to 'main').
+           commit (str): The commit hash to retrieve (optional; defaults to the latest commit).
+
+       Example Usage:
+           - Clone a repository with the default branch (`main`) and latest commit:
+               $ cid config set-repo https://github.com/example/repo.git
+
+           - Clone a repository and checkout a specific branch:
+               $ cid config set-repo https://github.com/example/repo.git --branch feature-branch
+
+           - Clone a repository and checkout a specific branch and commit:
+               $ cid config set-repo https://github.com/example/repo.git --branch feature-branch --commit abc123
+
+       Notes:
+           - Ensure the current directory is empty before running this command.
+           - The `repo_url` argument is mandatory.
+       """
 
     # Checks if user has not given a repo. Return to user error, terminate
     if not repo_url:
@@ -181,66 +213,45 @@ def set_repo(repo_url: str, branch: str, commit: str) -> None:
 
 
 @config.command()
-@click.option('--branch', default=None, help="Specify the branch to retrieve. Defaults to 'main'.")
-@click.option('--commit', default=None, help="Specify the commit hash to retrieve. Defaults to None.")
-def get_repo(branch: str, commit: str):
+def get_repo():
     """
-       Display information about the currently configured repository.
+    Display information about the currently configured repository.
 
-       Behavior:
-           - If no branch or commit is provided:
-               * Checks if the current working directory is a valid Git repository.
-               * Validates if the user is at the root of the repository.
-               * Ensures the repository is correctly set up for further `cid` CLI commands.
-           - If a branch is provided:
-               * Attempts to checkout the specified branch.
-               * Defaults to the latest commit on the branch if no commit is specified.
-           - If a commit is provided:
-               * Attempts to checkout the repository to the specified commit.
-           - If both branch and commit are provided:
-               * Attempts to checkout the repository to the specified branch and commit.
+    This command retrieves and displays details of the currently configured Git repository,
+    either from the current working directory if it is a Git repository, or from the last
+    set repository stored in the system.
 
-       Limitations:
-           - If the user is not in a valid Git repository or not at the root of the repository,
-             branch or commit operations will not be performed.
+    Behavior:
+        - If the current directory is a Git repository, it displays the URL, branch, and latest commit hash.
+        - If the current directory is not a Git repository but a previous repository configuration exists,
+          it retrieves and displays details of the last configured repository.
+        - If no repository is configured, it provides guidance for setting a repository.
 
-       Output:
-           - Displays the current repository details if successfully configured.
-           - Displays the last configured repository details if not in a valid Git repository.
-           - Displays error messages or guidance if no repository is configured or if setup fails.
+    Output:
+        Information about the repository is displayed in the console, including:
+        - Repository URL
+        - Repository name
+        - Branch name
+        - Commit hash of the latest commit
 
-       Args:
-           branch (str): The branch to checkout. If None, remains on the current branch.
-           commit (str): The commit hash to checkout. If None, defaults to the latest commit.
-
-       Example Usage:
-           - Display the current repository details:
-               $ cid config get-repo
-
-           - Checkout a specific branch (latest commit):
-               $ cid config get-repo --branch feature-branch
-
-           - Checkout a specific commit on the current branch:
-               $ cid config get-repo --commit abc123
-
-           - Checkout a specific branch and commit:
-               $ cid config get-repo --branch feature-branch --commit abc123
-       """
+    Example Usage:
+        $ cid config get-repo
+    """
 
     controller = Controller()
 
-    status, message, repo_details = controller.handle_repo(branch=branch, commit_hash=commit)
+    status, message, repo_details = controller.handle_repo()
 
     if status and repo_details:
-        click.echo(message)
-        click.echo("Current repository configured:\n")
+        click.echo(f"{message}\n")
+        click.echo("Repository configured in current working directory:\n")
         click.echo(f"Repository URL: {repo_details.repo_url}")
         click.echo(f"Repository Name: {repo_details.repo_name}")
         click.echo(f"Branch: {repo_details.branch}")
         click.echo(f"Commit Hash: {repo_details.commit_hash}\n")
 
     elif repo_details:
-        click.echo(f"{message}")
+        click.echo(f"{message}\n")
         click.echo("Last set repo details:\n")
         click.echo(f"Repository URL: {repo_details.repo_url}")
         click.echo(f"Repository Name: {repo_details.repo_name}")
@@ -249,9 +260,9 @@ def get_repo(branch: str, commit: str):
 
     else:
         click.echo("\nNo repository has been configured previously.")
-        click.echo("Run the command specifying a repository path in an empty working directory:\n")
+        click.echo("Run the command with specifying repo path in an empty working directory:\n")
         click.echo("OR")
-        click.echo("Run the command without specifying a repository path in the repository root\n")
+        click.echo("Run the command without specifying repo path in the repository root\n")
 
 
 @config.command()
