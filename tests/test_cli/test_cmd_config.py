@@ -2,6 +2,8 @@
 """
 import json
 import os
+import tempfile
+import unittest
 from unittest.mock import MagicMock, patch
 from click.testing import CliRunner
 from cli import (__main__, cmd_config)
@@ -281,8 +283,5 @@ def test_get_repo_no_repo_set(mock_handle_repo):
     result = runner.invoke(cmd_config.config, ['get-repo'])
 
     assert result.exit_code == 0
-    assert "No repository has been configured previously." in result.output
-    assert "Run the command with specifying repo path in an empty working directory:" in result.output
-    assert "OR" in result.output
-    assert "Run the command without specifying repo path in the repository root" in result.output
-
+    assert ("Working directory is not a git repository. "
+            "No previous repository has been set") in result.output

@@ -1,11 +1,3 @@
-"""
-Manages Git repositories and parses YAML files.
-
-For remote repositories, both the source URL and target path are required.
-For local repositories, the target path defaults to the source path.
-All paths must be absolute. The branch defaults to 'main' but can be changed as needed.
-"""
-
 from pathlib import Path
 import os
 from urllib.parse import urlparse
@@ -19,8 +11,17 @@ logger = get_logger(logger_name='util.repo_manager')
 
 class RepoManager:
     """
-    Utility class for managing Git repositories, including cloning, validation,
-    branch and commit handling, and metadata extraction.
+        Utility class for managing Git repositories.
+
+        This class handles interactions with Git repositories, supporting operations
+        such as cloning, fetching, checking out branches, and resetting to specific commits.
+        It uses GitPython library for handling such features.
+
+        Use cases include:
+        - Validating the current directory as a Git repository.
+        - Retrieving repository details such as branch and commit hash.
+        - Checking out branches or specific commits.
+        - Handling remote branches and commits during repository setup or updates.
     """
 
     def set_repo(
@@ -30,18 +31,20 @@ class RepoManager:
             branch: str = "main",
             commit_hash: str = None) -> tuple[bool, str, dict]:
         """
-        Validates the repository, clones it, and returns repository details.
+        Validates the repository URL given, clones it, and returns repository details.
 
         Args:
             repo_source (str): The repository URL or local path.
             is_remote (bool): Indicates if the source is remote or local.
-            branch (str): The branch to use for remote repositories.
-            commit_hash (str): Optional specific commit hash to check out.
+            branch (str): The branch to be cloned for the repository. Defaults to main.
+            commit_hash (str): The commit to be cloned for the repository. Defaults to latest commit
 
         Returns:
             tuple: (bool, str, dict) indicating success status, message, and repository details.
         """
-        if not repo_source:  # Check for empty path or URL
+
+        # Checks for empty path or URL
+        if not repo_source:
             return False, "Provided repository path is empty.", {}
 
         current_directory = Path(os.getcwd())
@@ -49,7 +52,8 @@ class RepoManager:
         if not is_remote:
             repo_source = str(Path(repo_source).resolve())
 
-        # Step 1: Ensure the current directory is empty
+        # Ensure the current directory is empty for cloning
+        # Else, return error message
         if any(current_directory.iterdir()):
             logger.warning(
                 "Current working directory is not empty. Please use an empty directory.")
@@ -60,18 +64,17 @@ class RepoManager:
             "Repository setup. Repo: %s, Branch: %s, Commit: %s",
             repo_source, branch, commit_hash)
 
-        # Step 2: Handle repository cloning based on whether it's remote or
-        # local
+        # Handle repository cloning using helper method
         success, message, repo_details = self.validate_and_clone_repo(
             repo_source, branch, commit_hash, is_local=not is_remote
         )
 
-        # Step 3: Handle errors during setup
+        # Case for when clone is not successful
         if not success:
             logger.error("Failed to set up repository: %s", message)
             return False, message, {}
 
-        # Step 4: Return success and repository details
+        # Case for successful clone. Return success and repository details
         logger.info("Repository setup completed successfully.")
         return True, "Repository successfully cloned.", repo_details
 
@@ -82,7 +85,8 @@ class RepoManager:
             commit_hash: str = None,
             is_local: bool = False) -> tuple[bool, str, dict]:
         """
-        Clones the repository and optionally checks out a specific branch and/or commit.
+        Clones the repository and checks out a specific branch and/or commit from given
+        args.
 
         Args:
             repo_source (str): The repository URL or local path.
@@ -100,11 +104,13 @@ class RepoManager:
             commit_hash)
 
         current_directory = Path(os.getcwd())
+
+        # Get repo name using helper method, based on local or remote
         repo_name = self._extract_repo_name_from_url(
             repo_source) if not is_local else Path(repo_source).name
 
+        # Logic for cloning repository
         try:
-            # Clone the repository
             clone_source = repo_source if not is_local else str(
                 Path(repo_source).resolve())
             repo = Repo.clone_from(
@@ -115,7 +121,7 @@ class RepoManager:
             )
             logger.debug("Successfully cloned branch '%s'.", branch)
 
-            # Checkout the commit (delegated)
+            # Checkout the commit if valid, latest commit if commit not given
             if commit_hash:
                 success, message = self._checkout_commit_after_clone(
                     repo, branch, commit_hash)
@@ -125,6 +131,8 @@ class RepoManager:
 
             latest_commit_hash = repo.head.commit.hexsha
 
+            # Case where clone is successful. Return metadata of the cloned
+            # repository
             return True, "Repository successfully validated, cloned, and checked out.", {
                 "repo_name": repo_name,
                 "repo_source": repo_source,
@@ -132,6 +140,8 @@ class RepoManager:
                 "commit_hash": commit_hash or latest_commit_hash
             }
 
+        # Exceptions when cloning, not due to invalid branch or commit
+        # Likely due to GitPython library error, or network error
         except GitCommandError as e:
             logger.warning("An error occurred during cloning: %s", e)
             return False, "Failed to clone or validate repository. Invalid branch or commit.", {}
@@ -143,7 +153,7 @@ class RepoManager:
     def _checkout_commit_after_clone(
             self, repo: Repo, branch: str, commit_hash: str) -> tuple[bool, str]:
         """
-        Handles checkout of a specific commit after cloning.
+        Helper method to handles checkout of a specific commit after cloning.
 
         Args:
             repo (Repo): The cloned repository object.
@@ -153,24 +163,29 @@ class RepoManager:
         Returns:
             tuple[bool, str]: Success status and a message.
         """
+
+        # Ensure the branch exists first, then check for valid commit
         try:
-            # Ensure the branch exists and is checked out
             if branch not in repo.branches:
                 ls_remote_output = repo.git.ls_remote(
                     "--heads", "origin", branch)
                 if not ls_remote_output.strip():
-                    return False, f"Branch '{branch}' does not exist locally or remotely."
-                repo.git.fetch("origin", branch)
+                    return False, f"Branch '{branch}' does not exist remotely."
+
+                repo.git.fetch(
+                    f"origin refs/heads/{branch}:refs/remotes/origin/{branch}")
                 repo.git.checkout("-b", branch, f"origin/{branch}")
             else:
                 repo.git.checkout(branch)
 
-            # Validate the commit
-            if commit_hash not in [
-                    commit.hexsha for commit in repo.iter_commits(branch)]:
+            # Validate the commit hash exists on the branch
+            commit_hashes = [
+                commit.hexsha for commit in repo.iter_commits(branch)]
+            if commit_hash not in commit_hashes:
                 return False, f"Commit '{commit_hash}' does not exist on branch '{branch}'."
 
-            # Checkout the commit
+            # Reset the branch to the specified commit, if branch is not
+            # up to date with the remote tracking version of the branch
             repo.git.execute(["git", "reset", "--hard", commit_hash])
             return True, f"Checked out to commit '{commit_hash}' on branch '{branch}'."
 
@@ -190,8 +205,9 @@ class RepoManager:
                 - Second bool: True if the repository is remote, False if it is local.
                 - str: Message describing the result.
         """
-        # Check if the source is a local path
 
+        # Check if the source is a local path, then check if given
+        # repo source is a valid git repository
         try:
             local_path = Path(repo_source).resolve()
             if local_path.is_dir() and (local_path / ".git").is_dir():
@@ -199,7 +215,6 @@ class RepoManager:
         except Exception as e:
             logger.debug(e)
 
-        # Check if the source is a valid remote repository
         try:
             subprocess.run(["git", "ls-remote", repo_source],
                            capture_output=True, check=True, text=True)
@@ -215,7 +230,7 @@ class RepoManager:
 
     def _extract_repo_name_from_url(self, url: str) -> str:
         """
-        Extracts the repository name from a URL.
+        Extracts the repository name from the given repo url
 
         Args:
             url (str): The repository URL.
@@ -238,7 +253,6 @@ class RepoManager:
             if repo_name.endswith(".git"):
                 repo_name = repo_name[:-4]
 
-            # Log the extracted repo name
             logger.debug(
                 "Final extracted repo name: '%s' from URL: '%s'",
                 repo_name,
@@ -251,7 +265,8 @@ class RepoManager:
 
     def is_current_dir_repo(self) -> tuple[bool, bool, str | None]:
         """
-        Checks if the current working directory is a Git repository and if it is at the root.
+        Checks if the current working directory is a Git repository and if it is at
+        the root of the repisitory.
 
         Returns:
             tuple: (bool, str | None, bool) where:
@@ -262,8 +277,6 @@ class RepoManager:
         try:
             repo = Repo(os.getcwd(), search_parent_directories=True)
             repo_name = os.path.basename(repo.working_tree_dir)
-
-            # Check if the current directory is the root of the repository
             is_in_root = os.getcwd() == repo.working_tree_dir
             return True, is_in_root, repo_name
         except InvalidGitRepositoryError:
@@ -272,6 +285,8 @@ class RepoManager:
     def _safe_cleanup(self, path: Path) -> None:
         """
         Safely removes all contents of a directory without deleting the directory itself.
+        This is used for cases where a valid branch has been cloned, but the commit
+        given is not valid.
 
         Args:
             path (Path): The directory path to clean up.
@@ -340,19 +355,24 @@ class RepoManager:
         """
         repo = Repo(os.getcwd())
 
-        # Check for dirty working directory
+        if not branch:
+            branch = repo.active_branch.name
+
+        # Check for unstaged changes from the user. Prompt return message, that
+        # checkout can only be executed once changes have been staged
         if repo.is_dirty(untracked_files=True):
             return False, "Unstaged changes detected. Please commit or stash changes before proceeding."
 
-        # Validate the commit first, before performing any branch-related
-        # actions
+        # Validate the branch and commit given to be checked out
         if commit_hash and branch:
             valid_commit = any(
                 commit_hash == commit.hexsha for commit in repo.iter_commits(branch))
             if not valid_commit:
                 return False, f"Invalid commit hash '{commit_hash}' for branch '{branch}'."
 
-        # Handle branch checkout or validation
+        # Handle branch checkout. For checkout cases, handling of remote tracking (local view)
+        # remote view, and full remote branches. Hence, method needs to be seperated from checkouts
+        # after cloning
         if branch:
             success, message = self._handle_branch_checkout(repo, branch)
             if not success:
@@ -382,22 +402,27 @@ class RepoManager:
                 - bool: True if the branch was successfully checked out, False otherwise.
                 - str: A descriptive message about the result.
         """
-        branch = branch or "main"  # Default to 'main'
         try:
-            if branch not in repo.branches:
-                # Check if the branch exists on the remote
-                ls_remote_output = repo.git.ls_remote(
-                    "--heads", "origin", branch)
-                if not ls_remote_output.strip():
-                    return False, f"Branch '{branch}' does not exist locally or remotely."
+            # Check if the branch exists locally
+            if branch in repo.branches:
+                repo.git.checkout(branch)  # Checkout local branch
+                return True, f"Checked out branch '{branch}' locally."
 
-                # Fetch and create the branch locally
-                repo.git.fetch("origin", branch)
-                repo.git.checkout("-b", branch, f"origin/{branch}")
-            else:
-                # Checkout the branch locally if it exists
-                repo.git.checkout(branch)
-            return True, f"Checked out branch '{branch}'."
+            # Check if the branch exists remotely
+            remote_refs = repo.git.ls_remote("--heads", "origin", branch)
+            if not remote_refs.strip():
+                return False, f"Branch '{branch}' does not exist remotely."
+
+            # Extract the ref path and fetch the branch explicitly
+            ref_path = f"refs/heads/{branch}"
+            repo.git.fetch(
+                "origin",
+                f"{ref_path}:refs/remotes/origin/{branch}")
+
+            # Create a local branch from the fetched remote branch
+            repo.git.checkout("-b", branch, f"origin/{branch}")
+            return True, f"Fetched and checked out branch '{branch}' from remote."
+
         except GitCommandError as e:
             return False, f"Error while checking out branch '{branch}': {e}"
 
@@ -421,22 +446,17 @@ class RepoManager:
             - If no commit is provided, defaults to the latest commit on the branch.
             - Resets the branch to the specified commit hash.
         """
-        branch = branch or "main"  # Default to 'main'
         try:
-            # Ensure the branch is checked out first
             if branch not in repo.branches:
-                # Create the branch from the commit hash if it doesn't exist
                 if not commit_hash:
                     # Fetch the latest commit on the remote branch
                     remote_refs = repo.git.ls_remote(
                         "--heads", "origin", branch)
                     if not remote_refs.strip():
                         return False, f"Branch '{branch}' does not exist remotely."
-                    # First column is the commit hash
                     commit_hash = remote_refs.split("\t")[0]
                 repo.git.checkout("-b", branch, commit_hash)
             else:
-                # Checkout the existing branch
                 repo.git.checkout(branch)
 
                 # If no commit_hash is provided, default to the latest commit
@@ -447,6 +467,7 @@ class RepoManager:
                 # Reset the branch to the specified commit hash
                 repo.git.execute(["git", "reset", "--hard", commit_hash])
 
+            # HEAD can get detached when checking out to a commit with a specific commit
             # Ensure the HEAD is now attached to the branch
             repo.git.checkout(branch)
             return True, f"Checked out to commit '{commit_hash}' on branch '{branch}'."

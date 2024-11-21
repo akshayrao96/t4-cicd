@@ -80,14 +80,14 @@ class Controller:
         """
         Configure and save a Git repository for CI/CD checks.
 
-        Clones the specified Git repository to the current working directory, 
+        Clones the specified Git repository to the current working directory,
         with an optional branch and commit.
         If the current directory is already a Git repository, it returns an error.
 
         Args:
             repo_url (str): URL of the Git repository to configure.
             branch (str, optional): The branch to use, defaults to 'main'.
-            commit_hash (str, optional): Specific commit hash to check out, 
+            commit_hash (str, optional): Specific commit hash to check out,
             defaults to the latest commit.
 
         Returns:
@@ -136,7 +136,6 @@ class Controller:
                 "time": time_log
             })
 
-            # Get id of inserted Session to validate insertion
             inserted_id = self.mongo_ds.update_session(repo_data.model_dump())
             if not inserted_id:
                 return False, "Failed to store repository details in MongoDB.", None
@@ -182,13 +181,12 @@ class Controller:
 
         user_id = os.getlogin()
 
+        # Perform the checkout operation
         try:
-            # Perform the checkout operation
             success, message = self.repo_manager.checkout_branch_and_commit(branch, commit_hash)
             if not success:
                 return False, message, None
 
-            # Retrieve updated repository details
             repo_details = self.repo_manager.get_current_repo_details()
 
             if not repo_details or not repo_details.get("repo_url"):
@@ -202,7 +200,6 @@ class Controller:
             existing_is_remote = existing_session.get("is_remote") \
                 if existing_session and "is_remote" in existing_session else False
 
-            # Validate and structure repository details into a SessionDetail object
             repo_data = SessionDetail.model_validate({
                 "user_id": user_id,
                 "repo_url": str(Path(repo_details["repo_url"]).resolve()),
@@ -239,10 +236,16 @@ class Controller:
         """
 
         # Case: check if user is in a $PWD that is a git repo
-        in_git_repo, repo_name, is_in_root = self.repo_manager.is_current_dir_repo()
+        in_git_repo, is_in_root, repo_name = self.repo_manager.is_current_dir_repo()
+
         user_id = os.getlogin()
 
         if in_git_repo:
+
+            if not is_in_root:
+                return False, ("Not in the root of the repository. "
+                               "Please navigate to the root of the repo and try again."), None
+
             repo_details = self.repo_manager.get_current_repo_details()
 
             time_log = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -262,10 +265,8 @@ class Controller:
                     "time": time_log
                 })
 
+                # Save the session details in the database
                 self.mongo_ds.update_session(repo_data.model_dump())
-
-                if not is_in_root:
-                    return False, "Not in the root of the repository. Please navigate to the root of the repo and try again.", repo_data
 
                 return True, "Repository is configured in current directory", repo_data
 
@@ -284,8 +285,7 @@ class Controller:
                 return False, "Failed to convert last repository to SessionDetail.", None
 
         # No repository information available
-        return False, ("Working directory is not a git repository. "
-                       "No previous repository has been set"), None
+        return False, "Working directory is not a git repository. No previous repository has been set.", None
 
     def get_controller_history(self) -> dict:
         """Retrieve pipeline history from Mongo DB
@@ -308,7 +308,7 @@ class Controller:
 
         Args:
             directory (str): valid directory containing pipeline configuration
-            saving (optional, bool): whether to save the result to db. 
+            saving (optional, bool): whether to save the result to db.
             Default to True
 
         Returns:
@@ -362,8 +362,8 @@ class Controller:
         override_configs:dict = None,
         session_data:SessionDetail = None,
     ) -> tuple[bool, str, PipelineInfo]:
-        """ apply overrides if any, validate config, and save the config into datastore. 
-        The pipeline configuration can come from three sources: (1) file_name, 
+        """ apply overrides if any, validate config, and save the config into datastore.
+        The pipeline configuration can come from three sources: (1) file_name,
         (2) pipeline_name
 
         Args:
@@ -372,9 +372,9 @@ class Controller:
             override_configs (dict, optional): override if any. Defaults to None.
 
         Returns:
-            tuple[bool, str, PipelineInfo]: First item is indicator for success or fail. 
-            second item is the error message if any. 
-            third item is the PipelineInfo object. 
+            tuple[bool, str, PipelineInfo]: First item is indicator for success or fail.
+            second item is the error message if any.
+            third item is the PipelineInfo object.
         """
         status = True
         error_msg = ""
@@ -418,9 +418,9 @@ class Controller:
                         pipeline_name: str = None,
                         override_configs:dict=None
                         ) -> tuple[bool, str, PipelineInfo]:
-        """ Apply override if any and Validate a single configuration file. 
-        The pipeline configuration can come from three sources: (1) file_name, 
-        (2) pipeline_name and (3) any pipeline_configuration 
+        """ Apply override if any and Validate a single configuration file.
+        The pipeline configuration can come from three sources: (1) file_name,
+        (2) pipeline_name and (3) any pipeline_configuration
 
         Args:
             file_name (str, optional): target file_name. Defaults to None.
@@ -428,9 +428,9 @@ class Controller:
             override_configs (dict, optional): override if any. Defaults to None.
 
         Returns:
-            tuple[bool, str, PipelineInfo]: First item is indicator for success or fail. 
-            second item is the error message if any. 
-            third item is the PipelineInfo object. 
+            tuple[bool, str, PipelineInfo]: First item is indicator for success or fail.
+            second item is the error message if any.
+            third item is the PipelineInfo object.
         """
         parser = YamlParser()
         pipeline_config = None
@@ -599,14 +599,14 @@ class Controller:
         Args:
             repo_data (SessionDetail): information required to identify the repo record
             pipeline_config (PipelineConfig): validated pipeline_configuration
-            local (bool, optional): flag indicate if run to be local(True) or remote(False). 
+            local (bool, optional): flag indicate if run to be local(True) or remote(False).
                 Defaults to False.
 
         Raises:
             ValueError: If target pipeline already running
 
         Returns:
-            tuple(bool, str): first flag indicate whether the overall run is 
+            tuple(bool, str): first flag indicate whether the overall run is
                 successful(True) or fail(False). Second str is the actual run number if success,
                 or error message if fail
         """

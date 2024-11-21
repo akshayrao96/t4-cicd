@@ -241,9 +241,9 @@ def get_repo():
     controller = Controller()
 
     status, message, repo_details = controller.handle_repo()
+    click.echo(f"{message}\n")
 
     if status and repo_details:
-        click.echo(f"{message}\n")
         click.echo("Repository configured in current working directory:\n")
         click.echo(f"Repository URL: {repo_details.repo_url}")
         click.echo(f"Repository Name: {repo_details.repo_name}")
@@ -251,19 +251,11 @@ def get_repo():
         click.echo(f"Commit Hash: {repo_details.commit_hash}\n")
 
     elif repo_details:
-        click.echo(f"{message}\n")
         click.echo("Last set repo details:\n")
         click.echo(f"Repository URL: {repo_details.repo_url}")
         click.echo(f"Repository Name: {repo_details.repo_name}")
         click.echo(f"Branch: {repo_details.branch}")
         click.echo(f"Commit Hash: {repo_details.commit_hash}\n")
-
-    else:
-        click.echo("\nNo repository has been configured previously.")
-        click.echo("Run the command with specifying repo path in an empty working directory:\n")
-        click.echo("OR")
-        click.echo("Run the command without specifying repo path in the repository root\n")
-
 
 @config.command()
 @click.option('--pipeline', required=True, help="pipeline name to update")
