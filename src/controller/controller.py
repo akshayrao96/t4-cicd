@@ -3,7 +3,6 @@
     other related class.
 """
 
-
 from datetime import datetime
 import os
 import time
@@ -32,8 +31,6 @@ DEFAULT_CONFIG_DIR = ".cicd-pipelines/"
 
 # pylint: disable=logging-fstring-interpolation
 # pylint: disable=logging-not-lazy
-# pylint: disable=fixme
-
 
 class Controller:
     """Controller class that integrates the CLI with the other class components"""
@@ -41,8 +38,6 @@ class Controller:
     def __init__(self):
         """Initialize the controller class
         """
-        # init Docker
-        # init RepoManager
         self.repo_manager = RepoManager()
         self.mongo_ds = MongoAdapter()  # init DataStore (MongoDB, Postgres)
         self.config_checker = ConfigChecker()  # init Configuration Checker
@@ -292,21 +287,6 @@ class Controller:
         return False, ("Working directory is not a git repository. "
                        "No previous repository has been set."), None
 
-    def get_controller_history(self) -> dict:
-        """Retrieve pipeline history from Mongo DB
-
-        Returns:
-            dict: return list of pipeline_id of pipeline history commit
-        """
-        #TODO: need to configure mongodb local before this can be run
-        #pipelines = self.mongo_ds.get_controller_history()
-        #self.logger.debug("history of the pipelines: %s", str(pipelines))
-
-        #TODO: add validation / conditional checking for returned value
-        #TODO: determine if simply return <dict> or have some logic
-
-        #return pipelines
-
     ### CONFIG ###
     def validate_n_save_configs(self, directory: str, saving:bool = True) -> dict:
         """ Set Up repo, validate config, and save the config into datastore
@@ -528,12 +508,6 @@ class Controller:
         click.echo("Pipeline configuration updated successfully.")
         return True
 
-    ### PIPELINE ###
-    def setup_pipeline(self):
-        """ setup pipeline when is called for the first time.
-        command: `cid pipeline setup`
-        """
-
     def run_pipeline(self, config_file: str, pipeline_name: str, git_details:SessionDetail,
                      dry_run:bool = False, local:bool = False, yaml_output: bool = False,
                      override_configs:dict=None
@@ -745,15 +719,6 @@ class Controller:
         run_msg = f"run_number:{run_number}" if pipeline_pass else ""
         return pipeline_pass, run_msg
 
-    def display_or_edit_config(self):
-        """_summary_
-        """
-
-
-    def list_configuration(self):
-        """_summary_
-        """
-
     def dry_run(self, config_dict: dict, is_yaml_output:bool) -> tuple[bool, str]:
         """dry run methods responsible for the `--dry-run` method for pipelines.
         The function will retrieve any pipeline history from database, then validate
@@ -841,6 +806,6 @@ class Controller:
             is_success = False
             err_msg = "invalid pipeline_name (--pipeline) or run_number (--run). Please try again"
             return is_success, err_msg
-        
+
         is_success = True
         return is_success, output_msg

@@ -17,7 +17,6 @@ DEFAULT_LIST = []
 DEFAULT_DICT = {}
 
 # pylint: disable=logging-fstring-interpolation
-# pylint: disable=fixme
 # pylint: disable=too-few-public-methods
 
 class ConfigChecker:
@@ -507,84 +506,6 @@ class ConfigChecker:
             else:
                 group_orders.append(order)
         return (result_flag, result_error_msg, group_orders)
-
-    # TODO - To Delete
-    # def _topo_sort(
-    #         self,
-    #         stage_name:str,
-    #         adjacency_list:dict,
-    #         entire_list:list=None
-    #     )->tuple[bool, str, list]:
-    #     """ performed topological sort based on the nodes in adjacency_list and entire_list
-
-    #     Args:
-    #         stage_name:str name of the stage checking on
-    #         adjacency_list (dict): graph representation of given nodes
-    #         entire_list (list, optional): List of all nodes to be sorted,
-    #             if provided will use this. Defaults to None.
-
-    #     Returns:
-    #         tuple[bool, str, list]: tuple of three return value
-    #         first indicate if the sort passed or failed
-    #         second is a list of error message
-    #         third is resulted sorted list
-    #     """
-    #     result_flag = True
-    #     result_error_msg = ""
-    #     node2depend_cnt = collections.defaultdict(int)
-    #     # initialize the node2depend_cnt dict if entire_list is supplied
-    #     if entire_list is not None:
-    #         for node in entire_list:
-    #             node2depend_cnt[node] = 0
-
-    #     # fill the depend_cnt based on adjacency list graph
-    #     # recall for each key value pairs in adjacency list
-    #     # the key is required by the value, key need to finish first
-    #     for node, required_by in adjacency_list.items():
-    #         if node not in node2depend_cnt:
-    #             node2depend_cnt[node] = 0
-    #         # Then for each value in required_by, we add the depend_cnt by 1
-    #         for req in required_by:
-    #             node2depend_cnt[req] += 1
-
-    #     order = []
-    #     queue = collections.deque()
-    #     visited = set()
-    #     for node, depend_cnt in node2depend_cnt.items():
-    #         # depend_cnt == 0 means this node is not waiting on other node
-    #         # and can be scheduled to start
-    #         if depend_cnt == 0:
-    #             queue.append(node)
-    #             order.append(node)
-    #             visited.add(node)
-    #     # clean up
-    #     for node in visited:
-    #         node2depend_cnt.pop(node)
-
-    #     # bfs
-    #     self.logger.debug(queue)
-    #     while queue:
-    #         curr = queue.popleft()
-    #         if curr not in adjacency_list:
-    #             continue
-    #         for required_by in adjacency_list[curr]:
-    #             if required_by in visited:
-    #                 continue
-    #             node2depend_cnt[required_by] -= 1
-    #             if node2depend_cnt[required_by] == 0:
-    #                 queue.append(required_by)
-    #                 order.append(required_by)
-    #                 visited.add(required_by)
-    #                 node2depend_cnt.pop(required_by)
-
-    #     # check result
-    #     self.logger.debug(node2depend_cnt)
-    #     if len(node2depend_cnt) != 0:
-    #         result_flag = False
-    #         result_error_msg = f"stage:{stage_name}-Cycle error detected for jobs:{list(node2depend_cnt.keys())}\n" # pylint: disable=line-too-long
-    #         return (result_flag, result_error_msg, [])
-    #     return (result_flag, result_error_msg, order)
-
 
     def _check_jobs_section(self, pipeline_config: dict,
                             processed_config: dict,

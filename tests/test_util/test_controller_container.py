@@ -202,7 +202,6 @@ class TestRunJob(unittest.TestCase):
         status, msg = controller._actual_pipeline_run(repo_data, pipeline_config)
         assert status == False
 
-    
     @patch("controller.controller.MongoAdapter.update_job")
     @patch("controller.controller.MongoAdapter.update_job_logs")
     @patch("controller.controller.DockerManager._upload_artifact")
@@ -218,7 +217,7 @@ class TestRunJob(unittest.TestCase):
             mock_docker_manager,
             mock_upload_artifact,
             mock_update_job_logs,
-            mock_update_job
+            mock_update_job,
         ):
         mock_history = copy.deepcopy(self.mock_running_pipeline_history)
         mock_history['running'] = False
