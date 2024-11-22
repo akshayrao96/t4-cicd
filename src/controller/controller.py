@@ -68,7 +68,7 @@ class Controller:
         """
         if repo_url:
             # Set up the repository by doing a clone of the given repo_url
-            return self.set_repo(repo_url=repo_url, branch="main", commit_hash=commit_hash)
+            return self.set_repo(repo_url=repo_url, branch=branch, commit_hash=commit_hash)
         if branch or commit_hash:
             # Check out with specified branch or commit
             return self.checkout_repo(branch=branch, commit_hash=commit_hash)
