@@ -1,84 +1,95 @@
 # Main Schema for Datastore
 
-## Tables required
+Schema design for the datastore used in the CI/CD system.
 
-- sessions - Record UserID and Information for repo that the developer is working on.
 
-- repo_configs - Record all pipelines information and status (past and present pipeline) for a particular repo.
+---
 
-- jobs_history - all job runs history
+## Schema Design
 
-Note: MongoDB will add a ObjectId for each documents
+### **Tables Required**
+1. **sessions**  
+   Records `UserID` and details about the repository that the developer is working on.
 
-## Table Details (sessions)
+2. **repo_configs**  
+   Stores all pipeline information (past and present) for a particular repository, including pipeline configurations and statuses.
 
-Fields required:
+3. **jobs_history**  
+   Maintains the history of all job runs, including their statuses and logs.
 
-- userid (primary key)
-- repo_name
-- repo_url
-- branch
-- commit hash working on
-- Whether the repo is local / remote
-- if remote , last_temp_working_dir
-- last access timestamp?
+> **Note:** MongoDB automatically adds an `ObjectId` for each document.
 
-## Table Details (repo_configs)
+---
 
-Fields required:
-Primary keys - repo_name, repo_url and branch
+## Table Details
 
-- repo_name
-- repo_url
-- branch
-- Pipelines: (past and present pipeline information in dictionary)
-  - pipeline_name (primary key for pipeline, key for each pipeline items)
-  - pipeline_file_name (can be different from pipeline_name)
-  - (validated) pipeline_config - pipeline config that failed validation will not be stored
-  - job_run_history (list of job runs id for this pipeline)
-  - active (boolean flag)
-  - running (boolean flag to indicate if this pipeline is currently running)
-  - last_commit_hash (use to identify if need to reload and validate new pipeline config)
+### **1. sessions**
 
-## Table Detals (jobs_history)
+**Fields Required**:
+- `userid` (Primary Key): Unique identifier for the user.
+- `repo_name`: Name of the repository.
+- `repo_url`: URL of the repository.
+- `branch`: Current branch being worked on.
+- `commit_hash`: Commit hash of the current work.
+- `is_remote`: Indicates whether the repository is local or remote.
+- `last_access_timestamp`: Timestamp of the last session access.
 
-Fields required:
+---
 
-- jobs_id (primary key)
-- pipeline_name
-- run_number
-- git_commit_hash
-- pipeline_config_used
-- status (success/failed/cancelled)
-- start_time
-- completion_time
-- logs - organized by stages
-  - stage_name
-  - stage_status
-  - start_time
-  - completion_time
-  - jobs
-    <!---Consider using key-values pair here, with key = job_name, values = single job_log info --->
-    - job_name
-    - job_status
-    - allows_failure
-    - start_time
-    - completion_time
-    - job_logs
+### **2. repo_configs**
 
-## Main methods available in db_mongo and Pydantic Models available
+**Primary Keys**: `repo_name`, `repo_url`, `branch`
 
-### Usecase: Insert a new sessions data
+**Fields Required**:
+- `repo_name`: Name of the repository.
+- `repo_url`: URL of the repository.
+- `branch`: Current branch being worked on.
+- `pipelines`: Dictionary containing past and present pipeline information.
+  - `pipeline_name` (Primary Key for pipelines): Unique name of the pipeline.
+  - `pipeline_file_name`: File name associated with the pipeline (may differ from `pipeline_name`).
+  - `pipeline_config`: Validated pipeline configuration. Failed validations are not stored.
+  - `job_run_history`: List of job run IDs associated with the pipeline.
+  - `active`: Boolean flag indicating if the pipeline is active.
+  - `running`: Boolean flag indicating if the pipeline is currently running.
+  - `last_commit_hash`: Commit hash used to determine if the pipeline configuration needs revalidation.
 
-Pydantic Model used : SessionDetail
+---
 
-### Usecase: Adding new / Update Existing Pipeline Configurations
+### **3. jobs_history**
 
-Pydantic Model used :
+**Fields Required**:
+- `jobs_id` (Primary Key): Unique identifier for each job run.
+- `pipeline_name`: Name of the associated pipeline.
+- `run_number`: Sequential run number for the pipeline.
+- `git_commit_hash`: Commit hash used during the job execution.
+- `pipeline_config_used`: Configuration of the pipeline used for the job.
+- `status`: Status of the job (`success`, `failed`, `canceled`).
+- `start_time`: Start timestamp of the job.
+- `completion_time`: Completion timestamp of the job.
+- `logs`: Organized logs for each stage and job within the stage.
+  - **Stage-level logs**:
+    - `stage_name`
+    - `stage_status`
+    - `start_time`
+    - `completion_time`
+  - **Job-level logs** (within each stage):
+    - `job_name`
+    - `job_status`
+    - `allows_failure`: Boolean flag indicating if failure was allowed for the job.
+    - `start_time`
+    - `completion_time`
+    - `job_logs`
 
-- PipelineInfo (for new),
-- PipelineConfig (for new and update)
+> **Note:** Consider using a key-value pair structure for job logs, where the key is `job_name` and the value is the log information.
 
-MongoAdapter method :
+---
 
-- update_pipeline_info()
+## Environment Setup
+
+The database URL must be stored in the `~/.bashrc` or `~/.zshrc` file as an environment variable (`MONGO_DB_URL`) to ensure connectivity.
+
+```bash
+"export MONGO_DB_URL="<your-mongodb-url>"
+```
+
+
