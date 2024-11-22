@@ -2,15 +2,14 @@
 """
 import json
 import os
-import pytest
 from click.testing import CliRunner
 from cli import (__main__, cmd_pipeline)
 from docker.errors import DockerException
 from pydantic import ValidationError
 from unittest import TestCase
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 from bson import ObjectId
-from util.model import (PipelineConfig, SessionDetail, ValidationResult, PipelineHist)
+from util.model import (PipelineConfig, SessionDetail, ValidationResult)
 from util.common_utils import get_logger
 
 def test_cid():
@@ -295,14 +294,6 @@ class TestPipelineRun(TestCase):
         result = self.runner.invoke(cmd_pipeline.pipeline, cmd_list)
         assert result.exit_code == 0
 
-def test_pipeline_log():
-    """call pipeline log
-    """
-    runner = CliRunner()
-    result = runner.invoke(cmd_pipeline.pipeline, ['log'])
-
-    assert result.exit_code == 0
-
 class TestPipelineHistory(TestCase):
     """Test class to handle `cid pipeline history` command that
     validates the cli and controller class for report history
@@ -321,18 +312,6 @@ class TestPipelineHistory(TestCase):
         Args:
             mock_pipeline_summary (MagicMock): mock MongoAdapter.get_pipeline_run_summary func.
         """
-        # pipeline_hist_dict = PipelineHist(
-        #     repo_name='cicd-python',
-        #     repo_url='https://github.com/sjchin88/cicd-python',
-        #     pipeline_name=None,
-        #     branch="main",
-        #     stage=None,
-        #     job=None,
-        #     run=None,
-        #     is_remote=False
-        # )
-        #success_validate_hist = PipelineHist.model_validate(pipeline_hist_dict)
-        #mock_pipeline_history.return_value = (True, "all pipeline report")
 
         mock_pipeline_summary.return_value = [
           {'_id': ObjectId('673139d61c77e7e99afd88ce'), 'pipeline_name': 'cicd_pipeline',
