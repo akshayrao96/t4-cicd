@@ -2,6 +2,8 @@
 """
 import json
 import os
+import tempfile
+import unittest
 from unittest.mock import MagicMock, patch
 from click.testing import CliRunner
 from cli import (__main__, cmd_config)
@@ -274,12 +276,12 @@ def test_get_repo_last_set_repo(mock_get_repo):
     assert "Commit Hash: 456def" in result.output
     mock_get_repo.assert_called_once()
 
-@patch("cli.cmd_config.Controller.get_repo", return_value=(False, "No repository has been configured previously.", None))
-def test_get_repo_no_repo_set(mock_get_repo):
+@patch("cli.cmd_config.Controller.handle_repo", return_value=(False, "Working directory is not a git repository. No previous repository has been set.", None))
+def test_get_repo_no_repo_set(mock_handle_repo):
     """Test `get-repo` command when no repository is configured."""
     runner = CliRunner()
     result = runner.invoke(cmd_config.config, ['get-repo'])
 
     assert result.exit_code == 0
-    assert "No repository has been configured previously." in result.output
-    mock_get_repo.assert_called_once()
+    assert ("Working directory is not a git repository. "
+            "No previous repository has been set") in result.output

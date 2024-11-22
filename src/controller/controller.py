@@ -3,13 +3,15 @@
     other related class.
 """
 
-
 from datetime import datetime
 import os
 import time
+from pathlib import Path
+
 #import pprint
 import click
 #import git.exc
+from docker.errors import DockerException
 from pydantic import ValidationError
 from ruamel.yaml import YAMLError
 import util.constant as const
@@ -29,8 +31,6 @@ DEFAULT_CONFIG_DIR = ".cicd-pipelines/"
 
 # pylint: disable=logging-fstring-interpolation
 # pylint: disable=logging-not-lazy
-# pylint: disable=fixme
-
 
 class Controller:
     """Controller class that integrates the CLI with the other class components"""
@@ -38,26 +38,22 @@ class Controller:
     def __init__(self):
         """Initialize the controller class
         """
-        # init Docker
-        # init RepoManager
         self.repo_manager = RepoManager()
         self.mongo_ds = MongoAdapter()  # init DataStore (MongoDB, Postgres)
         self.config_checker = ConfigChecker()  # init Configuration Checker
         # ..and many more
         self.logger = get_logger('cli.controller')
 
-    def handle_repo(
-            self,
-            repo_url: str = None, branch: str = "main",
-            commit_hash: str = None) -> tuple[bool, str, SessionDetail | None]:
+    def handle_repo(self, repo_url: str = None,
+                    branch: str = None,
+                    commit_hash: str = None) -> tuple[bool, str, SessionDetail | None]:
         """
-        If repo_url is given, call set_repo for the cloning process.
-        If no repo_url is given, call get_repo to validate $PWD as a git repository.
+        Handles repository setup and retrieval depending on the input parameters.
 
         Args:
             repo_url (str, optional): URL of the Git repository to configure. Defaults to None.
-            branch (str, optional): The branch to use, defaults to 'main'.
-            commit_hash (str, optional): Specific commit hash to check out, defaults to None.
+            branch (str, optional): The branch to use. Defaults to None.
+            commit_hash (str, optional): Specific commit hash to check out. Defaults to None.
 
         Returns:
             tuple: (bool, str, SessionDetail | None)
@@ -66,23 +62,28 @@ class Controller:
                 - SessionDetail or None: Repository details if available, otherwise None.
         """
         if repo_url:
+            # Set up the repository by doing a clone of the given repo_url
             return self.set_repo(repo_url=repo_url, branch=branch, commit_hash=commit_hash)
-        else:
-            return self.get_repo()
+        if branch or commit_hash:
+            # Check out with specified branch or commit
+            return self.checkout_repo(branch=branch, commit_hash=commit_hash)
+
+        # Get the current repository details, or last set repo from user
+        return self.get_repo()
 
     def set_repo(self, repo_url: str = None, branch: str = "main",
                  commit_hash: str = None) -> tuple[bool, str, SessionDetail | None]:
         """
         Configure and save a Git repository for CI/CD checks.
 
-        Clones the specified Git repository to the current working directory, 
+        Clones the specified Git repository to the current working directory,
         with an optional branch and commit.
         If the current directory is already a Git repository, it returns an error.
 
         Args:
             repo_url (str): URL of the Git repository to configure.
             branch (str, optional): The branch to use, defaults to 'main'.
-            commit_hash (str, optional): Specific commit hash to check out, 
+            commit_hash (str, optional): Specific commit hash to check out,
             defaults to the latest commit.
 
         Returns:
@@ -95,16 +96,25 @@ class Controller:
         # Check : User's $PWD is a git repo. Return failure, error message, and none
         in_git_repo, message, repo_name = self.repo_manager.is_current_dir_repo()
         if in_git_repo:
-            return False, f"Currently in a Git repository: '{repo_name}'. Please navigate to an empty directory.", None
+            return (False,
+                    f"Currently in a Git repository: '{repo_name}'. "
+                    f"Please navigate to an empty directory.", None)
 
+        is_valid, is_remote, message = self.repo_manager.is_valid_git_repo(repo_url)
+
+        if not is_valid:
+            return False, message, None
 
         # Check : User has cloned a repo successfully, branch and commit are valid
         is_valid, message, repo_details = self.repo_manager.set_repo(
-            repo_url, branch, commit_hash)
+            repo_url, is_remote, branch, commit_hash)
 
         # If not, return failure, error message, and none
         if not is_valid:
             return False, message, None
+
+        if not is_remote:
+            repo_url = str(Path(repo_url).resolve())
 
         time_log = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         user_id = os.getlogin()
@@ -119,7 +129,7 @@ class Controller:
                 "repo_name": repo_details["repo_name"],
                 "branch": repo_details["branch"],
                 "commit_hash": repo_details["commit_hash"],
-                "is_remote": True,
+                "is_remote": is_remote,
                 "time": time_log
             })
 
@@ -127,10 +137,87 @@ class Controller:
             if not inserted_id:
                 return False, "Failed to store repository details in MongoDB.", None
 
+            # Successful execution of repo being cloned and configured in $PWD
             return True, "Repository set successfully.", repo_data
 
         except ValidationError as e:
             return False, f"Data validation error: {e}", None
+
+    def checkout_repo(self, branch: str = None,
+                      commit_hash: str = None) -> tuple[bool, str, SessionDetail | None]:
+        """
+          Checks out a specific branch and/or commit in the current repository.
+
+          This method validates the current directory as a Git repository and attempts to
+          check out the specified branch and/or commit. If no branch or commit is provided,
+          it defaults to checking out the latest commit on the default branch.
+
+          Upon successful execution, the method updates the session details in the database.
+
+          Args:
+              branch (str, optional): The branch to check out. If None, stays on the current branch.
+              commit_hash (str, optional): The specific commit hash to check out. If None, defaults
+                                           to the latest commit on the given or current branch.
+
+          Returns:
+              tuple[bool, str, SessionDetail | None]:
+                  - bool: True if the operation was successful, False otherwise.
+                  - str: A message describing the result of the operation.
+                  - SessionDetail or None: The repository details if successful,
+                  or None if the operation failed.
+
+          Exceptions:
+              - ValidationError: Raised if the session data fails validation.
+              - Exception: Catches unexpected errors and returns
+              them as part of the failure message.
+          """
+        in_git_repo, is_in_root, _ = self.repo_manager.is_current_dir_repo()
+
+        if not in_git_repo:
+            return False, "Current directory is not a Git repository.", None
+
+        if not is_in_root:
+            return False, "Please navigate to root of repository before executing command.", None
+
+        user_id = os.getlogin()
+
+        # Perform the checkout operation
+        try:
+            success, message = self.repo_manager.checkout_branch_and_commit(branch, commit_hash)
+            if not success:
+                return False, message, None
+
+            repo_details = self.repo_manager.get_current_repo_details()
+
+            if not repo_details or not repo_details.get("repo_url"):
+                return False, "Failed to retrieve repository details.", None
+
+            time_log = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+            # Retrieve existing session
+            existing_session = self.mongo_ds.get_session(user_id)
+            existing_is_remote = existing_session.get("is_remote") \
+                if existing_session and "is_remote" in existing_session else False
+
+            repo_data = SessionDetail.model_validate({
+                "user_id": user_id,
+                "repo_url": str(Path(repo_details["repo_url"]).resolve()),
+                "repo_name": repo_details["repo_name"],
+                "branch": repo_details["branch"],
+                "commit_hash": repo_details["commit_hash"],
+                "is_remote": existing_is_remote,
+                "time": time_log
+            })
+
+            # Save the session details in the database
+            self.mongo_ds.update_session(repo_data.model_dump())
+
+            return True, "Repository checked out successfully.", repo_data
+
+        except ValidationError as e:
+            return False, f"Data validation error: {e}", None
+        except Exception as e:
+            return False, f"Unexpected error: {e}", None
 
     def get_repo(self) -> tuple[bool, str, SessionDetail | None]:
         """
@@ -148,29 +235,37 @@ class Controller:
         """
 
         # Case: check if user is in a $PWD that is a git repo
-        in_git_repo, repo_name, is_in_root = self.repo_manager.is_current_dir_repo()
+        in_git_repo, is_in_root, _ = self.repo_manager.is_current_dir_repo()
+
         user_id = os.getlogin()
 
         if in_git_repo:
+
+            if not is_in_root:
+                return False, ("Not in the root of the repository. "
+                               "Please navigate to the root of the repo and try again."), None
+
             repo_details = self.repo_manager.get_current_repo_details()
 
             time_log = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
             try:
+                existing_session = self.mongo_ds.get_session(user_id)
+                existing_is_remote = existing_session.get("is_remote") \
+                    if existing_session and "is_remote" in existing_session else False
+
                 repo_data = SessionDetail.model_validate({
                     "user_id": user_id,
                     "repo_url": repo_details["repo_url"],
                     "repo_name": repo_details["repo_name"],
                     "branch": repo_details["branch"],
                     "commit_hash": repo_details["commit_hash"],
-                    "is_remote": True,
+                    "is_remote": existing_is_remote,
                     "time": time_log
                 })
 
+                # Save the session details in the database
                 self.mongo_ds.update_session(repo_data.model_dump())
-
-                if not is_in_root:
-                    return False, "Not in the root of the repository. Please navigate to the root of the repo and try again.", repo_data
 
                 return True, "Repository is configured in current directory", repo_data
 
@@ -189,22 +284,8 @@ class Controller:
                 return False, "Failed to convert last repository to SessionDetail.", None
 
         # No repository information available
-        return False, "No repository found to run command.", None
-
-    def get_controller_history(self) -> dict:
-        """Retrieve pipeline history from Mongo DB
-
-        Returns:
-            dict: return list of pipeline_id of pipeline history commit
-        """
-        #TODO: need to configure mongodb local before this can be run
-        #pipelines = self.mongo_ds.get_controller_history()
-        #self.logger.debug("history of the pipelines: %s", str(pipelines))
-
-        #TODO: add validation / conditional checking for returned value
-        #TODO: determine if simply return <dict> or have some logic
-
-        #return pipelines
+        return False, ("Working directory is not a git repository. "
+                       "No previous repository has been set."), None
 
     ### CONFIG ###
     def validate_n_save_configs(self, directory: str, saving:bool = True) -> dict:
@@ -212,7 +293,7 @@ class Controller:
 
         Args:
             directory (str): valid directory containing pipeline configuration
-            saving (optional, bool): whether to save the result to db. 
+            saving (optional, bool): whether to save the result to db.
             Default to True
 
         Returns:
@@ -266,8 +347,8 @@ class Controller:
         override_configs:dict = None,
         session_data:SessionDetail = None,
     ) -> tuple[bool, str, PipelineInfo]:
-        """ apply overrides if any, validate config, and save the config into datastore. 
-        The pipeline configuration can come from three sources: (1) file_name, 
+        """ apply overrides if any, validate config, and save the config into datastore.
+        The pipeline configuration can come from three sources: (1) file_name,
         (2) pipeline_name
 
         Args:
@@ -276,9 +357,9 @@ class Controller:
             override_configs (dict, optional): override if any. Defaults to None.
 
         Returns:
-            tuple[bool, str, PipelineInfo]: First item is indicator for success or fail. 
-            second item is the error message if any. 
-            third item is the PipelineInfo object. 
+            tuple[bool, str, PipelineInfo]: First item is indicator for success or fail.
+            second item is the error message if any.
+            third item is the PipelineInfo object.
         """
         status = True
         error_msg = ""
@@ -322,9 +403,9 @@ class Controller:
                         pipeline_name: str = None,
                         override_configs:dict=None
                         ) -> tuple[bool, str, PipelineInfo]:
-        """ Apply override if any and Validate a single configuration file. 
-        The pipeline configuration can come from three sources: (1) file_name, 
-        (2) pipeline_name and (3) any pipeline_configuration 
+        """ Apply override if any and Validate a single configuration file.
+        The pipeline configuration can come from three sources: (1) file_name,
+        (2) pipeline_name and (3) any pipeline_configuration
 
         Args:
             file_name (str, optional): target file_name. Defaults to None.
@@ -332,9 +413,9 @@ class Controller:
             override_configs (dict, optional): override if any. Defaults to None.
 
         Returns:
-            tuple[bool, str, PipelineInfo]: First item is indicator for success or fail. 
-            second item is the error message if any. 
-            third item is the PipelineInfo object. 
+            tuple[bool, str, PipelineInfo]: First item is indicator for success or fail.
+            second item is the error message if any.
+            third item is the PipelineInfo object.
         """
         parser = YamlParser()
         pipeline_config = None
@@ -427,12 +508,6 @@ class Controller:
         click.echo("Pipeline configuration updated successfully.")
         return True
 
-    ### PIPELINE ###
-    def setup_pipeline(self):
-        """ setup pipeline when is called for the first time.
-        command: `cid pipeline setup`
-        """
-
     def run_pipeline(self, config_file: str, pipeline_name: str, git_details:SessionDetail,
                      dry_run:bool = False, local:bool = False, yaml_output: bool = False,
                      override_configs:dict=None
@@ -484,7 +559,11 @@ class Controller:
             status, run_msg = self._actual_pipeline_run(git_details, pipeline_config, local)
             message += run_msg
         except ValidationError as ve:
-            message = f"validation error occur, error is {ve}\n"
+            message = f"validation error occur, error is {str(ve)}\n"
+            self.logger.warning(message)
+            status = False
+        except DockerException as de:
+            message = f"Error with docker service. error is {str(de)}\n"
             self.logger.warning(message)
             status = False
 
@@ -503,14 +582,14 @@ class Controller:
         Args:
             repo_data (SessionDetail): information required to identify the repo record
             pipeline_config (PipelineConfig): validated pipeline_configuration
-            local (bool, optional): flag indicate if run to be local(True) or remote(False). 
+            local (bool, optional): flag indicate if run to be local(True) or remote(False).
                 Defaults to False.
 
         Raises:
             ValueError: If target pipeline already running
 
         Returns:
-            tuple(bool, str): first flag indicate whether the overall run is 
+            tuple(bool, str): first flag indicate whether the overall run is
                 successful(True) or fail(False). Second str is the actual run number if success,
                 or error message if fail
         """
@@ -640,15 +719,6 @@ class Controller:
         run_msg = f"run_number:{run_number}" if pipeline_pass else ""
         return pipeline_pass, run_msg
 
-    def display_or_edit_config(self):
-        """_summary_
-        """
-
-
-    def list_configuration(self):
-        """_summary_
-        """
-
     def dry_run(self, config_dict: dict, is_yaml_output:bool) -> tuple[bool, str]:
         """dry run methods responsible for the `--dry-run` method for pipelines.
         The function will retrieve any pipeline history from database, then validate
@@ -736,6 +806,6 @@ class Controller:
             is_success = False
             err_msg = "invalid pipeline_name (--pipeline) or run_number (--run). Please try again"
             return is_success, err_msg
-        
+
         is_success = True
         return is_success, output_msg
