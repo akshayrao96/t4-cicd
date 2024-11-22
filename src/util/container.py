@@ -18,7 +18,6 @@ from util.common_utils import (get_logger)
 from util.db_artifact import S3Client
 from util.model import (JobConfig, JobLog)
 
-# pylint: disable=fixme
 logger = get_logger("util.docker")
 
 DEFAULT_DOCKER_DIR = '/app'
@@ -136,8 +135,6 @@ class DockerManager(ContainerManager):
             # stdout and stderr, we want to also check the stderr
             output = container.logs().decode('utf-8')
             output_stderr = container.logs(stdout=False).decode('utf-8')
-            #print(output)
-            #print(f"err:{output_stderr}")
 
             # Note docker container will store some status log in stderr, currently
             # only way to check if error in execution is to look for the keyword

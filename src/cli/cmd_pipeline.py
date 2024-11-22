@@ -10,7 +10,7 @@ from controller.controller import (Controller)
 
 DEFAULT_CONFIG_FILE_PATH = ".cicd-pipelines/pipelines.yml"
 logger = get_logger('cli.cmd_pipeline')
-# pylint: disable=fixme
+
 @click.group()
 def pipeline():
     """All commands related to pipeline"""
@@ -132,7 +132,7 @@ history of the run # given the PIPELINE_NAME and RUN number.\n \f
     """
     ctrl = Controller()
     pipeline_model = {}
-    #TODO: Step 1. get_repo to retrieve repo_name, repo_url, branch
+
     #TODO: validate if --run is specified, --pipeline needs to exist
 
     pipeline_model['pipeline_name'] = pipeline_name

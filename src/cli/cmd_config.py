@@ -4,7 +4,6 @@
 import os
 import pprint
 import click
-# import util.constant as const
 from util.common_utils import (get_logger, MongoHelper)
 from controller.controller import Controller
 
