@@ -4,6 +4,7 @@ import json
 import os
 from click.testing import CliRunner
 from cli import (__main__, cmd_pipeline)
+from docker.errors import DockerException
 from pydantic import ValidationError
 from unittest import TestCase
 from unittest.mock import patch
@@ -256,6 +257,10 @@ class TestPipelineRun(TestCase):
         assert result.exit_code == 1
 
         mock_actual_run.side_effect = ValidationError.from_exception_data("",[])
+        result = self.runner.invoke(cmd_pipeline.pipeline, ['run'])
+        assert result.exit_code == 1
+        
+        mock_actual_run.side_effect = DockerException()
         result = self.runner.invoke(cmd_pipeline.pipeline, ['run'])
         assert result.exit_code == 1
 

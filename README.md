@@ -2,7 +2,58 @@
 
 Project to build a CI/CD System.
 
-# Installation Instruction
+# User Set Up Instruction for Using the Application
+
+This cli application requires a MongoDB service, a Docker Engine service, and an AWS S3 Service.
+
+## Setting up the Docker Engine Service
+
+The cli application will automatically use any Docker Engine running in your computer background.
+You can install one following instructions from the [Official](https://www.docker.com/products/docker-desktop/)
+
+## Setting up the MongoDB Service
+
+You can use a local or remote MongoDB Service. You will need to save the URL to the MongoDB service
+into a .env file in your project folder, or in your environment variable. Example below shows the
+MONGO_DB_URL set up for local and remote MongoDB service.
+
+```shell
+# Local
+MONGO_DB_URL="mongodb://localhost:27017/"
+
+# Remote, replace the <db_username>, <db_password> and <cluster_address>
+MONGO_DB_URL="mongodb+srv://<db_username>:<db_password>@<cluster_address>/"
+```
+
+Instructions for setting up local MongoDB service.
+Download the MongoDB Community Server from
+https://www.mongodb.com/try/download/community-kubernetes-operator
+
+Follow the instructions for self-managed deployments
+https://www.mongodb.com/docs/manual/administration/install-community/
+
+To view the database, use MongoDB Compass (came together with MongoDB installation)
+
+## Setting up the AWS S3 Service
+
+You need to copy and paste the following AWS credentials into ~/.aws/credentials file.
+The credentials you provided must be able to create a bucket and upload into S3.
+
+```shell
+aws_access_key_id=<your_id>
+aws_secret_access_key=<your_secret_access_key>
+aws_session_token=<your_session_token> #if applicable
+```
+
+You also need to set up the target region in your .env file or set it as environment variable.
+
+```shell
+DEFAULT_S3_LOC=<AWS_REGION>
+# example set to us-west-2
+DEFAULT_S3_LOC='us-west-2'
+```
+
+# Installation Instruction from Project GitHub Folder
 
 Reference for Poetry and Click [here](https://medium.com/@chinsj/develop-and-deploy-cli-tool-on-python-with-poetry-and-click-ab62f4341c45)
 
@@ -39,8 +90,8 @@ source <your_venv_dir>/Scripts/activate
 # Example when you name venv as myenv
 # for Windows
 source myenv/Scripts/activate
-# for Mac / Unix 
-source myenv/bin/activate 
+# for Mac / Unix
+source myenv/bin/activate
 ```
 
 ## Installation, Lint & Test
@@ -64,8 +115,6 @@ poetry run cid pipeline
 [Reference](https://python-poetry.org/docs/managing-dependencies/#installing-group-dependencies) for dependencies management.
 
 Remember to check the pyproject.toml file to ensure the dependency is added/removed
-
-<img src="./dev-docs/images/pyproject_toml_dependencies.JPG" alt="sample_pyproject.toml" width="300" height="200">
 
 ```shell
 # Adding new dependency for general
