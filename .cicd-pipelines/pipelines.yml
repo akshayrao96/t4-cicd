@@ -6,7 +6,7 @@ global:
     docker: 
         registry: 'dockerhub'
         image: "sjchin88/python-git-poetry:latest"
-    artifact_upload_path: "temp"
+    artifact_upload_path: "test-cicd-cs6510"
 
 # default stages: [build, test, doc, deploy]
 stages: ['build', 'test']
@@ -28,6 +28,7 @@ jobs:
     # Job for test stage
     pytest:
         stage: test
+        allow_failure: True
         scripts: 
             - 'poetry config virtualenvs.path /app/.cache/pypoetry/virtualenvs'
             - 'poetry run pytest'

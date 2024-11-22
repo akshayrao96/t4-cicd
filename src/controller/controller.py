@@ -12,6 +12,7 @@ from pathlib import Path
 #import pprint
 import click
 #import git.exc
+from docker.errors import DockerException
 from pydantic import ValidationError
 from ruamel.yaml import YAMLError
 import util.constant as const
@@ -579,7 +580,11 @@ class Controller:
             status, run_msg = self._actual_pipeline_run(git_details, pipeline_config, local)
             message += run_msg
         except ValidationError as ve:
-            message = f"validation error occur, error is {ve}\n"
+            message = f"validation error occur, error is {str(ve)}\n"
+            self.logger.warning(message)
+            status = False
+        except DockerException as de:
+            message = f"Error with docker service. error is {str(de)}\n"
             self.logger.warning(message)
             status = False
 
