@@ -355,20 +355,12 @@ class RepoManager:
         """
         repo = Repo(os.getcwd())
 
-        if not branch:
-            branch = repo.active_branch.name
+        branch = branch or repo.active_branch.name
 
         # Check for unstaged changes from the user. Prompt return message, that
         # checkout can only be executed once changes have been staged
         if repo.is_dirty(untracked_files=True):
             return False, "Unstaged changes detected. Please commit or stash changes before proceeding."
-
-        # Validate the branch and commit given to be checked out
-        if commit_hash and branch:
-            valid_commit = any(
-                commit_hash == commit.hexsha for commit in repo.iter_commits(branch))
-            if not valid_commit:
-                return False, f"Invalid commit hash '{commit_hash}' for branch '{branch}'."
 
         # Handle branch checkout. For checkout cases, handling of remote tracking (local view)
         # remote view, and full remote branches. Hence, method needs to be seperated from checkouts
@@ -429,47 +421,31 @@ class RepoManager:
     def _handle_commit_checkout(
             self, repo: Repo, branch: str, commit_hash: str) -> tuple[bool, str]:
         """
-        Validates and checks out the specified commit in the given repository.
+        Validates and checks out the specified commit on the given branch.
+        Defaults to the latest commit if `commit_hash` is None.
 
         Args:
             repo (Repo): The Git repository object.
-            branch (str): The branch to operate on. Defaults to 'main'.
-            commit_hash (str): The commit hash to check out. Defaults to the latest commit on the branch.
+            branch (str): The branch to operate on.
+            commit_hash (str): The commit hash to check out.
 
         Returns:
-            tuple[bool, str]:
-                - bool: True if the commit was successfully checked out, False otherwise.
-                - str: A descriptive message about the result.
-
-        Behavior:
-            - Checks out the specified branch.
-            - If no commit is provided, defaults to the latest commit on the branch.
-            - Resets the branch to the specified commit hash.
+            tuple[bool, str]: Success status and a descriptive message.
         """
         try:
-            if branch not in repo.branches:
-                if not commit_hash:
-                    # Fetch the latest commit on the remote branch
-                    remote_refs = repo.git.ls_remote(
-                        "--heads", "origin", branch)
-                    if not remote_refs.strip():
-                        return False, f"Branch '{branch}' does not exist remotely."
-                    commit_hash = remote_refs.split("\t")[0]
-                repo.git.checkout("-b", branch, commit_hash)
-            else:
-                repo.git.checkout(branch)
+            # Default to the latest commit if commit_hash is None
+            if not commit_hash:
+                repo.git.pull("origin", branch)
+                commit_hash = repo.head.commit.hexsha
 
-                # If no commit_hash is provided, default to the latest commit
-                if not commit_hash:
-                    repo.git.pull("origin", branch)
-                    commit_hash = repo.head.commit.hexsha
+            # Ensure the commit exists on the branch
+            commit_hashes = [commit.hexsha for commit in repo.iter_commits(branch)]
+            if commit_hash not in commit_hashes:
+                return False, f"Commit '{commit_hash}' does not exist on branch '{branch}'."
 
-                # Reset the branch to the specified commit hash
-                repo.git.execute(["git", "reset", "--hard", commit_hash])
-
-            # HEAD can get detached when checking out to a commit with a specific commit
-            # Ensure the HEAD is now attached to the branch
-            repo.git.checkout(branch)
+            # Reset the branch to the specified commit
+            repo.git.execute(["git", "reset", "--hard", commit_hash])
             return True, f"Checked out to commit '{commit_hash}' on branch '{branch}'."
         except GitCommandError as e:
-            return False, f"Error while checking out commit: {e}"
+            return False, f"Error during checkout: {e}"
+

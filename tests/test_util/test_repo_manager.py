@@ -234,19 +234,25 @@ class TestRepoManager(unittest.TestCase):
         mock_instance.is_dirty.return_value = False
         mock_instance.branches = []
         mock_instance.git.ls_remote.return_value = "refs/heads/feature-branch"
+        mock_instance.iter_commits.return_value = [MagicMock(hexsha="123abc")]
 
-        # Call the method
-        success, message = repo_manager.checkout_branch_and_commit(
-            branch="feature-branch")
+        # Mock the latest commit as "123abc"
+        mock_instance.head.commit.hexsha = "123abc"
 
+        # Call the method without specifying commit_hash
+        success, message = repo_manager.checkout_branch_and_commit(branch="feature-branch")
+
+        # Assertions
         self.assertTrue(success)
         self.assertIn("feature-branch", message)
 
-        # Assert fetch and checkout sequence
+        # Verify that fetch and checkout were called with the correct parameters
         mock_instance.git.fetch.assert_called_once_with(
-            "origin", "refs/heads/feature-branch:refs/remotes/origin/feature-branch")
-        mock_instance.git.checkout.assert_any_call(
-            "-b", "feature-branch", "origin/feature-branch")
+            "origin", "refs/heads/feature-branch:refs/remotes/origin/feature-branch"
+        )
+        mock_instance.git.checkout.assert_called_once_with(
+            "-b", "feature-branch", "origin/feature-branch"
+        )
 
     @patch("util.repo_manager.Repo", autospec=True)
     def test_checkout_branch_and_commit_invalid_remote_branch(self, mock_repo):
@@ -294,18 +300,20 @@ class TestRepoManager(unittest.TestCase):
         repo_manager = RepoManager()
         mock_instance = mock_repo.return_value
 
-        # Mock clean repository, local branch, and no matching commit
+        # Mock clean repository with a local branch and no matching commit
         mock_instance.is_dirty.return_value = False
         mock_instance.branches = ["main"]
         mock_instance.iter_commits.return_value = [MagicMock(hexsha="456def")]
 
-        # Call the method
+        # Call the method with an invalid commit hash
         success, message = repo_manager.checkout_branch_and_commit(
-            branch="main", commit_hash="invalid")
+            branch="main", commit_hash="invalid"
+        )
 
+        # Assert failure
         self.assertFalse(success)
-        self.assertIn("Invalid commit hash", message)
-        mock_instance.git.checkout.assert_not_called()
+        self.assertIn("Commit 'invalid' does not exist on branch 'main'.", message)
+        mock_instance.git.checkout.assert_called_once_with("main")
 
     @patch("util.repo_manager.Repo", autospec=True)
     def test_checkout_branch_and_commit_with_unstaged_changes(self, mock_repo):
@@ -459,3 +467,31 @@ class TestRepoManager(unittest.TestCase):
         self.assertIn("Commit 'nonexistent_commit' does not exist on branch 'main'", message)
         mock_instance.git.checkout.assert_called_once_with("main")
         mock_instance.git.execute.assert_not_called()
+
+    @patch("util.repo_manager.Repo", autospec=True)
+    def test_checkout_branch_and_commit_success(self, mock_repo):
+        """Test checkout_branch_and_commit with valid branch and commit hash."""
+        repo_manager = RepoManager()
+        mock_instance = mock_repo.return_value
+
+        # Mock clean repository with local branch and valid commit
+        mock_instance.is_dirty.return_value = False
+        mock_instance.branches = ["main"]
+        mock_instance.iter_commits.return_value = [
+            MagicMock(hexsha="123abc"),
+            MagicMock(hexsha="456def"),
+        ]
+
+        # Call the method
+        success, message = repo_manager.checkout_branch_and_commit(
+            branch="main", commit_hash="123abc"
+        )
+
+        # Assert success
+        self.assertTrue(success)
+        self.assertIn("Repository successfully checked out to branch 'main' and commit '123abc'.", message)
+
+        # Assert branch and commit actions
+        mock_instance.git.checkout.assert_called_once_with("main")
+        mock_instance.git.execute.assert_called_once_with(["git", "reset", "--hard", "123abc"])
+
