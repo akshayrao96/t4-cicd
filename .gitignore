@@ -3,6 +3,8 @@ apidocs
 
 # any temp folder
 temp*
+# s3 upload bucket
+test-cicd-cs6510
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
