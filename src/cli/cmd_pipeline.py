@@ -22,7 +22,7 @@ file path. if --file not specified, default to .cicd-pipelines/pipelines.yml')
 @click.option('--pipeline', 'pipeline_name', help='pipeline name to run' )
 @click.option('-r', '--repo', 'repo', default=None, help='repository url or \
 local directory path')
-@click.option('-b', '--branch', 'branch', default="main", help='repository branch name')
+@click.option('-b', '--branch', 'branch', default=None, help='repository branch name')
 @click.option('-c', '--commit', 'commit', default=None, help='commit hash')
 @click.option('--local', 'local', help='run pipeline locally', is_flag=True)
 @click.option('--dry-run', 'dry_run', help='dry-run options to simulate the pipeline\

@@ -141,13 +141,46 @@ def config(
 @click.option('--commit', default=None, help="Specify the commit hash to retrieve.\
  If not given, latest commit is used.")
 def set_repo(repo_url: str, branch: str, commit: str) -> None:
-    """Sets a new repository for pipeline checks.
-
-    Args:
-        repo_url (str): The repository URL or path that must be provided.
-        branch (str): Optional branch name; defaults to 'main'.
-        commit (str): Optional commit hash; if not provided, the latest commit is used.
     """
+       Configure a new repository for pipeline checks in the current directory.
+
+       This command clones the specified repository into the current working directory (PWD)
+       and optionally checks out the specified branch and commit. The current directory
+       must be empty for this operation to succeed.
+
+       Behavior:
+           - The repository is cloned into the PWD.
+           - If `--branch` is provided, the specified branch is checked out (default: 'main').
+           - If `--commit` is provided, the specified commit is checked out. If not provided,
+             the latest commit on the branch is used.
+           - If the current directory is not empty, the operation will fail with an error message.
+
+       Output:
+           - On success:
+               * Displays the repository details (URL, branch, and commit hash).
+           - On failure:
+               * Displays an error message indicating the reason for failure.
+
+       Args:
+           repo_url (str): The URL or path of the repository to be cloned.
+           branch (str): The branch to retrieve (optional; defaults to 'main').
+           commit (str): The commit hash to retrieve (optional; defaults to the latest commit).
+
+       Example Usage:
+           - Clone a repository with the default branch (`main`) and latest commit:
+               $ cid config set-repo https://github.com/example/repo.git
+
+           - Clone a repository and checkout a specific branch:
+               $ cid config set-repo https://github.com/example/repo.git --branch feature-branch
+
+           - Clone a repository and checkout a specific branch and commit:
+               $ cid config set-repo https://github.com/example/repo.git
+               --branch feature-branch --commit abc123
+
+       Notes:
+           - Ensure the current directory is empty before running this command.
+           - The `repo_url` argument is mandatory.
+       """
 
     # Checks if user has not given a repo. Return to user error, terminate
     if not repo_url:
@@ -209,29 +242,21 @@ def get_repo():
     controller = Controller()
 
     status, message, repo_details = controller.handle_repo()
+    click.echo(f"{message}\n")
 
     if status and repo_details:
-        click.echo(message)
-        click.echo("Current repository configured:\n")
+        click.echo("Repository configured in current working directory:\n")
         click.echo(f"Repository URL: {repo_details.repo_url}")
         click.echo(f"Repository Name: {repo_details.repo_name}")
         click.echo(f"Branch: {repo_details.branch}")
         click.echo(f"Commit Hash: {repo_details.commit_hash}\n")
 
     elif repo_details:
-        click.echo(f"{message}")
         click.echo("Last set repo details:\n")
         click.echo(f"Repository URL: {repo_details.repo_url}")
         click.echo(f"Repository Name: {repo_details.repo_name}")
         click.echo(f"Branch: {repo_details.branch}")
         click.echo(f"Commit Hash: {repo_details.commit_hash}\n")
-
-    else:
-        click.echo("\nNo repository has been configured previously.")
-        click.echo("Run the command with specifying repo path in an empty working directory:\n")
-        click.echo("OR")
-        click.echo("Run the command without specifying repo path in the repository root\n")
-
 
 @config.command()
 @click.option('--pipeline', required=True, help="pipeline name to update")
