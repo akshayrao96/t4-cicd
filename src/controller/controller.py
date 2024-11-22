@@ -49,8 +49,9 @@ class Controller:
         # ..and many more
         self.logger = get_logger('cli.controller')
 
-    def handle_repo(self, repo_url: str = None, branch: str = None, commit_hash: str = None) -> tuple[
-        bool, str, SessionDetail | None]:
+    def handle_repo(self, repo_url: str = None,
+                    branch: str = None,
+                    commit_hash: str = None) -> tuple[bool, str, SessionDetail | None]:
         """
         Handles repository setup and retrieval depending on the input parameters.
 
@@ -67,8 +68,7 @@ class Controller:
         """
         if repo_url:
             # Set up the repository by doing a clone of the given repo_url
-            return self.set_repo(repo_url=repo_url, branch=branch, commit_hash=commit_hash)
-
+            return self.set_repo(repo_url=repo_url, branch="main", commit_hash=commit_hash)
         if branch or commit_hash:
             # Check out with specified branch or commit
             return self.checkout_repo(branch=branch, commit_hash=commit_hash)
@@ -102,7 +102,8 @@ class Controller:
         in_git_repo, message, repo_name = self.repo_manager.is_current_dir_repo()
         if in_git_repo:
             return (False,
-                    f"Currently in a Git repository: '{repo_name}'. Please navigate to an empty directory.", None)
+                    f"Currently in a Git repository: '{repo_name}'. "
+                    f"Please navigate to an empty directory.", None)
 
         is_valid, is_remote, message = self.repo_manager.is_valid_git_repo(repo_url)
 
@@ -147,7 +148,8 @@ class Controller:
         except ValidationError as e:
             return False, f"Data validation error: {e}", None
 
-    def checkout_repo(self, branch: str = None, commit_hash: str = None) -> tuple[bool, str, SessionDetail | None]:
+    def checkout_repo(self, branch: str = None,
+                      commit_hash: str = None) -> tuple[bool, str, SessionDetail | None]:
         """
           Checks out a specific branch and/or commit in the current repository.
 
@@ -166,13 +168,15 @@ class Controller:
               tuple[bool, str, SessionDetail | None]:
                   - bool: True if the operation was successful, False otherwise.
                   - str: A message describing the result of the operation.
-                  - SessionDetail or None: The repository details if successful, or None if the operation failed.
+                  - SessionDetail or None: The repository details if successful,
+                  or None if the operation failed.
 
           Exceptions:
               - ValidationError: Raised if the session data fails validation.
-              - Exception: Catches unexpected errors and returns them as part of the failure message.
+              - Exception: Catches unexpected errors and returns
+              them as part of the failure message.
           """
-        in_git_repo, is_in_root, repo_name = self.repo_manager.is_current_dir_repo()
+        in_git_repo, is_in_root, _ = self.repo_manager.is_current_dir_repo()
 
         if not in_git_repo:
             return False, "Current directory is not a Git repository.", None
@@ -236,7 +240,7 @@ class Controller:
         """
 
         # Case: check if user is in a $PWD that is a git repo
-        in_git_repo, is_in_root, repo_name = self.repo_manager.is_current_dir_repo()
+        in_git_repo, is_in_root, _ = self.repo_manager.is_current_dir_repo()
 
         user_id = os.getlogin()
 
@@ -285,7 +289,8 @@ class Controller:
                 return False, "Failed to convert last repository to SessionDetail.", None
 
         # No repository information available
-        return False, "Working directory is not a git repository. No previous repository has been set.", None
+        return False, ("Working directory is not a git repository. "
+                       "No previous repository has been set."), None
 
     def get_controller_history(self) -> dict:
         """Retrieve pipeline history from Mongo DB

@@ -1,3 +1,8 @@
+"""
+    A class for managing code repositories, focusing on validating repository states,
+    cloning repositories, handling branch and commit checkouts.
+"""
+
 from pathlib import Path
 import os
 from urllib.parse import urlparse
@@ -360,7 +365,8 @@ class RepoManager:
         # Check for unstaged changes from the user. Prompt return message, that
         # checkout can only be executed once changes have been staged
         if repo.is_dirty(untracked_files=True):
-            return False, "Unstaged changes detected. Please commit or stash changes before proceeding."
+            return False, ("Unstaged changes detected. "
+                           "Please commit or stash changes before proceeding.")
 
         # Handle branch checkout. For checkout cases, handling of remote tracking (local view)
         # remote view, and full remote branches. Hence, method needs to be seperated from checkouts
@@ -439,7 +445,8 @@ class RepoManager:
                 commit_hash = repo.head.commit.hexsha
 
             # Ensure the commit exists on the branch
-            commit_hashes = [commit.hexsha for commit in repo.iter_commits(branch)]
+            commit_hashes = [
+                commit.hexsha for commit in repo.iter_commits(branch)]
             if commit_hash not in commit_hashes:
                 return False, f"Commit '{commit_hash}' does not exist on branch '{branch}'."
 
@@ -448,4 +455,3 @@ class RepoManager:
             return True, f"Checked out to commit '{commit_hash}' on branch '{branch}'."
         except GitCommandError as e:
             return False, f"Error during checkout: {e}"
-

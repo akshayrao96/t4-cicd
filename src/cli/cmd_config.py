@@ -174,7 +174,8 @@ def set_repo(repo_url: str, branch: str, commit: str) -> None:
                $ cid config set-repo https://github.com/example/repo.git --branch feature-branch
 
            - Clone a repository and checkout a specific branch and commit:
-               $ cid config set-repo https://github.com/example/repo.git --branch feature-branch --commit abc123
+               $ cid config set-repo https://github.com/example/repo.git
+               --branch feature-branch --commit abc123
 
        Notes:
            - Ensure the current directory is empty before running this command.
