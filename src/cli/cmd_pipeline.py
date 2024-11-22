@@ -202,7 +202,7 @@ def report(ctx, repo_url:str, local:bool, pipeline_name:str, branch:str, stage:s
                 err_msg += "for valid usage"
 
             click.secho(err_msg, fg="red")
-        
+
         sys.exit(2)
 
     #Step 2. call pipeline_history
