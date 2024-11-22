@@ -106,40 +106,6 @@ def run(ctx, file_path:str, pipeline_name:str, repo:str, branch:str, commit:str,
         click.secho(f"{message}", fg='red')
         sys.exit(1)
 
-@pipeline.command()
-@click.option('--repo', default='local', help="Obtain logs for this repo")
-@click.option('--tail', default=20, help="Number of log lines to display")
-def log(tail:str, repo:str):
-    """ Obtains logs of pipeline run attached to current repository
-
-    Args:
-        repo (str): Repository given by user for previous logs
-        tail (str): Last lines to be obtained by user
-    """
-
-    current_time = str(time.time())
-    hash_object = hashlib.md5(current_time.encode())
-    pipeline_hash = hash_object.hexdigest()[:8]
-
-    # Mock output of logs for now
-    log_output = [
-        "[2024-10-01 10:00:00] Starting pipeline 'Build and Test'",
-        "[2024-10-01 10:00:10] Build: Success",
-        "[2024-10-01 10:00:20] Test: Running tests...",
-        "[2024-10-01 10:01:00] Test: Success",
-        "[2024-10-01 10:02:00] Deploy: Success",
-        "[2024-10-01 10:03:00] Pipeline 'Build and Test' completed."
-    ]
-
-    mock_log = log_output[-tail:]
-
-    # Formatting nicely for better user view
-    click.echo(f"\nLast pipeline command output: {repo} : {pipeline_hash}")
-    click.echo("")
-    click.echo("\n".join(mock_log))
-    click.echo(f"\n[{pipeline_hash}] Pipeline 'Build and Test' completed.\n")
-    # Optionally log this action for debugging
-    # logger.debug(f"Showing the last {tail} lines of the pipeline log with hash {pipeline_hash}")
 
 @pipeline.command()
 @click.pass_context
@@ -155,17 +121,23 @@ default stages options: [build, test, doc, deploy]')
 @click.option('-r', '--run', 'run_number', default=None, help='run number to get the report')
 def report(ctx, repo_url:str, local:bool, pipeline_name:str, branch:str, stage:str,
            job:str, run_number:int):
-    """Report pipeline provides user to retrieve the pipeline history. \f 
-
+    """Report pipeline provides user to retrieve the pipeline history. \n
+    To retrieve which REPO_URL you currently at, run `cid config get-repo | grep "Repository URL:"`
+    Example of basic usage: \n
+      cid pipeline report --repo REPO_URL | list all report for a repository \n
+      cid pipeline report --repo REPO_URL --pipeline PIPELINE_NAME | list all runs of the given
+PIPELINE_NAME.\n
+      cid pipeline report --repo REPO_URL --pipeline PIPELINE_NAME --run RUN | list the output
+history of the run # given the PIPELINE_NAME and RUN number.\n \f
     Args:
-        ctx (_type_): _description_
-        repo_url (str): _description_
-        local (bool): _description_
-        pipeline_name (str): _description_
-        branch (str): _description_
-        stage (str): _description_
-        job (str): _description_
-        run_number (int): _description_
+        ctx (context): click context
+        repo_url (str): repository url to display the report
+        local (bool): (current version) everything runs locally
+        pipeline_name (str): pipeline name to get the report
+        branch (str): branch to get the report (default to main)
+        stage (str): stage name to view the report options such as (build, test, doc, deploy)
+        job (str): filter by job name for the report
+        run_number (int): the run number to view the specific run report.
     """
     ctrl = Controller()
     pipeline_model = {}
@@ -189,6 +161,7 @@ def report(ctx, repo_url:str, local:bool, pipeline_name:str, branch:str, stage:s
     pipeline_model['is_remote'] = local
 
     try:
+        err_msg = None
         pipeline_model = PipelineHist.model_validate(pipeline_model)
     except ValidationError as ve:
         errors = json.loads(ve.json())
@@ -198,11 +171,13 @@ def report(ctx, repo_url:str, local:bool, pipeline_name:str, branch:str, stage:s
                 err_msg = f"Unknown Input: '{error.get('input', 'N/A')}', "
                 err_msg += f"Flag: {error['loc']}, Message: {error['msg']}"
             elif err_type == "missing":
-                err_msg = f"missing {error['loc']} input. please run cid pipeline report --help "
-                err_msg += "for valid usage"
+                if 'repo_url' in error['loc']:
+                    err_msg = f"missing {error['loc']} input. please run cid pipeline report"
+                    err_msg += "--repo.\nFor further help, run cid pipeline report --help "
+                    err_msg += "for valid usage"
 
-            click.secho(err_msg, fg="red")
-        
+            if err_msg:
+                click.secho(err_msg, fg="red")
         sys.exit(2)
 
     #Step 2. call pipeline_history
