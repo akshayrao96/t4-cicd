@@ -1,8 +1,6 @@
 """ All related commands for pipeline actions """
 # pylint: disable=logging-fstring-interpolation
-import hashlib
 import sys
-import time
 import json
 import click
 from pydantic import ValidationError
@@ -17,13 +15,6 @@ logger = get_logger('cli.cmd_pipeline')
 def pipeline():
     """All commands related to pipeline"""
 
-#https://click.palletsprojects.com/en/stable/arguments/#file-path-arguments
-#TODO: to delete. this is a click function where I can validate if filename
-# @pipeline.command()
-# @click.argument('filename', type=click.Path(exists=True))
-# def touch(filename):
-#     """Print FILENAME if the file exists."""
-#     click.echo(click.format_filename(filename))
 @pipeline.command()
 @click.pass_context
 @click.option('--file', 'file_path', default=DEFAULT_CONFIG_FILE_PATH, help='configuration \
