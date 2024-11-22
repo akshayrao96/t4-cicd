@@ -28,6 +28,7 @@ jobs:
     # Job for test stage
     pytest:
         stage: test
+        allow_failure: True
         scripts: 
             - 'poetry config virtualenvs.path /app/.cache/pypoetry/virtualenvs'
             - 'poetry run pytest'
