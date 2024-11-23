@@ -164,7 +164,7 @@ class Controller:
                   - bool: True if the operation was successful, False otherwise.
                   - str: A message describing the result of the operation.
                   - SessionDetail or None: The repository details if successful,
-                  or None if the operation failed.
+                    or None if the operation failed.
 
           Exceptions:
               - ValidationError: Raised if the session data fails validation.

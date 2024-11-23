@@ -115,14 +115,15 @@ default stages options: [build, test, doc, deploy]')
 @click.option('-r', '--run', 'run_number', default=None, help='run number to get the report')
 def report(ctx, repo_url:str, local:bool, pipeline_name:str, branch:str, stage:str,
            job:str, run_number:int):
-    """Report pipeline provides user to retrieve the pipeline history. \n
+    """Report pipeline provides user to retrieve the pipeline history. \f
     To retrieve which REPO_URL you currently at, run `cid config get-repo | grep "Repository URL:"`
-    Example of basic usage: \n
-      cid pipeline report --repo REPO_URL | list all report for a repository \n
+    Example of basic usage: \f
+      cid pipeline report --repo REPO_URL | list all report for a repository \f
       cid pipeline report --repo REPO_URL --pipeline PIPELINE_NAME | list all runs of the given
-PIPELINE_NAME.\n
+      PIPELINE_NAME.\f
       cid pipeline report --repo REPO_URL --pipeline PIPELINE_NAME --run RUN | list the output
-history of the run # given the PIPELINE_NAME and RUN number.\n \f
+      history of the run # given the PIPELINE_NAME and RUN number. \f
+
     Args:
         ctx (context): click context
         repo_url (str): repository url to display the report
