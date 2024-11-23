@@ -90,11 +90,6 @@ class ConfigChecker:
                 pipeline_config=processed_pipeline_config if result_flag else {}
             )
         return validation_res
-        # return {
-        #     c.RETURN_KEY_VALID:result_flag,
-        #     c.RETURN_KEY_ERR: result_error_msg,
-        #     c.KEY_PIPE_CONFIG: processed_pipeline_config if result_flag else {}
-        # }
 
     def _check_individual_config(self, sub_key: str,
                                  config_dict: dict,
@@ -495,7 +490,6 @@ class ConfigChecker:
                 uf.add_edge(node, req)
 
         job_groups = uf.get_separated_groups()
-        self.logger.debug(job_groups)
         group_orders = []
         topo_sorter = TopoSort(adjacency_list)
         for group in job_groups:
@@ -536,7 +530,6 @@ class ConfigChecker:
             global_docker_reg = processed_config[c.KEY_GLOBAL][c.KEY_DOCKER][c.KEY_DOCKER_REG]
             global_docker_img = processed_config[c.KEY_GLOBAL][c.KEY_DOCKER][c.KEY_DOCKER_IMG]
             global_upload_path = processed_config[c.KEY_GLOBAL][c.KEY_ARTIFACT_PATH]
-            self.logger.debug(job_configs)
             for job, config in job_configs.items():
                 job_error_prefix = error_prefix + f"{job} "
                 # if error_lc and hasattr(config, 'lc'):
@@ -641,7 +634,6 @@ class ConfigChecker:
                 processed_config[sec_key] = processed_section
             else:
                 processed_config[sec_key] = {}
-            self.logger.debug(result_error_msg)
             return (result_flag, result_error_msg)
         except (LookupError, IndexError, KeyError) as e:
             self.logger.warning(f"Error in parsing job sections, exception msg is {e}\n"

@@ -200,7 +200,7 @@ class DockerManager(ContainerManager):
         try:
             # First extract the contents in extract_paths from the docker
             for path in extract_paths:
-                bits, stat = container.get_archive(f"{DEFAULT_DOCKER_DIR}/{path}")
+                bits, _ = container.get_archive(f"{DEFAULT_DOCKER_DIR}/{path}")
                 # Write the archive to the host filesystem
                 upload_path_obj = Path(upload_path)
                 if not upload_path_obj.is_dir():

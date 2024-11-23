@@ -288,7 +288,10 @@ class Controller:
                        "No previous repository has been set."), None
 
     ### CONFIG ###
-    def validate_n_save_configs(self, directory: str, saving:bool = True) -> dict:
+    def validate_n_save_configs(self,
+                                directory: str,
+                                saving:bool = True,
+                                session_data:SessionDetail = None) -> dict:
         """ Set Up repo, validate config, and save the config into datastore
 
         Args:
@@ -299,17 +302,6 @@ class Controller:
         Returns:
             dict: dictionary of {<pipeline_name>:<single validation results>}
         """
-        # stub response for repo set up
-        # stub response for repo set up
-        session_data = SessionDetail(
-            user_id='random',
-            repo_name='cicd-python',
-            repo_url="https://github.com/sjchin88/cicd-python",
-            branch='main',
-            is_remote=True,
-            commit_hash="abcdef"
-        )
-        click.echo("Setting Up Repo")
         parser = YamlParser()
         results = {}
         pipeline_configs = parser.parse_yaml_directory(directory)
@@ -385,6 +377,7 @@ class Controller:
             'pipeline_name': pipeline_name,
             'pipeline_file_name':pipeline_info.pipeline_file_name,
             'pipeline_config': pipeline_config,
+            'last_commit_hash': session_data.commit_hash
         }
         status = self.mongo_ds.update_pipeline_info(
                 repo_name=session_data.repo_name,
@@ -455,6 +448,10 @@ class Controller:
                                                      pipeline_config,
                                                      pipeline_file_name,
                                                      error_lc=True)
+        # Early return
+        if not result.valid:
+            return result.valid, result.error_msg, None
+
         pipeline_info = PipelineInfo(
             pipeline_name=pipeline_name,
             pipeline_file_name=pipeline_file_name,
@@ -463,7 +460,11 @@ class Controller:
         # return validation result as tuple for easier processing
         return result.valid, result.error_msg, pipeline_info
 
-    def override_config(self, pipeline_name: str, overrides: dict) -> bool:
+    def override_config(self,
+                        pipeline_name: str,
+                        overrides: dict,
+                        session_data:SessionDetail = None,
+                        save: bool = False) -> tuple[bool, str, PipelineConfig]:
         """Retrieve, apply overrides, validate, and update the pipeline configuration.
 
             Args:
@@ -471,42 +472,52 @@ class Controller:
                 overrides (dict): A dictionary of overrides to apply to the pipeline configuration.
 
             Returns:
-                bool: True if successfully updated, False otherwise.
+                tuple[bool, str, PipelineInfo]: First item is indicator for success or fail.
+                second item is the error message if any.
+                third item is the PipelineInfo object.
 
             Raises:
                 ValueError: If no pipeline configuration is found for the given pipeline name.
             """
-        pipeline_config_data = self.mongo_ds.get_pipeline_config(
-            "sample-repo",
-            "https://github.com/sample-user/sample-repo",
-            "main",
-            pipeline_name)
-        pipeline_config = pipeline_config_data.get('pipeline_config')
-        if not pipeline_config:
-            click.echo(f"No pipeline config found for '{pipeline_name}'.")
-            return False
+        pipeline_history = self.mongo_ds.get_pipeline_history(
+            repo_name=session_data.repo_name,
+            repo_url=session_data.repo_url,
+            branch=session_data.branch,
+            pipeline_name=pipeline_name
+        )
+        try:
+            his_obj = PipelineInfo.model_validate(pipeline_history)
+        except ValidationError:
+            err = f"No pipeline config found for '{pipeline_name}'."
+            return False, err, None
+
+        pipeline_config = his_obj.pipeline_config.model_dump(by_alias=True)
         updated_config = MongoHelper.apply_overrides(pipeline_config, overrides)
         # validate the updated pipeline configuration
-
         validation_res = self.config_checker.validate_config(pipeline_name,
                                                             updated_config,
-                                                            error_lc=True)
+                                                            error_lc=False)
         status = validation_res.valid
-        resp_pipeline_config = validation_res.pipeline_config
+
+        # Early return if validation fail
         if not status:
-            click.echo("Override pipeline configuration validation failed.")
-            return False
-        success = self.mongo_ds.update_pipeline_info(
-            "sample-repo",
-            "https://github.com/sample-user/sample-repo",
-            "main",
-            pipeline_name,
-            {'pipeline_config':resp_pipeline_config})
-        if not success:
-            click.echo("Error updating pipeline configuration.")
-            return False
-        click.echo("Pipeline configuration updated successfully.")
-        return True
+            return False, validation_res.error_msg, None
+
+        resp_pipeline_config = validation_res.pipeline_config.model_dump(by_alias=True)
+        # Save only if required
+        if save:
+            success = self.mongo_ds.update_pipeline_info(
+                repo_name=session_data.repo_name,
+                repo_url=session_data.repo_url,
+                branch=session_data.branch,
+                pipeline_name=pipeline_name,
+                updates={'pipeline_config':resp_pipeline_config})
+            if not success:
+                err = "Validation passed, but error in saving"
+                return False, err, validation_res.pipeline_config
+
+        # Return true if reach this stage
+        return True, "", validation_res.pipeline_config
 
     def run_pipeline(self, config_file: str, pipeline_name: str, git_details:SessionDetail,
                      dry_run:bool = False, local:bool = False, yaml_output: bool = False,
@@ -614,7 +625,7 @@ class Controller:
             return False, "Fail to retrieve pipeline history"
 
         # Early return if pipeline already running
-        if pipeline_history['running']:
+        if his_obj.running:
             error_msg = f"Pipeline {pipeline_config.global_.pipeline_name} Already Running. "
             error_msg += "Please Stop Before Proceed"
             return False, error_msg

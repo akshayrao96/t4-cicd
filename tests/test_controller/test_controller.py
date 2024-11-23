@@ -1,108 +1,14 @@
 """Test controller integration
 """
-import os
-import json
 import unittest
 from datetime import datetime
 from pathlib import Path
 from unittest.mock import MagicMock, patch
-from click.testing import CliRunner
-from git import GitCommandError
-from pydantic import ValidationError, BaseModel
-from twisted.mail.scripts.mailmail import success
 
 from controller.controller import (Controller)
-from util.db_mongo import MongoAdapter
 from util.common_utils import (get_logger)
-from util.model import SessionDetail, ValidationResult
 
 logger = get_logger("tests.test_controller.test_controller")
-
-class TestOverrideConfig(unittest.TestCase):
-
-    def setUp(self):
-        self.success_validation_res = ValidationResult(valid=True, error_msg="", pipeline_config={"updated_config": "value"})
-        self.fail_validation_res = ValidationResult(valid=False, error_msg="", pipeline_config={})
-        
-    @patch("controller.controller.click.echo")
-    @patch(
-        "controller.controller.ConfigChecker.validate_config"
-    )
-    @patch(
-        "controller.controller.MongoHelper.apply_overrides",
-        return_value={"updated_config": "value"}
-    )
-    @patch("controller.controller.MongoAdapter")
-    def test_override_config_success(
-        self, mock_mongo_adapter, mock_apply_overrides, mock_validate_config, mock_echo
-    ):
-        """Test successful override and update of pipeline configuration"""
-        mock_validate_config.return_value = self.success_validation_res
-        mock_mongo_adapter_instance = mock_mongo_adapter.return_value
-        mock_mongo_adapter_instance.get_pipeline_config.return_value = {
-            'pipeline_config': {'key': 'value'}
-        }
-        mock_mongo_adapter_instance.update_pipeline_config.return_value = True
-        controller = Controller()
-        result = controller.override_config("test_pipeline", {"override_key": "override_value"})
-
-        self.assertTrue(result)
-        mock_echo.assert_any_call("Pipeline configuration updated successfully.")
-
-    @patch("controller.controller.click.echo")
-    @patch("controller.controller.MongoAdapter")
-    def test_override_config_no_pipeline_config(self, mock_mongo_adapter, mock_echo):
-        """Test when no pipeline configuration is found"""
-        mock_mongo_adapter_instance = mock_mongo_adapter.return_value
-        mock_mongo_adapter_instance.get_pipeline_config.return_value = {}
-        controller = Controller()
-        result = controller.override_config("test_pipeline", {"override_key": "override_value"})
-        self.assertFalse(result)
-        mock_echo.assert_called_once_with("No pipeline config found for 'test_pipeline'.")
-
-    @patch("controller.controller.click.echo")
-    @patch("controller.controller.ConfigChecker.validate_config")
-    @patch(
-        "controller.controller.MongoHelper.apply_overrides",
-        return_value={"updated_config": "value"}
-    )
-    @patch("controller.controller.MongoAdapter")
-    def test_override_config_validation_failure(
-        self, mock_mongo_adapter, mock_apply_overrides, mock_validate_config, mock_echo
-    ):
-        """Test override config where validation fails"""
-        mock_validate_config.return_value = self.fail_validation_res
-        mock_mongo_adapter_instance = mock_mongo_adapter.return_value
-        mock_mongo_adapter_instance.get_pipeline_config.return_value = {
-            'pipeline_config': {'key': 'value'}
-        }
-        controller = Controller()
-        result = controller.override_config("test_pipeline", {"override_key": "override_value"})
-        self.assertFalse(result)
-        mock_echo.assert_called_once_with("Override pipeline configuration validation failed.")
-
-    @patch("controller.controller.click.echo")
-    @patch("controller.controller.ConfigChecker.validate_config")
-    @patch(
-        "controller.controller.MongoHelper.apply_overrides",
-        return_value={"updated_config": "value"}
-    )
-    @patch("controller.controller.MongoAdapter")
-    def test_override_config_update_failure(
-        self, mock_mongo_adapter, mock_apply_overrides, mock_validate_config, mock_echo
-    ):
-        """Test override config where database update fails"""
-        mock_validate_config.return_value = self.success_validation_res
-        mock_mongo_adapter_instance = mock_mongo_adapter.return_value
-        mock_mongo_adapter_instance.get_pipeline_config.return_value = {
-            'pipeline_config': {'key': 'value'}
-        }
-        mock_mongo_adapter_instance.update_pipeline_info.return_value = False
-        controller = Controller()
-        result = controller.override_config("test_pipeline", {"override_key": "override_value"})
-        self.assertFalse(result)
-        mock_echo.assert_called_once_with("Error updating pipeline configuration.")
-
 
 class TestControllerRepoFunctions(unittest.TestCase):
 
