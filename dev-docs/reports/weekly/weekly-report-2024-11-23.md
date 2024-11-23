@@ -17,6 +17,7 @@ The team also prioritized tasks on the status board to ensure key features are c
 | Task                                                                                                                          | Weight     | Assignee |
 |-------------------------------------------------------------------------------------------------------------------------------|------------|----------|
 | [UC1-CLI&RepoManager] Options for Branch & Commit For Local Repo[ #121](https://github.com/CS6510-SEA-F24/t4-cicd/issues/121) | M - 3 days | Akshay   |
+| [UC6] Show pipeline run summary, stage summary, job summary[ #143](https://github.com/CS6510-SEA-F24/t4-cicd/issues/143)                             | M - 2/3 day   | Lin            |
 
 
 # Carry over tasks
@@ -29,7 +30,6 @@ The team also prioritized tasks on the status board to ensure key features are c
 | [UC1, UC2, UC4] Integrate usecases from set repo, check config and override config[ #88](https://github.com/CS6510-SEA-F24/t4-cicd/issues/88)        | S - 1 day     | Akshay -> Chin |
 | [UC5 - Controller & Docker] Implement the methods required to run, stop, cancel pipeline [ #17](https://github.com/CS6510-SEA-F24/t4-cicd/issues/17) | L/XL - 2 week | Chin           |
 | [UC1, UC2, UC3] Integrate the usecases from set repo, check config, up to dry run[ #84](https://github.com/CS6510-SEA-F24/t4-cicd/issues/84)         | S - 1 day     | Chin           |
-| [UC6] Show pipeline run summary, stage summary, job summary[ #143](https://github.com/CS6510-SEA-F24/t4-cicd/issues/143)                             | M - 2/3 day   | Lin            |
 | [Project Submission] Project Documentation for Final Report[ #124](https://github.com/CS6510-SEA-F24/t4-cicd/issues/124)                             | M - 2/3 days  | Akshay         |
 
 # New tasks / Backlog
