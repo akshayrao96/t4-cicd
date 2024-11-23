@@ -319,6 +319,7 @@ class Controller:
                     'pipeline_name': pipeline_name,
                     'pipeline_file_name':values.pipeline_file_name,
                     'pipeline_config': response.pipeline_config.model_dump(by_alias=True),
+                    'last_commit_hash': session_data.commit_hash
                 }
                 status = self.mongo_ds.update_pipeline_info(
                         repo_name=session_data.repo_name,
