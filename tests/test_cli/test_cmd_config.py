@@ -54,7 +54,7 @@ class TestConfig(unittest.TestCase):
             is_remote=True,
             commit_hash="abcdef"
         )
-        self.handle_repo_return = tuple([True, "", self.session_data])
+        self.handle_repo_return = (True, "", self.session_data)
         self.mock_save_configs_return = {
             "test_pipeline":self.success_validation_res,
             "test_fail_pipeline": self.fail_validation_res
@@ -234,6 +234,15 @@ class TestConfigOverride(unittest.TestCase):
             pipeline_file_name="test_pipeline.yml",
             pipeline_config=self.pipeline_config_dict
         )
+        self.session_data = SessionDetail(
+            user_id='random',
+            repo_name='cicd-python',
+            repo_url="https://github.com/sjchin88/cicd-python",
+            branch='main',
+            is_remote=True,
+            commit_hash="abcdef"
+        )
+        self.handle_repo_return = (True, "", self.session_data)
     
     @patch("cli.cmd_config.MongoHelper.build_nested_dict", side_effect=ValueError("Invalid override format"))
     def test_override_value_error(self, mock_build_nested_dict):
@@ -261,12 +270,15 @@ class TestConfigOverride(unittest.TestCase):
         assert result.exit_code == 2
     
     @patch("cli.cmd_config.Controller.override_config")
-    def test_override_failed_ops(self, mock_override):
+    @patch("cli.cmd_config.Controller.handle_repo")
+    def test_override_failed_ops(self, mock_handle, mock_override):
         """ Test the handling of fail controller.override_config operation
 
         Args:
+            mock_handle (MagicMock): mock the handle_repo function
             mock_override (MagicMock): mock the controller.override_config function
         """
+        mock_handle.return_value = self.handle_repo_return
         mock_override.return_value = (False, 'error', None)
         result = self.runner.invoke(
             cmd_config.config,
@@ -274,12 +286,15 @@ class TestConfigOverride(unittest.TestCase):
         assert result.exit_code == 1
     
     @patch("cli.cmd_config.Controller.override_config")
-    def test_override_success_ops(self, mock_override):
+    @patch("cli.cmd_config.Controller.handle_repo")
+    def test_override_success_ops(self, mock_handle, mock_override):
         """ Test the handling of success controller.override_config operation
 
         Args:
+            mock_handle (MagicMock): mock the handle_repo function
             mock_override (MagicMock): mock the controller.override_config function
         """
+        mock_handle.return_value = self.handle_repo_return
         mock_override.return_value = (True, "", self.success_validation_res.pipeline_config)
         result = self.runner.invoke(
             cmd_config.config,
@@ -288,12 +303,15 @@ class TestConfigOverride(unittest.TestCase):
 
     ## The rest of test cases are Integration tests with Controller.override_config
     @patch("controller.controller.MongoAdapter.get_pipeline_history")
-    def test_override_no_pipeline_found(self, mock_get_hist):
+    @patch("cli.cmd_config.Controller.handle_repo")
+    def test_override_no_pipeline_found(self, mock_handle, mock_get_hist):
         """ Test the case where no pipeline config found for target pipeline name
 
         Args:
+            mock_handle (MagicMock): mock the handle_repo function
             mock_get_hist (MagicMock): mock the get_pipeline_history
         """
+        mock_handle.return_value = self.handle_repo_return
         mock_get_hist.return_value = {}
         result = self.runner.invoke(
             cmd_config.config,
@@ -302,14 +320,17 @@ class TestConfigOverride(unittest.TestCase):
     
     @patch("controller.controller.ConfigChecker.validate_config")
     @patch("controller.controller.MongoAdapter.get_pipeline_history")
-    def test_override_fail_validation(self, mock_get_hist, mock_validate):
+    @patch("cli.cmd_config.Controller.handle_repo")
+    def test_override_fail_validation(self, mock_handle, mock_get_hist, mock_validate):
         """ Test the case where pipeline config overrided but fail 
         the validation 
 
         Args:
+            mock_handle (MagicMock): mock the handle_repo function
             mock_get_hist (MagicMock): mock the get_pipeline_history
             mock_validate (MagicMock): mock the ConfigChecker.validate_config
         """
+        mock_handle.return_value = self.handle_repo_return
         mock_get_hist.return_value = self.pipeline_info
         mock_validate.return_value = self.fail_validation_res
         result = self.runner.invoke(
@@ -320,14 +341,17 @@ class TestConfigOverride(unittest.TestCase):
     @patch("controller.controller.MongoAdapter.update_pipeline_info")
     @patch("controller.controller.ConfigChecker.validate_config")
     @patch("controller.controller.MongoAdapter.get_pipeline_history")
-    def test_override_fail_save_to_db(self, mock_get_hist, mock_validate, mock_update):
+    @patch("cli.cmd_config.Controller.handle_repo")
+    def test_override_fail_save_to_db(self, mock_handle, mock_get_hist, mock_validate, mock_update):
         """ Test override command scenario where pipeline configuration 
         overrided and validated but fail to save into db
         
         Args:
+            mock_handle (MagicMock): mock the handle_repo function
             mock_get_hist (MagicMock): mock the get_pipeline_history
             mock_validate (MagicMock): mock the ConfigChecker.validate_config
         """
+        mock_handle.return_value = self.handle_repo_return
         mock_get_hist.return_value = self.pipeline_info
         mock_validate.return_value = self.success_validation_res
         mock_update.return_value = False
@@ -338,13 +362,16 @@ class TestConfigOverride(unittest.TestCase):
     
     @patch("controller.controller.ConfigChecker.validate_config")
     @patch("controller.controller.MongoAdapter.get_pipeline_history")
-    def test_success_override(self, mock_get_hist, mock_validate):
+    @patch("cli.cmd_config.Controller.handle_repo")
+    def test_success_override(self, mock_handle, mock_get_hist, mock_validate):
         """ Test successful override scenario without saving 
         
         Args:
+            mock_handle (MagicMock): mock the handle_repo function
             mock_get_hist (MagicMock): mock the get_pipeline_history
             mock_validate (MagicMock): mock the ConfigChecker.validate_config
         """
+        mock_handle.return_value = self.handle_repo_return
         mock_get_hist.return_value = self.pipeline_info
         mock_validate.return_value = self.success_validation_res
         result = self.runner.invoke(
