@@ -512,6 +512,8 @@ class Controller:
                 repo_url=session_data.repo_url,
                 branch=session_data.branch,
                 pipeline_name=pipeline_name,
+                # Update for last_commit_hash is not required, as original 
+                # config came from data store
                 updates={'pipeline_config':resp_pipeline_config})
             if not success:
                 err = "Validation passed, but error in saving"
