@@ -10,6 +10,19 @@ On Friday, 22 November, discussions focused on :
 - Publishing of the CLI tool to PyPI
 - Fixing any bugs during user testing. 
 
+One of the main sharings during the meeting, 
+As we are learning while developing, there are cases when we have developed the codes in the less effective/efficient way, later on we 
+discover new methods/ways which make our life easier. The hard choice to made is whether we can afford to spend the time and go back to 
+refactor previous codes. One example is the adoption of Pydantic Model replacing the dictionary, this eliminate the use of magic keyword 
+in the dictionary, and help validate the content of the dictionary in the required types and values. While we try our best to develop new code
+based on Pydantic Model as much as we can, there are still cases where we cant afford to spend time and effort to refactor old codes to be consistent 
+with the use of Pydantic model style. 
+
+The other example is the consideration to use pytest.fixture in our test cases. In theory, pytest.fixture shared throughout the modules/packages
+can help to adhere to DRY principle when the test_inputs/mock_outputs are repetitive. However, use of pytest.fixture is not compatible with 
+our current style of patching/mocking the methods in isolation tests, and we dont have the required time and effort to refactor the test cases
+to use pytest.fixture. Hence we decided to leave the test cases as they were in existing style. 
+
 The team also prioritized tasks on the status board to ensure key features are completed this final coming week.
 
 # Completed tasks
