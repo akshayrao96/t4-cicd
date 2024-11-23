@@ -54,7 +54,6 @@ The team also prioritized tasks on the status board to ensure key features are c
 
 | Task                                                                                                                            | Weight       | Assignee       |
 |---------------------------------------------------------------------------------------------------------------------------------|--------------|----------------|
-
 | [Project Submission] Code Refactoring for better quality and style[ #125](https://github.com/CS6510-SEA-F24/t4-cicd/issues/125) | M - 2/3 days | Lin            |
 
 # What worked this week?
