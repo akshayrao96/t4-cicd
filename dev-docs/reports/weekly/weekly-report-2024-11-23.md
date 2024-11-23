@@ -37,12 +37,12 @@ The team also prioritized tasks on the status board to ensure key features are c
 | [Customer Req] Pipeline run with custom Docker Registry & Java Repository[ #117](https://github.com/CS6510-SEA-F24/t4-cicd/issues/117)               | M - 2/3 days  | Chin           |
 | [UC1, UC2, UC3] Integrate the usecases from set repo, check config, up to dry run[ #84](https://github.com/CS6510-SEA-F24/t4-cicd/issues/84)         | S - 1 day     | Chin           |
 | [Customer Req] Pipeline run with sample JavaScript Repository[ #147](https://github.com/CS6510-SEA-F24/t4-cicd/issues/147)         | S - 1 day     | Chin           |
+| [CLI] add tests and remaining feature for Report[ #141](https://github.com/CS6510-SEA-F24/t4-cicd/issues/141)                                        | S - 1 day     | Jason          |
 
 # Carry over tasks
 | Task                                                                                                                                                 | Weight        | Assignee       |
 |------------------------------------------------------------------------------------------------------------------------------------------------------|---------------|----------------|
 | [Customer Req] Installing CLI as independent app[ #116](https://github.com/CS6510-SEA-F24/t4-cicd/issues/116)                                        | S - 1 day     | Chin           |
-| [CLI] add tests and remaining feature for Report[ #141](https://github.com/CS6510-SEA-F24/t4-cicd/issues/141)                                        | S - 1 day     | Jason          |
 | [UC1, UC2, UC4] Integrate usecases from set repo, check config and override config[ #88](https://github.com/CS6510-SEA-F24/t4-cicd/issues/88)        | S - 1 day     | Akshay -> Chin |
 | [UC5 - Controller & Docker] Implement the methods required to run, stop, cancel pipeline [ #17](https://github.com/CS6510-SEA-F24/t4-cicd/issues/17) | L/XL - 2 week | Chin           |
 | [UC2 - Config] Output Format Modification and Clean Up[ #80](https://github.com/CS6510-SEA-F24/t4-cicd/issues/80)               | S - 1 day    | Akshay -> Chin |
@@ -57,8 +57,8 @@ The team also prioritized tasks on the status board to ensure key features are c
 | [Project Submission] Code Refactoring for better quality and style[ #125](https://github.com/CS6510-SEA-F24/t4-cicd/issues/125) | M - 2/3 days | Lin            |
 
 # What worked this week?
-
+- upload artifact to s3 does not require much authentication. This helps to integrate with the code without much overhead.
 
 # What did not work this week?
 - One of our team member was down due to flu, less productivity
-- Changing requirements previously resulted in codes and features that was developed but no significant use, taking some time to clean it up before final submission and packaging. 
+- Changing requirements previously resulted in codes and features that was developed but no significant use, taking some time to clean it up before final submission and packaging.
