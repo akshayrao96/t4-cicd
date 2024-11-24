@@ -36,6 +36,14 @@ To view the database, use MongoDB Compass (came together with MongoDB installati
 
 ## Setting up the AWS S3 Service
 
+S3 bucket names must be globally unique across all AWS accounts. In order for `Upload Artifact` feature to work, developer needs to specify a unique name in their configuration file `artifact_upload_path: "<UNIQUE_BUCKET_NAME>"`.
+```yml
+global:
+    pipeline_name: "cicd_pipeline"
+    docker: #...
+    artifact_upload_path: <UNIQUE_BUCKET_NAME>
+```
+
 You need to copy and paste the following AWS credentials into ~/.aws/credentials file.
 The credentials you provided must be able to create a bucket and upload into S3.
 
@@ -92,6 +100,12 @@ source <your_venv_dir>/Scripts/activate
 source myenv/Scripts/activate
 # for Mac / Unix
 source myenv/bin/activate
+```
+
+In order to be able to run `poetry` command from different directory / folders,
+developer should use
+```sh
+poetry shell
 ```
 
 ## Installation, Lint & Test
