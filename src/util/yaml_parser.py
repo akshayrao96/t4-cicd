@@ -73,7 +73,6 @@ class MyConstructor(ruamel.yaml.constructor.RoundTripConstructor):
         Returns:
             ruamel.yaml.nodes.ScalarNode: dictionary cell with lc.line and lc.col info
         """
-        # type: (Any) -> Any
         # pylint: disable=attribute-defined-outside-init
         if not isinstance(node, ruamel.yaml.nodes.ScalarNode):
             raise ruamel.yaml.constructor.ConstructorError(

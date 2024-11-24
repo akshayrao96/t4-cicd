@@ -464,8 +464,13 @@ class MongoAdapter:
             db_name: str = MONGO_DB_NAME,
             collection_name: str = MONGO_REPOS_TABLE) -> bool:
         """
-        Upsert a session record in the database based on user ID. If a record with the same user_id exists,
-        it will update the record; otherwise, a new record will be inserted.
+        Upsert a session record in the database based on user ID. 
+        If a record with the same user_id exists,
+        it will update the record; otherwise, a new record will be inserted. 
+
+        result = update_session(session_data)
+        if result, print("Session updated successfully.")
+        else, print("Failed to update session.")
 
         Args:
             session_data (dict): The session data to upsert, including the "user_id" field.
@@ -475,22 +480,6 @@ class MongoAdapter:
         Returns:
             bool: True if the upsert operation was successful, False otherwise.
 
-        Example:
-            session_data = {
-                "user_id": "12345",
-                "repo_url": "https://github.com/example/repo",
-                "repo_name": "repo",
-                "branch": "main",
-                "commit_hash": "abc123",
-                "is_remote": True,
-                "time": "2024-11-15 12:34:56"
-            }
-
-            result = update_session(session_data)
-            if result:
-                print("Session updated successfully.")
-            else:
-                print("Failed to update session.")
         """
         try:
             # Define the query filter based on user_id

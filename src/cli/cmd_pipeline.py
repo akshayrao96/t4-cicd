@@ -83,12 +83,15 @@ def run(ctx, file_path:str, pipeline_name:str, repo:str, branch:str, commit:str,
         click.secho(message, fg='red')
         sys.exit(2)
     click.secho(message, fg='green')
-    # click.echo(repo_details.model_dump())
 
-    status, message = controller.run_pipeline(config_file=file_path, pipeline_name=pipeline_name,
-                    dry_run=dry_run, git_details=repo_details,
-                    local=local, yaml_output=yaml_output,
-                    override_configs=overrides)
+    status, message = controller.run_pipeline(
+        config_file=file_path,
+        pipeline_name=pipeline_name,
+        dry_run=dry_run,
+        git_details=repo_details,
+        local=local,
+        yaml_output=yaml_output,
+        override_configs=overrides)
 
     logger.debug(f"pipeline run status: {status}, ")
     if status:
@@ -112,14 +115,15 @@ default stages options: [build, test, doc, deploy]')
 @click.option('-r', '--run', 'run_number', default=None, help='run number to get the report')
 def report(ctx, repo_url:str, local:bool, pipeline_name:str, branch:str, stage:str,
            job:str, run_number:int):
-    """Report pipeline provides user to retrieve the pipeline history. \n
+    """Report pipeline provides user to retrieve the pipeline history. \f
     To retrieve which REPO_URL you currently at, run `cid config get-repo | grep "Repository URL:"`
-    Example of basic usage: \n
-      cid pipeline report --repo REPO_URL | list all report for a repository \n
+    Example of basic usage: \f
+      cid pipeline report --repo REPO_URL | list all report for a repository \f
       cid pipeline report --repo REPO_URL --pipeline PIPELINE_NAME | list all runs of the given
-PIPELINE_NAME.\n
+      PIPELINE_NAME.\f
       cid pipeline report --repo REPO_URL --pipeline PIPELINE_NAME --run RUN | list the output
-history of the run # given the PIPELINE_NAME and RUN number.\n \f
+      history of the run # given the PIPELINE_NAME and RUN number. \f
+
     Args:
         ctx (context): click context
         repo_url (str): repository url to display the report
