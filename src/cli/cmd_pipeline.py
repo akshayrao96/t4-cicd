@@ -10,7 +10,7 @@ from controller.controller import (Controller)
 
 DEFAULT_CONFIG_FILE_PATH = ".cicd-pipelines/pipelines.yml"
 logger = get_logger('cli.cmd_pipeline')
-# pylint: disable=fixme
+
 @click.group()
 def pipeline():
     """All commands related to pipeline"""
@@ -22,7 +22,7 @@ file path. if --file not specified, default to .cicd-pipelines/pipelines.yml')
 @click.option('--pipeline', 'pipeline_name', help='pipeline name to run' )
 @click.option('-r', '--repo', 'repo', default=None, help='repository url or \
 local directory path')
-@click.option('-b', '--branch', 'branch', default="main", help='repository branch name')
+@click.option('-b', '--branch', 'branch', default=None, help='repository branch name')
 @click.option('-c', '--commit', 'commit', default=None, help='commit hash')
 @click.option('--local', 'local', help='run pipeline locally', is_flag=True)
 @click.option('--dry-run', 'dry_run', help='dry-run options to simulate the pipeline\
@@ -132,7 +132,7 @@ history of the run # given the PIPELINE_NAME and RUN number.\n \f
     """
     ctrl = Controller()
     pipeline_model = {}
-    #TODO: Step 1. get_repo to retrieve repo_name, repo_url, branch
+
     #TODO: validate if --run is specified, --pipeline needs to exist
 
     pipeline_model['pipeline_name'] = pipeline_name
