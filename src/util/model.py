@@ -1,6 +1,5 @@
-""" provide common model class based on pydantic 
-for easier validation and formating. 
-Note we cant use constant when defining the field here
+"""
+Common model class based on pydantic for easier validation and formating. 
 """
 import time
 from collections import OrderedDict
@@ -24,7 +23,7 @@ class ArtifactConfig(BaseModel):
     Args:
         BaseModel (BaseModel): Base Pydantic Class
     """
-    on_success_only:bool
+    on_success_only: bool
     paths: list[str]
 
 class JobConfig(BaseModel):
@@ -36,10 +35,10 @@ class JobConfig(BaseModel):
     stage: str
     allow_failure: bool
     needs: list[str]
-    docker:DockerConfig
+    docker: DockerConfig
     artifact_upload_path: Optional[str]
-    scripts:list[str]
-    artifacts:Optional[ArtifactConfig] = None
+    scripts: list[str]
+    artifacts: Optional[ArtifactConfig] = None
 
 class JobLog(BaseModel):
     """ class to hold information for a single job
@@ -47,13 +46,12 @@ class JobLog(BaseModel):
     Args:
         BaseModel (BaseModel): Base Pydantic Class
     """
-    job_name:str
+    job_name: str
     job_status: Optional[str] = c.STATUS_FAILED
     allow_failure: bool
     start_time: str
-    # If put Optional the default must be supplied
-    completion_time:Optional[str] = time.asctime()
-    job_logs:Optional[str] = ""
+    completion_time: Optional[str] = time.asctime()
+    job_logs: Optional[str] = ""
 
 class SessionDetail(BaseModel):
     """ class to hold information to identify a repo for pipeline run
@@ -61,13 +59,13 @@ class SessionDetail(BaseModel):
     Args:
         BaseModel (BaseModel): Base Pydantic Class
     """
-    user_id:str
-    repo_name:str
-    repo_url:str
-    branch:str
-    commit_hash:str
-    is_remote:bool
-    time:Optional[str] = time.asctime()
+    user_id: str
+    repo_name: str
+    repo_url: str
+    branch: str
+    commit_hash: str
+    is_remote: bool
+    time: Optional[str] = time.asctime()
 
 class GlobalConfig(BaseModel):
     """ class to hold information for a validated global section
@@ -75,9 +73,9 @@ class GlobalConfig(BaseModel):
     Args:
         BaseModel (BaseModel): Base Pydantic Class
     """
-    pipeline_name:str
-    docker:DockerConfig
-    artifact_upload_path:str
+    pipeline_name: str
+    docker: DockerConfig
+    artifact_upload_path: str
 
 class ValidatedStage(BaseModel):
     """ class to hold information for a Validated Stage in Stages Section
@@ -85,8 +83,8 @@ class ValidatedStage(BaseModel):
     Args:
         BaseModel (BaseModel): Base Pydantic Class
     """
-    job_graph:dict
-    job_groups:list[list]
+    job_graph: dict
+    job_groups: list[list]
 
 class PipelineConfig(BaseModel):
     """ class to hold information for a valid pipeline configuration. 
@@ -97,9 +95,9 @@ class PipelineConfig(BaseModel):
     Args:
         BaseModel (BaseModel): Base Pydantic Class
     """
-    global_:GlobalConfig = Field(alias=c.KEY_GLOBAL)
+    global_: GlobalConfig = Field(alias=c.KEY_GLOBAL)
     stages : OrderedDict
-    jobs:dict
+    jobs: dict
 
 class RawPipelineInfo(BaseModel):
     """ class to hold information for a single pipeline 
@@ -148,9 +146,9 @@ class RepoConfig(BaseModel):
         BaseModel (BaseModel): Base Pydantic Class
     """
     _id: Optional[any] = None
-    repo_name:str
-    repo_url:str
-    branch:str
+    repo_name: str
+    repo_url: str
+    branch: str
     pipelines: Optional[Dict[str,PipelineInfo]] = {}
 
 class PipelineHist(BaseModel):
@@ -167,7 +165,6 @@ class PipelineHist(BaseModel):
     job: Optional[str] = None
     run: Optional[int] = None
     is_remote: Optional[bool] = False
-    # commit_hash: Optional[str] = ""
 
 class ValidationResult(BaseModel):
     """ class to hold validation result for a single pipeline 

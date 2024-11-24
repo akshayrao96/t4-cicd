@@ -3,10 +3,8 @@
 import os
 import copy
 import unittest
-from unittest.mock import MagicMock, patch
-import pprint
+from unittest.mock import patch
 import json
-from collections import OrderedDict
 from docker.errors import DockerException
 import util.constant as c
 from controller.controller import Controller

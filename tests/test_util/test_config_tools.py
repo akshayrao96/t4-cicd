@@ -4,7 +4,6 @@ from collections import OrderedDict
 import unittest
 import util.config_tools as config
 import util.constant as c
-# from util.config_tools import (ConfigChecker)
 from util.common_utils import get_logger
 
 logger = get_logger("tests.test_util.test_config_tools")
@@ -207,7 +206,6 @@ def test_check_stages_jobs_relationship_fails():
     assert not passed
     assert error_msg == expected_error_msg
     assert actual_stages == expected_stages
-    
     # Job defined unknown stage
     jobs_dict = {
         'compile':{
@@ -236,13 +234,11 @@ def test_check_jobs_dependencies():
     jobs_dict = {
         'compile':{
             c.JOB_SUBKEY_STAGE:'build',
-            
         },
 
         'pylint':{
             c.JOB_SUBKEY_STAGE:'test'
         },
-        
         'pytest':{
             c.JOB_SUBKEY_STAGE:'test',
             c.JOB_SUBKEY_NEEDS:['compile']
@@ -258,7 +254,8 @@ def test_check_jobs_dependencies():
             'compile', 'pytest'
         ]]
     }
-    passed, actual_error_msg, actual_result = checker._check_jobs_dependencies(stage_name, job_list, jobs_dict)
+    passed, actual_error_msg, actual_result = checker._check_jobs_dependencies(stage_name, 
+                                                                               job_list, jobs_dict)
     assert passed
     assert actual_error_msg == expected_error_msg
     assert actual_result == expected_result_dict

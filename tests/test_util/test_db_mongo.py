@@ -3,12 +3,9 @@
 import copy
 import mongomock
 import pprint
-import pytest
 from pymongo import (errors)
 import unittest
-from unittest.mock import MagicMock, patch
-from dataclasses import dataclass
-from collections import OrderedDict
+from unittest.mock import patch
 import util.constant as c
 from util.db_mongo import MongoAdapter
 from util.common_utils import get_logger
@@ -16,9 +13,9 @@ from util.model import (PipelineInfo, RepoConfig, SessionDetail)
 logger = get_logger("tests.test_util.test_db_mongo")
 
 class TestMongoDB(unittest.TestCase):
-    
+    """Test cases for MongoDB operations"""
     _mock_mongo = mongomock.MongoClient()
-    
+
     def setUp(self):
         self.session_data = SessionDetail(
             user_id="random",
@@ -103,7 +100,6 @@ class TestMongoDB(unittest.TestCase):
             'job_run': 1,
             'job_log': {}
         }
-        
 
         # Test insert and get
         pipeline_history = {
@@ -124,8 +120,6 @@ class TestMongoDB(unittest.TestCase):
         mongo_adapter.update_job(result_id, updated_history)
         new_search_result = mongo_adapter.get_job(result_id)
         assert new_search_result == updated_history
-
-    
 
     @patch("util.db_mongo.MongoAdapter._delete", side_effect=errors.PyMongoError())
     @patch("util.db_mongo.MongoAdapter._update", side_effect=errors.PyMongoError())
@@ -163,7 +157,7 @@ class TestMongoDB(unittest.TestCase):
         update_result = mongo_adapter.update_job(job_log, self.pipeline_config)
         assert update_result == False
         pass
-    
+
     @patch("util.db_mongo.MongoClient", return_value=_mock_mongo)
     def test_update_with_query(self, mock_client):
         """ Test update and retrieve by query method
@@ -212,7 +206,7 @@ class TestMongoDB(unittest.TestCase):
             updates=self.pipeline_info
         )
         assert result is True
-        
+
         # Test modification
         pipeline_config = copy.deepcopy(self.pipeline_config)
         pipeline_config[c.KEY_GLOBAL][c.KEY_ARTIFACT_PATH] = "new_temp"
@@ -223,7 +217,7 @@ class TestMongoDB(unittest.TestCase):
             pipeline_name="test_pipeline",
             updates={c.FIELD_PIPELINE_CONFIG:pipeline_config}
         )
-        
+
         assert result is True
         query_filter = {
             c.FIELD_REPO_NAME:"test_repo",

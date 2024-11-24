@@ -424,7 +424,8 @@ class TestRepoManager(unittest.TestCase):
         # Assertions
         self.assertFalse(success)
         self.assertIn("Branch 'nonexistent-branch' does not exist remotely.", message)
-        mock_instance.git.ls_remote.assert_called_once_with("--heads", "origin", "nonexistent-branch")
+        mock_instance.git.ls_remote.assert_called_once_with("--heads", 
+                                                            "origin", "nonexistent-branch")
         mock_instance.git.fetch.assert_not_called()
         mock_instance.git.checkout.assert_not_called()
 
@@ -490,9 +491,9 @@ class TestRepoManager(unittest.TestCase):
 
         # Assert success
         self.assertTrue(success)
-        self.assertIn("Repository successfully checked out to branch 'main' and commit '123abc'.", message)
+        self.assertIn("Repository successfully checked out to branch 'main' and commit '123abc'.",
+                      message)
 
         # Assert branch and commit actions
         mock_instance.git.checkout.assert_called_once_with(c.DEFAULT_BRANCH)
         mock_instance.git.execute.assert_called_once_with(["git", "reset", "--hard", "123abc"])
-

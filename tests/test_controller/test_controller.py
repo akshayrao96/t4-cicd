@@ -3,7 +3,7 @@
 import unittest
 from datetime import datetime
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 from controller.controller import (Controller)
 from util.common_utils import (get_logger)
 import util.constant as c
@@ -207,7 +207,8 @@ class TestControllerRepoFunctions(unittest.TestCase):
         mock_set_repo.return_value = (True, "Repository set successfully.", None)
 
         controller = Controller()
-        result = controller.handle_repo(repo_url="https://github.com/sample/repo", branch=c.DEFAULT_BRANCH, commit_hash="abc123")
+        result = controller.handle_repo(repo_url="https://github.com/sample/repo",
+                                        branch=c.DEFAULT_BRANCH, commit_hash="abc123")
 
         # Assert that set_repo was called with correct parameters
         mock_set_repo.assert_called_once_with(
@@ -295,7 +296,8 @@ class TestControllerRepoFunctions(unittest.TestCase):
     @patch("util.db_mongo.MongoAdapter.get_session", return_value=None)
     @patch("util.db_mongo.MongoAdapter.update_session", return_value="mock_inserted_id")
     @patch("os.getlogin", return_value="test_user")
-    def test_checkout_repo_success(self, mock_getlogin, mock_update_session, mock_get_session, mock_repo_manager):
+    def test_checkout_repo_success(self, mock_getlogin, mock_update_session,
+                                   mock_get_session, mock_repo_manager):
         """Test checkout_repo when branch and commit are successfully checked out."""
         mock_instance = mock_repo_manager.return_value
 
@@ -350,7 +352,8 @@ class TestControllerRepoFunctions(unittest.TestCase):
     @patch("controller.controller.RepoManager")
     @patch("util.db_mongo.MongoAdapter.get_session", return_value=None)
     @patch("os.getlogin", return_value="test_user")
-    def test_checkout_repo_commit_not_found(self, mock_getlogin, mock_get_session, mock_repo_manager):
+    def test_checkout_repo_commit_not_found(self, mock_getlogin, mock_get_session,
+                                            mock_repo_manager):
         """Test checkout_repo when the commit does not exist."""
         mock_instance = mock_repo_manager.return_value
 
@@ -376,7 +379,8 @@ class TestControllerRepoFunctions(unittest.TestCase):
         mock_instance.is_current_dir_repo.return_value = (True, False, "test_repo")
 
         controller = Controller()
-        status, message, repo_data = controller.checkout_repo(branch=c.DEFAULT_BRANCH, commit_hash="123abc")
+        status, message, repo_data = controller.checkout_repo(branch=c.DEFAULT_BRANCH,
+                                                              commit_hash="123abc")
 
         self.assertFalse(status)
         self.assertEqual(message, "Please navigate to root of repository before executing command.")
@@ -393,7 +397,8 @@ class TestControllerRepoFunctions(unittest.TestCase):
         mock_instance.is_current_dir_repo.return_value = (False, None, None)
 
         controller = Controller()
-        status, message, repo_data = controller.checkout_repo(branch=c.DEFAULT_BRANCH, commit_hash="123abc")
+        status, message, repo_data = controller.checkout_repo(branch=c.DEFAULT_BRANCH,
+                                                              commit_hash="123abc")
 
         self.assertFalse(status)
         self.assertEqual(message, "Current directory is not a Git repository.")
@@ -402,7 +407,8 @@ class TestControllerRepoFunctions(unittest.TestCase):
     @patch("controller.controller.RepoManager")
     @patch("util.db_mongo.MongoAdapter.get_session", return_value=None)
     @patch("os.getlogin", return_value="test_user")
-    def test_checkout_repo_failed_to_retrieve_details(self, mock_getlogin, mock_get_session, mock_repo_manager):
+    def test_checkout_repo_failed_to_retrieve_details(self, mock_getlogin,
+                                                      mock_get_session, mock_repo_manager):
         """Test checkout_repo when repository details cannot be retrieved."""
         mock_instance = mock_repo_manager.return_value
 
@@ -412,10 +418,9 @@ class TestControllerRepoFunctions(unittest.TestCase):
         mock_instance.get_current_repo_details.return_value = {}
 
         controller = Controller()
-        status, message, repo_data = controller.checkout_repo(branch=c.DEFAULT_BRANCH, commit_hash="123abc")
+        status, message, repo_data = controller.checkout_repo(branch=c.DEFAULT_BRANCH,
+                                                              commit_hash="123abc")
 
         self.assertFalse(status)
         self.assertEqual(message, "Failed to retrieve repository details.")
         self.assertIsNone(repo_data)
-
-

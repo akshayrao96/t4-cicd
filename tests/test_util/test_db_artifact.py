@@ -1,8 +1,6 @@
 import unittest
-import boto3
-from botocore.stub import Stubber
 from botocore.exceptions import ClientError
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 from util.common_utils import get_logger
 from util.db_artifact import S3Client
 

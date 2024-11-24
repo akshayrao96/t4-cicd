@@ -1,7 +1,6 @@
 """ test the models defined in model.py
 """
 import copy
-import pprint
 import unittest
 import time
 import util.constant as c
@@ -11,6 +10,9 @@ from util.common_utils import (get_logger)
 logger = get_logger("tests.test_util.test_model")
 
 class TestModel(unittest.TestCase):
+    """
+    Unit tests for validating models defined in `model.py`.
+    """
     def setUp(self):
         self.global_section = {
             c.KEY_PIPE_NAME: "test_pipeline",
@@ -37,7 +39,7 @@ class TestModel(unittest.TestCase):
             c.FIELD_REPO_URL: "https://github.com/sjchin88/cicd-python",
             c.FIELD_BRANCH: c.DEFAULT_BRANCH,
             c.FIELD_COMMIT_HASH: "random",
-            c.FIELD_IS_REMOTE: True, 
+            c.FIELD_IS_REMOTE: True,
         }
         self.sample_stage = {
                     "job_graph": {
@@ -66,11 +68,9 @@ class TestModel(unittest.TestCase):
     def test_job_config(self):
         """ Test the JobConfig model
         """
-        
         job_config = model.JobConfig.model_validate(self.sample_job_config)
         print(job_config)
         assert True
-        #assert job_config == sample_job_config
 
     def test_job_log(self):
         """ Test the JobLog model
@@ -82,24 +82,23 @@ class TestModel(unittest.TestCase):
         job_log.completion_time = time.asctime()
         print(job_log.model_dump())
         assert True
-    
+
     def test_Global_Config(self):
         global_section = model.GlobalConfig.model_validate(self.global_section)
         assert True
-    
+
     def test_SessionDetail(self):
         session_detail = model.SessionDetail.model_validate(self.sample_session)
         assert True
-    
+
     def test_validated_stage(self):
-        
         single_stage = model.ValidatedStage.model_validate(self.sample_stage)
         assert True
 
     def test_pipeline_config(self):
         pipeline = model.PipelineConfig.model_validate(self.sample_pipeline_config)
         assert True
-    
+
     def test_pipeline_history(self):
         pipeline_history = {
             c.FIELD_PIPELINE_NAME: "sample_pipeline",
@@ -110,7 +109,7 @@ class TestModel(unittest.TestCase):
         history = model.PipelineInfo.model_validate(pipeline_history)
         print(history.model_dump())
         logger.debug(history)
-        
+
         # Test handling of None field
         pipeline_history = {
             c.FIELD_PIPELINE_NAME: "sample_pipeline",
@@ -122,5 +121,4 @@ class TestModel(unittest.TestCase):
         history = model.PipelineInfo.model_validate(pipeline_history)
         logger.debug(history)
         assert True
-# test_job_config()
-# test_job_log()
+

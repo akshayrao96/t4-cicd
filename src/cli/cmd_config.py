@@ -159,7 +159,7 @@ def config(ctx, check: bool, check_all: bool, no_set: bool, config_file: str, di
 
 @config.command()
 @click.argument('repo_url', required=True)
-@click.option('--branch', default="main", help="Specify the branch to retrieve.\
+@click.option('--branch', default=c.DEFAULT_BRANCH, help="Specify the branch to retrieve.\
  If not given, 'main' is used.")
 @click.option('--commit', default=None, help="Specify the commit hash to retrieve.\
  If not given, latest commit is used.")
@@ -219,7 +219,8 @@ def set_repo(repo_url: str, branch: str, commit: str) -> None:
         # message = success if repo is set, otherwise, specific error message of what the error is
         # repo_details = SessionDetails if success, otherwise, none
 
-        status, message, repo_details = controller.handle_repo(repo_url, branch=branch, commit_hash=commit)
+        status, message, repo_details = controller.handle_repo(repo_url,
+                                                               branch=branch, commit_hash=commit)
 
         # Display the result message
         click.echo(f"{message}\n")
@@ -246,9 +247,10 @@ def get_repo():
     set repository stored in the system.
 
     Behavior:
-        - If the current directory is a Git repository, it displays the URL, branch, and latest commit hash.
-        - If the current directory is not a Git repository but a previous repository configuration exists,
-          it retrieves and displays details of the last configured repository.
+        - If the current directory is a Git repository, it displays the URL, branch, 
+        and latest commit hash.
+        - If the current directory is not a Git repository but a previous repository configuration 
+        exists, it retrieves and displays details of the last configured repository.
         - If no repository is configured, it provides guidance for setting a repository.
 
     Output:

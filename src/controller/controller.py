@@ -736,20 +736,9 @@ class Controller:
         Returns:
             str: _description_
         """
-        # TODO - Do the clean up on doctsring and methods
         dry_run = DryRun(config_dict)
         dry_run_msg = dry_run.get_plaintext_format()
         yaml_output_msg = dry_run.get_yaml_format()
-        # mongo = MongoAdapter()
-
-        #GET TIME
-        #now = datetime.now()
-        #time_log = now.strftime("%Y-%m-%d %H:%M:%S")
-        #pipeline_history = {"config_file": yaml_output_msg, "executed_time": time_log}
-
-        # dry-run is not stored to mongo DB
-        #pipeline_id = mongo.insert_pipeline(pipeline_history)
-        #pipeline_id = "dry_run"
 
         # set yaml format if user specify "--yaml" flag.
         if is_yaml_output:

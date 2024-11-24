@@ -13,7 +13,5 @@ def cid(ctx):
     if ctx.invoked_subcommand is None:
         click.echo(ctx.get_help())
 
-
-# Add all sub commands to the main cid group
 cid.add_command(cmd_pipeline.pipeline)
 cid.add_command(cmd_config.config)
