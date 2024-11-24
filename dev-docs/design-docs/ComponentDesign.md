@@ -26,6 +26,8 @@
 
 ## Example Sequence Diagram
 
+<img src="../images/SeqPipelineRun.jpg" alt="System Design" width="1000" height="1500">
+
 ## Suplement Information
 
 ### Pydantic Model vs Dict
