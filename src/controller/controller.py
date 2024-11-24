@@ -15,7 +15,7 @@ from ruamel.yaml import YAMLError
 import util.constant as c
 from util.container import (DockerManager)
 from util.model import (SessionDetail, PipelineConfig, ValidatedStage, PipelineInfo, PipelineHist)
-from util.common_utils import (get_logger, MongoHelper, DryRun, PipelineReport)
+from util.common_utils import (get_logger, ConfigOverride, DryRun, PipelineReport)
 from util.repo_manager import (RepoManager)
 from util.db_mongo import (MongoAdapter)
 from util.yaml_parser import YamlParser
@@ -430,7 +430,7 @@ class Controller:
 
         # Process Override if have.
         if override_configs:
-            pipeline_config = MongoHelper.apply_overrides(
+            pipeline_config = ConfigOverride.apply_overrides(
                 pipeline_config,
                 override_configs)
         click.echo(f"Validating file in {pipeline_file_name}")
@@ -483,7 +483,7 @@ class Controller:
             return False, err, None
 
         pipeline_config = his_obj.pipeline_config.model_dump(by_alias=True)
-        updated_config = MongoHelper.apply_overrides(pipeline_config, overrides)
+        updated_config = ConfigOverride.apply_overrides(pipeline_config, overrides)
         # validate the updated pipeline configuration
         validation_res = self.config_checker.validate_config(pipeline_name,
                                                             updated_config,

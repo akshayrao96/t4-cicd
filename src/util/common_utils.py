@@ -381,7 +381,9 @@ class MongoHelper:
             }
         return projection_fields
 
-    ## ConfigOverrides
+class ConfigOverride:
+    """ConfigOverride class to handle configuration overrides"""
+
     @staticmethod
     def build_nested_dict(overrides):
         """
@@ -418,7 +420,7 @@ class MongoHelper:
         """
         for key, value in updates.items():
             if isinstance(value, dict):
-                config[key] = MongoHelper.apply_overrides(config.get(key, {}), value)
+                config[key] = ConfigOverride.apply_overrides(config.get(key, {}), value)
             else:
                 config[key] = value
         return config

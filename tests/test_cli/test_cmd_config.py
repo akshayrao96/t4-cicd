@@ -245,7 +245,7 @@ class TestConfigOverride(unittest.TestCase):
         )
         self.handle_repo_return = (True, "", self.session_data)
     
-    @patch("cli.cmd_config.MongoHelper.build_nested_dict", side_effect=ValueError("Invalid override format"))
+    @patch("cli.cmd_config.ConfigOverride.build_nested_dict", side_effect=ValueError("Invalid override format"))
     def test_override_value_error(self, mock_build_nested_dict):
         """ Test override command when a ValueError is raised """
         result = self.runner.invoke(

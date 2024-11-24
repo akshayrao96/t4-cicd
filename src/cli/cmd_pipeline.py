@@ -4,7 +4,7 @@ import sys
 import json
 import click
 from pydantic import ValidationError
-from util.common_utils import (get_logger,MongoHelper)
+from util.common_utils import (get_logger, ConfigOverride)
 from util.model import (PipelineHist)
 from controller.controller import (Controller)
 import util.constant as c
@@ -64,7 +64,7 @@ def run(ctx, file_path:str, pipeline_name:str, repo:str, branch:str, commit:str,
 
     if overrides:
         try:
-            overrides = MongoHelper.build_nested_dict(overrides)
+            overrides = ConfigOverride.build_nested_dict(overrides)
         except ValueError as e:
             click.secho(str(e), fg='red')
             sys.exit(2)
