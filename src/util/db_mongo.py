@@ -4,7 +4,6 @@ import copy
 from datetime import datetime, timezone
 import time
 import bson
-# from bson import ObjectId
 from pydantic import ValidationError
 from pymongo import (MongoClient, errors)
 from util.common_utils import (get_env, get_logger, MongoHelper)
@@ -64,7 +63,6 @@ class MongoAdapter:
         database = mongo_client[db_name]
         collection = database[collection_name]
         updated_data = copy.deepcopy(data)
-        # We need to pop the '_id' as it is immutable and can cause error
         updated_data.pop('_id')
         query_filter = {'_id': bson.objectid.ObjectId(
             data['_id'])}
@@ -141,7 +139,6 @@ class MongoAdapter:
         database = mongo_client[db_name]
         collection = database[collection_name]
         result = collection.find_one(query)
-        # Follow best practise to close connection to db immediately
         mongo_client.close()
         return result
 
@@ -197,47 +194,6 @@ class MongoAdapter:
         except errors.PyMongoError as e:
             logger.warning(
                 f"Error inserting new pipeline, exception is {e}")
-            return False
-
-    def update_pipeline(
-            self,
-            pipeline_history: dict,
-            db_name: str = MONGO_DB_NAME,
-            collection_name: str = MONGO_PIPELINES_TABLE) -> bool:
-        """ Update the pipeline history based on given dict
-
-        Args:
-            pipeline_history (dict): updated pipeline_history
-            db_name (str, optional): database to be updated Defaults to MONGO_DB_NAME.
-            collection_name (str, optional): collection(table) to be updated.
-                Defaults to MONGO_PIPELINES_TABLE.
-
-        Returns:
-            bool: if the update is successful or fail
-        """
-        try:
-            return self._update(pipeline_history, db_name, collection_name)
-        except errors.PyMongoError as e:
-            logger.warning(f"Error updating the pipeline, exception is {e}")
-            return False
-
-    def del_pipeline(self, pipeline_id: str, db_name: str = MONGO_DB_NAME,
-                     collection_name: str = MONGO_PIPELINES_TABLE) -> dict:
-        """ Delete the pipeline history based on given id
-
-        Args:
-            pipeline_id (str): id of the given pipeline
-            db_name (str, optional): target database. Defaults to MONGO_DB_NAME.
-            collection_name (str, optional): target collection table.
-                Defaults to MONGO_PIPELINES_TABLE.
-        Returns:
-            dict: given pipeline in dict form
-        """
-        try:
-            return self._delete(pipeline_id, db_name, collection_name)
-        except errors.PyMongoError as e:
-            logger.warning(
-                f"Error deleting the pipeline history, exception is {e}")
             return False
 
     def insert_job(self,
@@ -343,34 +299,6 @@ class MongoAdapter:
             logger.warning(f"Error updating job log for jobs_id {jobs_id}: {e}")
             return False
 
-    def create_job_log(self, job_name: str, job_status: str, allow_failure: bool = False,
-                    logs: list = None, error_output: str = None) -> dict:
-        """
-        Creates a job log entry.
-
-        Args:
-            job_name (str): Name of the job.
-            job_status (str): Current status of the job (e.g., "started" / "completed").
-            allow_failure (bool, optional): the job is allowed to fail or not.
-            logs (list, optional): List of log.
-            error_output (str, optional): Error output.
-
-        Returns:
-            dict: A dictionary representing the job log entry.
-        """
-        job_log = {
-            "job_name": job_name,
-            "job_status": job_status,
-            "allow_failure": allow_failure,
-            "logs": logs or [],
-            "error_output": error_output
-        }
-        if job_status == "started":
-            job_log["start_time"] = datetime.now(timezone.utc)
-        elif job_status == "completed":
-            job_log["completion_time"] = datetime.now(timezone.utc)
-        return job_log
-
     def get_job(self, doc_id: str, db_name: str = MONGO_DB_NAME,
                 collection_name: str = MONGO_JOBS_TABLE) -> dict:
         """ retrieve the job based on given id
@@ -388,43 +316,6 @@ class MongoAdapter:
         except errors.PyMongoError as e:
             logger.warning(f"Error retrieving the job, exception is {e}")
             return {}
-
-    def del_job(self, job_id: str, db_name: str = MONGO_DB_NAME,
-                collection_name: str = MONGO_JOBS_TABLE) -> dict:
-        """ Delete the job log based on given id
-
-        Args:
-            job_id (str): id of target job
-            db_name (str, optional): target database. Defaults to MONGO_DB_NAME.
-            collection_name (str, optional): target collection. Defaults to MONGO_JOBS_TABLE.
-
-        Returns:
-            dict: target job in dict form
-        """
-        try:
-            return self._delete(job_id, db_name, collection_name)
-        except errors.PyMongoError as e:
-            logger.warning(f"Error deleting the job log, exception is {e}")
-            return False
-
-    def insert_repo(self, repo_data: dict, db_name: str = MONGO_DB_NAME,
-                    collection_name: str = MONGO_REPOS_TABLE) -> str:
-        """ Insert a new repository session record into repos_collection
-
-        Args:
-            repo_data (dict): dictionary of the repository data
-            db_name (str, optional): database to be inserted into. Defaults to MONGO_DB_NAME.
-            collection_name (str, optional): collection(table) to be inserted into. 
-                Defaults to MONGO_REPOS_TABLE.
-
-        Returns:
-            str: the inserted_id (converted to str) if successful
-        """
-        try:
-            return self._insert(repo_data, db_name, collection_name)
-        except errors.PyMongoError as e:
-            logger.warning(f"Error inserting new repository, exception is {e}")
-            return None
 
     def get_session(
             self,
@@ -502,36 +393,6 @@ class MongoAdapter:
             logger.warning(f"Error in update_session, exception is {e}")
             return False
 
-    def get_pipeline_config(self, repo_name: str, repo_url: str,
-                            branch: str, pipeline_name: str) -> dict:
-        """Retrieve the _id and pipeline_config based on the given args.
-
-        Returns:
-            dict: the _id and pipeline_config fields.
-        """
-        try:
-            query_filter = {
-                'repo_name': repo_name,
-                'repo_url': repo_url,
-                'branch': branch,
-            }
-            projection = {
-                "_id": 1,
-                f"pipelines.{pipeline_name}.pipeline_config": 1
-            }
-            mongo_client = MongoClient(self.mongo_uri)
-            database = mongo_client[MONGO_DB_NAME]
-            collection = database[MONGO_PIPELINES_TABLE]
-            pipeline_document = collection.find_one(query_filter, projection)
-            mongo_client.close()
-            if pipeline_document:
-                pipeline_config = pipeline_document["pipelines"][pipeline_name]["pipeline_config"]
-                return {"_id": pipeline_document["_id"], "pipeline_config": pipeline_config}
-            return {}
-        except errors.PyMongoError as e:
-            logger.warning(f"Error retrieving pipeline config: {str(e)}")
-            return {}
-
     def get_pipeline_history(self, repo_name: str, repo_url: str,
                             branch: str, pipeline_name: str) -> dict:
         """Retrieve a specific pipeline's history in a flat structure.
@@ -602,15 +463,10 @@ class MongoAdapter:
                 'repo_name': repo_name,
                 'repo_url': repo_url,
                 'branch': branch,
-                #'pipelines': pipeline_name
             }
-
             # Check if the specific repository and pipeline exists
             exist = self._retrieve_by_query(query_filter, MONGO_DB_NAME, MONGO_PIPELINES_TABLE)
             if not exist or pipeline_name not in exist['pipelines']:
-                # We need to initialize PipelineInfo data for a new pipeline
-                # Try convert the update to a PipelineInfo object matching the
-                # db schema
                 pipeline_info = PipelineInfo.model_validate(updates)
                 # Convert it back for later usage
                 updates = pipeline_info.model_dump(by_alias=True)
@@ -622,51 +478,6 @@ class MongoAdapter:
         except (errors.PyMongoError, ValidationError) as e:
             logger.warning(f"Error updating pipeline config: {str(e)}")
             return False
-
-    def get_repo(self, repo_name: str, repo_url: str, branch: str) -> dict:
-        """ Retrieve a repo document based on repo_name, repo_url, and branch
-            from the repo_configs collection.
-
-        Args:
-            repo_name (str): The name of the repository.
-            repo_url (str): The URL of the repository.
-            branch (str): The branch of the repository.
-
-        Returns:
-            dict: The repository document if found, otherwise None.
-        """
-        try:
-            with MongoClient(self.mongo_uri) as mongo_client:
-                database = mongo_client[MONGO_DB_NAME]
-                collection = database[MONGO_PIPELINES_TABLE]
-                query_filter = {
-                    "repo_name": repo_name,
-                    "repo_url": repo_url,
-                    "branch": branch
-                }
-                return collection.find_one(query_filter) or {}
-        except errors.PyMongoError:
-            return {}
-
-    #TODO - Discuss - this method can be replaced
-    def create_pipeline_document(self, file_name: str, pipeline_config: dict) -> dict:
-        """Generate a new pipeline document for insertion into pipelines.
-
-        Args:
-            file_name (str): The name of the YAML file for the pipeline.
-            pipeline_config (dict): The pipeline configuration details.
-
-        Returns:
-            dict: A dictionary representing the new pipeline document.
-        """
-        return {
-            "pipeline_file_name": file_name,
-            "pipeline_config": pipeline_config,
-            "job_run_history": [],
-            "active": False,
-            "running": False,
-            "last_commit_hash": ""
-        }
 
     def get_pipeline_run_summary(
         self, repo_url: str, pipeline_name: str = None, stage_name: str = None,

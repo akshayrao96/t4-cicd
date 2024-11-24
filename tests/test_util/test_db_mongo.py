@@ -129,10 +129,7 @@ class TestMongoDB(unittest.TestCase):
         new_search_result = mongo_adapter.get_job(result_id)
         assert new_search_result == updated_history
 
-        # Test delete
-        mongo_adapter.del_job(result_id)
-        new_search_result = mongo_adapter.get_job(result_id)
-        assert new_search_result is None
+    
 
     @patch("util.db_mongo.MongoAdapter._delete", side_effect=errors.PyMongoError())
     @patch("util.db_mongo.MongoAdapter._update", side_effect=errors.PyMongoError())
@@ -169,8 +166,6 @@ class TestMongoDB(unittest.TestCase):
         assert search_result == {}
         update_result = mongo_adapter.update_job(job_log, self.pipeline_config)
         assert update_result == False
-        del_result = mongo_adapter.del_job("")
-        assert del_result == False
         pass
     
     @patch("util.db_mongo.MongoClient", return_value=_mock_mongo)
@@ -205,49 +200,6 @@ class TestMongoDB(unittest.TestCase):
         )
         retrieved_data.pop('_id')
         assert retrieved_data == updated_data
-
-    @patch("util.db_mongo.MongoClient")
-    def test_get_pipeline_config(self, mock_client):
-        """Test retrieving pipeline config with success, not found, and exception cases."""
-        mongo_adapter = MongoAdapter()
-        collection = mock_client.return_value[MONGO_DB_NAME]['repo_configs']
-
-        # Success case
-        collection.find_one.return_value = {
-            "_id": "12345",
-            "pipelines": {
-                "test_pipeline": {
-                    "pipeline_config": {"key": "value"}
-                }
-            }
-        }
-        result = mongo_adapter.get_pipeline_config(
-            repo_name="test_repo",
-            repo_url="https://github.com/test/test_repo",
-            branch="main",
-            pipeline_name="test_pipeline"
-        )
-        assert result == {"_id": "12345", "pipeline_config": {"key": "value"}}
-
-        # Not found case
-        collection.find_one.return_value = None
-        result = mongo_adapter.get_pipeline_config(
-            repo_name="test_repo",
-            repo_url="https://github.com/test/test_repo",
-            branch="main",
-            pipeline_name="nonexistent_pipeline"
-        )
-        assert result == {}
-
-        # Exception case
-        collection.find_one.side_effect = errors.PyMongoError("Database error")
-        result = mongo_adapter.get_pipeline_config(
-            repo_name="test_repo",
-            repo_url="https://github.com/test/test_repo",
-            branch="main",
-            pipeline_name="test_pipeline"
-        )
-        assert result == {}
 
     @patch("util.db_mongo.MongoClient", return_value=_mock_mongo)
     def test_update_pipeline_config(self, mock_client):
@@ -297,55 +249,3 @@ class TestMongoDB(unittest.TestCase):
             updates={"pipeline_config":pipeline_config}
         )
         assert result is False
-
-    @patch.object(MongoAdapter, 'get_repo')
-    def test_get_repo_success(self, mock_get_repo):
-        """Test successfully retrieving a repository document."""
-        expected_repo = {
-            "repo_name": "sample-repo",
-            "repo_url": "https://github.com/sample-user/sample-repo",
-            "branch": "main",
-            "pipelines": {}
-        }
-        mock_get_repo.return_value = expected_repo
-        mongo_adapter = MongoAdapter()
-        result = mongo_adapter.get_repo(
-            "sample-repo",
-            "https://github.com/sample-user/sample-repo",
-            "main"
-        )
-        assert result == expected_repo
-
-    @patch(
-        "pymongo.collection.Collection.find_one",
-        side_effect=errors.PyMongoError("Database error")
-    )
-    def test_get_repo_exception(self, mock_find_one):
-        """Test get_repo to ensure it handles a PyMongoError and returns an empty dictionary."""
-        mongo_adapter = MongoAdapter()
-        result = mongo_adapter.get_repo(
-            "sample-repo",
-            "https://github.com/sample-user/sample-repo",
-            "main"
-        )
-        assert result == {}
-
-    def test_create_pipeline_document(self):
-        """Test generating a new pipeline document."""
-        mongo_adapter = MongoAdapter()
-        pipeline_name = "test_pipeline"
-        file_name = "test_pipeline.yml"
-        pipeline_config = {"global": {"pipeline_name": "test_pipeline"}}
-
-        result = mongo_adapter.create_pipeline_document(file_name, pipeline_config)
-
-        # Check the structure of the created document
-        expected_document = {
-            "pipeline_file_name": file_name,
-            "pipeline_config": pipeline_config,
-            "job_run_history": [],
-            "active": False,
-            "running": False,
-            "last_commit_hash": ""
-        }
-        assert result == expected_document
