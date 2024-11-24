@@ -51,7 +51,8 @@ def get_logger(logger_name='', log_level=logging.DEBUG, log_file='../debug.log')
 
 
 def get_env() -> dict:
-    """Retrieve the env variables from the environment and .env file. Perform further processing if necessary.
+    """Retrieve the env variables from the environment and .env file. 
+    Perform further processing if necessary.
 
     Returns:
         dict: dictionary of env values in key=value pairs

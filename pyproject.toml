@@ -2,7 +2,7 @@
 name = "t4-cicd"
 version = "0.1.0"
 description = ""
-authors = ["Your Name <you@example.com>"]
+authors = ["sjchin, jgautama, peihsuan-lin, akshayrao"]
 license = "LICENSE"
 readme = "README.md"
 
