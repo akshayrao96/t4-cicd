@@ -97,7 +97,7 @@ class PipelineConfig(BaseModel):
     Args:
         BaseModel (BaseModel): Base Pydantic Class
     """
-    global_:GlobalConfig = Field(alias='global')
+    global_:GlobalConfig = Field(alias=c.KEY_GLOBAL)
     stages : OrderedDict
     jobs:dict
 
@@ -125,7 +125,7 @@ class PipelineInfo(BaseModel):
     running: Optional[bool] = False
     last_commit_hash: Optional[str] = ""
 
-    @field_validator("job_run_history")
+    @field_validator(c.FIELD_JOB_RUN_HISTORY)
     @classmethod
     def set_job_run_history(cls, job_run_history):
         """ validate the job_run_history field dynamically, 
@@ -162,7 +162,7 @@ class PipelineHist(BaseModel):
     repo_name:str
     repo_url:str
     pipeline_name: Optional[str] = None
-    branch: Optional[str] = "main"
+    branch: Optional[str] = c.DEFAULT_BRANCH
     stage: Optional[str] = None
     job: Optional[str] = None
     run: Optional[int] = None

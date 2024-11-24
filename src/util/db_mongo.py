@@ -1,20 +1,16 @@
 """ Manage connection to MongoDB, and provides functions for relevent CRUD operation
 """
 import copy
-from datetime import datetime, timezone
 import time
 import bson
 from pydantic import ValidationError
 from pymongo import (MongoClient, errors)
 from util.common_utils import (get_env, get_logger, MongoHelper)
-from util.model import (PipelineInfo, RepoConfig, SessionDetail)
+from util.model import (PipelineInfo, RepoConfig)
+import util.constant as c
 
 env = get_env()
 logger = get_logger("util.db_mongo")
-MONGO_DB_NAME = "CICDControllerDB"
-MONGO_PIPELINES_TABLE = "repo_configs"
-MONGO_JOBS_TABLE = "jobs_history"
-MONGO_REPOS_TABLE = "sessions"
 # pylint: disable=logging-fstring-interpolation
 # pylint: disable=fixme
 
@@ -63,9 +59,9 @@ class MongoAdapter:
         database = mongo_client[db_name]
         collection = database[collection_name]
         updated_data = copy.deepcopy(data)
-        updated_data.pop('_id')
-        query_filter = {'_id': bson.objectid.ObjectId(
-            data['_id'])}
+        updated_data.pop(c.FIELD_ID)
+        query_filter = {c.FIELD_ID: bson.objectid.ObjectId(
+            data[c.FIELD_ID])}
         update_operation = {'$set': updated_data}
         result = collection.update_one(
             query_filter, update_operation)
@@ -91,8 +87,8 @@ class MongoAdapter:
         collection = database[collection_name]
         updated_data = copy.deepcopy(data)
         # try pop the _id field if present
-        if '_id' in updated_data:
-            updated_data.pop('_id')
+        if c.FIELD_ID in updated_data:
+            updated_data.pop(c.FIELD_ID)
         update_operation = {'$set': updated_data}
         result = collection.update_one(
             query, update_operation, upsert=True)
@@ -118,7 +114,7 @@ class MongoAdapter:
         database = mongo_client[db_name]
         collection = database[collection_name]
         result = collection.find_one(
-            {"_id": bson.objectid.ObjectId(doc_id)})
+            {c.FIELD_ID: bson.objectid.ObjectId(doc_id)})
         mongo_client.close()
         return result
 
@@ -157,15 +153,15 @@ class MongoAdapter:
         database = mongo_client[db_name]
         collection = database[collection_name]
         result = collection.delete_one(
-            {"_id": bson.objectid.ObjectId(doc_id)})
+            {c.FIELD_ID: bson.objectid.ObjectId(doc_id)})
         mongo_client.close()
         return result.acknowledged
 
     def insert_repo_pipelines(
             self,
             repo_config:RepoConfig,
-            db_name: str = MONGO_DB_NAME,
-            collection_name: str = MONGO_PIPELINES_TABLE) -> bool:
+            db_name: str = c.MONGO_DB_NAME,
+            collection_name: str = c.MONGO_PIPELINES_TABLE) -> bool:
         """ Insert a new repository record with corresponding pipelines configuration info. 
         into the repo_configs table. 
         If the repository with the primary keys (repo_name, url, branch) already exists, 
@@ -182,13 +178,13 @@ class MongoAdapter:
         """
         try:
             query_filter = {
-                'repo_name':repo_config.repo_name,
-                'repo_url': repo_config.repo_url,
-                'branch': repo_config.branch
+                c.FIELD_REPO_NAME: repo_config.repo_name,
+                c.FIELD_REPO_URL: repo_config.repo_url,
+                c.FIELD_BRANCH: repo_config.branch
             }
             updates = repo_config.model_dump()
-            if '_id' in updates:
-                updates.pop('_id')
+            if c.FIELD_ID in updates:
+                updates.pop(c.FIELD_ID)
             acknowledge = self._update_by_query(query_filter, updates, db_name, collection_name)
             return acknowledge
         except errors.PyMongoError as e:
@@ -211,34 +207,34 @@ class MongoAdapter:
             str: ID of the inserted job document.
         """
         try:
-            all_stages = list(pipeline_config.get("stages", {}).keys())
+            all_stages = list(pipeline_config.get(c.KEY_STAGES, {}).keys())
             stages_to_initialize = stages_to_run if stages_to_run else all_stages
 
             stage_logs = []
             for stage_name in stages_to_initialize:
                 if stage_name in all_stages:
                     stage_log = {
-                        "stage_name": stage_name,
-                        "stage_status": "pending",
-                        "start_time": "",
-                        "completion_time": "",
-                        "jobs": []
+                        c.FIELD_STAGE_NAME: stage_name,
+                        c.FIELD_STAGE_STATUS: c.STATUS_PENDING,
+                        c.FIELD_START_TIME: "",
+                        c.FIELD_COMPLETION_TIME: "",
+                        c.FIELD_JOBS: []
                     }
                     stage_logs.append(stage_log)
-            pending_stages = [stage["stage_name"] for stage in stage_logs]
+            pending_stages = [stage[c.FIELD_STAGE_NAME] for stage in stage_logs]
             logger.info(f"Initialized stages: {', '.join(pending_stages)}")
 
             job_data = {
-                "pipeline_name": pipeline_info.pipeline_name,
-                "run_number": len(pipeline_info.job_run_history) + 1,
-                "git_commit_hash": pipeline_info.last_commit_hash,
-                "pipeline_config_used": pipeline_config,
-                "status": None,
-                "start_time": time.asctime(),
-                "completion_time": "",
-                "logs": stage_logs
+                c.FIELD_PIPELINE_NAME: pipeline_info.pipeline_name,
+                c.FIELD_RUN_NUMBER: len(pipeline_info.job_run_history) + 1,
+                c.FIELD_GIT_COMMIT_HASH: pipeline_info.last_commit_hash,
+                c.FIELD_PIPELINE_CONFIG_USED: pipeline_config,
+                c.FIELD_STATUS: None,
+                c.FIELD_START_TIME: time.asctime(),
+                c.FIELD_COMPLETION_TIME: "",
+                c.FIELD_LOGS: stage_logs
             }
-            return self._insert(job_data, MONGO_DB_NAME, MONGO_JOBS_TABLE)
+            return self._insert(job_data, c.MONGO_DB_NAME, c.MONGO_JOBS_TABLE)
         except errors.PyMongoError as e:
             logger.warning(f"Error inserting new job: {e}")
             return None
@@ -255,12 +251,12 @@ class MongoAdapter:
             bool: True if the update succeeded, False otherwise.
         """
         try:
-            job = self._retrieve(jobs_id, MONGO_DB_NAME, MONGO_JOBS_TABLE)
+            job = self._retrieve(jobs_id, c.MONGO_DB_NAME, c.MONGO_JOBS_TABLE)
             if not job:
                 logger.warning(f"Job with ID {jobs_id} not found.")
                 return False
             job.update(updates)
-            return self._update(job, MONGO_DB_NAME, MONGO_JOBS_TABLE)
+            return self._update(job, c.MONGO_DB_NAME, c.MONGO_JOBS_TABLE)
         except errors.PyMongoError as e:
             logger.warning(f"Error updating job: {e}")
             return False
@@ -280,27 +276,27 @@ class MongoAdapter:
             bool: True if the update succeeded, False otherwise.
         """
         try:
-            jobs = self._retrieve(jobs_id, MONGO_DB_NAME, MONGO_JOBS_TABLE)
+            jobs = self._retrieve(jobs_id, c.MONGO_DB_NAME, c.MONGO_JOBS_TABLE)
             if not jobs:
                 logger.warning(f"Jobs with ID {jobs_id} not found.")
                 return False
-            stage_log = next((stage for stage in jobs["logs"]
-                              if stage["stage_name"] == stage_name), None)
+            stage_log = next((stage for stage in jobs[c.FIELD_LOGS]
+                              if stage[c.FIELD_STAGE_NAME] == stage_name), None)
             if not stage_log:
                 logger.warning(f"Stage '{stage_name}' not initialized. Cannot update job log.")
                 return False
-            stage_log["stage_status"] = stage_status
-            stage_log["jobs"] = jobs_log
+            stage_log[c.FIELD_STAGE_STATUS] = stage_status
+            stage_log[c.FIELD_JOBS] = jobs_log
             if stage_time:
-                stage_log["start_time"] = stage_time["start_time"]
-                stage_log["completion_time"] = stage_time["completion_time"]
-            return self._update(jobs, MONGO_DB_NAME, MONGO_JOBS_TABLE)
+                stage_log[c.FIELD_START_TIME] = stage_time[c.FIELD_START_TIME]
+                stage_log[c.FIELD_COMPLETION_TIME] = stage_time[c.FIELD_COMPLETION_TIME]
+            return self._update(jobs, c.MONGO_DB_NAME, c.MONGO_JOBS_TABLE)
         except errors.PyMongoError as e:
             logger.warning(f"Error updating job log for jobs_id {jobs_id}: {e}")
             return False
 
-    def get_job(self, doc_id: str, db_name: str = MONGO_DB_NAME,
-                collection_name: str = MONGO_JOBS_TABLE) -> dict:
+    def get_job(self, doc_id: str, db_name: str = c.MONGO_DB_NAME,
+                collection_name: str = c.MONGO_JOBS_TABLE) -> dict:
         """ retrieve the job based on given id
 
         Args:
@@ -320,8 +316,8 @@ class MongoAdapter:
     def get_session(
             self,
             user_id: str,
-            db_name: str = MONGO_DB_NAME,
-            collection_name: str = MONGO_REPOS_TABLE) -> dict:
+            db_name: str = c.MONGO_DB_NAME,
+            collection_name: str = c.MONGO_REPOS_TABLE) -> dict:
         """
         Retrieve the last set repository for a specific user.
 
@@ -335,7 +331,7 @@ class MongoAdapter:
             dict: The last repository entry in dictionary form for the user, or None if not found.
         """
         try:
-            query_filter = {"user_id": user_id}
+            query_filter = {c.FIELD_USER_ID: user_id}
 
             result = self._retrieve_by_query(
                 query=query_filter,
@@ -352,8 +348,8 @@ class MongoAdapter:
     def update_session(
             self,
             session_data: dict,
-            db_name: str = MONGO_DB_NAME,
-            collection_name: str = MONGO_REPOS_TABLE) -> bool:
+            db_name: str = c.MONGO_DB_NAME,
+            collection_name: str = c.MONGO_REPOS_TABLE) -> bool:
         """
         Upsert a session record in the database based on user ID. 
         If a record with the same user_id exists,
@@ -374,16 +370,16 @@ class MongoAdapter:
         """
         try:
             # Define the query filter based on user_id
-            query_filter = {"user_id": session_data.get("user_id")}
+            query_filter = {c.FIELD_USER_ID: session_data.get(c.FIELD_USER_ID)}
 
-            if not query_filter["user_id"]:
+            if not query_filter[c.FIELD_USER_ID]:
                 logger.warning("Upsert failed: 'user_id' not found in session_data.")
                 return False
 
             # Prepare the data for the update
             updates = session_data.copy()
-            if '_id' in updates:
-                updates.pop('_id')
+            if c.FIELD_ID in updates:
+                updates.pop(c.FIELD_ID)
 
             # Use the generic helper method for the upsert operation
             acknowledge = self._update_by_query(query_filter, updates, db_name, collection_name)
@@ -408,22 +404,22 @@ class MongoAdapter:
         """
         try:
             query_filter = {
-                'repo_name': repo_name,
-                'repo_url': repo_url,
-                'branch': branch,
+                c.FIELD_REPO_NAME: repo_name,
+                c.FIELD_REPO_URL: repo_url,
+                c.FIELD_BRANCH: branch,
             }
             projection = {
-                "_id": 1,
+                c.FIELD_ID: 1,
                 f"pipelines.{pipeline_name}": 1
             }
             mongo_client = MongoClient(self.mongo_uri)
-            database = mongo_client[MONGO_DB_NAME]
-            collection = database[MONGO_PIPELINES_TABLE]
+            database = mongo_client[c.MONGO_DB_NAME]
+            collection = database[c.MONGO_PIPELINES_TABLE]
             pipeline_document = collection.find_one(query_filter, projection)
             mongo_client.close()
             if pipeline_document:
-                pipeline_data = pipeline_document["pipelines"].get(pipeline_name, {})
-                pipeline_data["pipeline_name"] = pipeline_name
+                pipeline_data = pipeline_document[c.FIELD_PIPELINES].get(pipeline_name, {})
+                pipeline_data[c.FIELD_PIPELINE_NAME] = pipeline_name
                 return pipeline_data
             logger.warning(
                 f"No pipeline config found for '{pipeline_name}' "
@@ -460,19 +456,19 @@ class MongoAdapter:
         """
         try:
             query_filter = {
-                'repo_name': repo_name,
-                'repo_url': repo_url,
-                'branch': branch,
+                c.FIELD_REPO_NAME: repo_name,
+                c.FIELD_REPO_URL: repo_url,
+                c.FIELD_BRANCH: branch,
             }
             # Check if the specific repository and pipeline exists
-            exist = self._retrieve_by_query(query_filter, MONGO_DB_NAME, MONGO_PIPELINES_TABLE)
-            if not exist or pipeline_name not in exist['pipelines']:
+            exist = self._retrieve_by_query(query_filter, c.MONGO_DB_NAME, c.MONGO_PIPELINES_TABLE)
+            if not exist or pipeline_name not in exist[c.FIELD_PIPELINES]:
                 pipeline_info = PipelineInfo.model_validate(updates)
                 # Convert it back for later usage
                 updates = pipeline_info.model_dump(by_alias=True)
             update_dict = {f'pipelines.{pipeline_name}.{k}': v for k, v in updates.items()}
             status = self._update_by_query(
-                query_filter,update_dict,MONGO_DB_NAME,MONGO_PIPELINES_TABLE
+                query_filter,update_dict,c.MONGO_DB_NAME,c.MONGO_PIPELINES_TABLE
                 )
             return status
         except (errors.PyMongoError, ValidationError) as e:
@@ -508,8 +504,8 @@ class MongoAdapter:
 
         try:
             mongo_client = MongoClient(self.mongo_uri)
-            database = mongo_client[MONGO_DB_NAME]
-            repo_collection = database[MONGO_PIPELINES_TABLE]
+            database = mongo_client[c.MONGO_DB_NAME]
+            repo_collection = database[c.MONGO_PIPELINES_TABLE]
             result = list(repo_collection.aggregate(aggregation_pipeline))
             mongo_client.close()
             return result

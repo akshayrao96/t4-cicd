@@ -82,7 +82,7 @@ class TestYamlParser(unittest.TestCase):
         result_dict = result.model_dump(by_alias=True)
         expected_dict = self.expected_ans_json['test_validate_config_valid']
         # Required to ensure ordereddict are the same....
-        expected_dict['pipeline_config']['stages'] = OrderedDict(expected_dict['pipeline_config']['stages'])
+        expected_dict[c.FIELD_PIPELINE_CONFIG][c.KEY_STAGES] = OrderedDict(expected_dict[c.FIELD_PIPELINE_CONFIG][c.KEY_STAGES])
         assert result_dict == expected_dict
         
         # Integration Test with ConfigChecker using another file
@@ -92,7 +92,7 @@ class TestYamlParser(unittest.TestCase):
         result_dict = result.model_dump(by_alias=True)
         expected_dict = self.expected_ans_json['test_validate_config_valid_default']
         # Required to ensure ordereddict are the same....
-        expected_dict['pipeline_config']['stages'] = OrderedDict(expected_dict['pipeline_config']['stages'])
+        expected_dict[c.FIELD_PIPELINE_CONFIG][c.KEY_STAGES] = OrderedDict(expected_dict[c.FIELD_PIPELINE_CONFIG][c.KEY_STAGES])
         assert result_dict == expected_dict 
 
     def test_parse_yaml_by_pipeline_name(self):
@@ -144,5 +144,3 @@ class TestYamlParser(unittest.TestCase):
         result_dict = result.model_dump(by_alias=True)
         expected_dict = self.expected_ans_json['test_validate_config_invalid']
         assert result_dict == expected_dict
-        
-

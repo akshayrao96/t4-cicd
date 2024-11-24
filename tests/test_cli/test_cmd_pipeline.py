@@ -11,6 +11,7 @@ from unittest.mock import patch
 from bson import ObjectId
 from util.model import (PipelineConfig, SessionDetail, ValidationResult)
 from util.common_utils import get_logger
+import util.constant as c
 
 def test_cid():
     """ Test the main cid command just by calling it with --help option
@@ -51,7 +52,7 @@ class TestPipelineRun(TestCase):
             user_id='random',
             repo_name='cicd-python',
             repo_url="https://github.com/sjchin88/cicd-python",
-            branch='main',
+            branch=c.DEFAULT_BRANCH,
             is_remote=True,
             commit_hash="abcdef"
         )
@@ -314,16 +315,16 @@ class TestPipelineHistory(TestCase):
         """
 
         mock_pipeline_summary.return_value = [
-          {'_id': ObjectId('673139d61c77e7e99afd88ce'), 'pipeline_name': 'cicd_pipeline',
-          'run_number': 1, 'git_commit_hash': '16adc46', 'status': 'success',
-          'start_time': 'Sun Nov 10 17:33:33 2024', 'completion_time':
+          {c.FIELD_ID: ObjectId('673139d61c77e7e99afd88ce'), c.FIELD_PIPELINE_NAME: 'cicd_pipeline',
+          c.FIELD_RUN_NUMBER: 1, c.FIELD_GIT_COMMIT_HASH: '16adc46', c.FIELD_STATUS: c.STATUS_SUCCESS,
+          c.FIELD_START_TIME: 'Sun Nov 10 17:33:33 2024', c.FIELD_COMPLETION_TIME:
           'Sun Nov 10 17:33:48 2024'}, 
-          {'_id': ObjectId('673139d61c77e7e99afd88ce'),'pipeline_name': 'cicd_pipeline2',
-          'run_number': 1, 'git_commit_hash': '16adc46', 'status': 'success',
-          'start_time': 'Tue Nov 12 15:25:11 2024', 'completion_time': 'Tue Nov 12 15:25:26 2024'},
-          {'_id': ObjectId('673139d61c77e7e99afd88ce'), 'pipeline_name': 'cicd_pipeline2',
-           'run_number': 2, 'git_commit_hash': '16adc46', 'status': 'success', 'start_time':
-           'Tue Nov 12 18:26:15 2024', 'completion_time': 'Tue Nov 12 18:26:30 2024'}]
+          {c.FIELD_ID: ObjectId('673139d61c77e7e99afd88ce'),c.FIELD_PIPELINE_NAME: 'cicd_pipeline2',
+          c.FIELD_RUN_NUMBER: 1, c.FIELD_GIT_COMMIT_HASH: '16adc46', c.FIELD_STATUS: c.STATUS_SUCCESS,
+          c.FIELD_START_TIME: 'Tue Nov 12 15:25:11 2024', c.FIELD_COMPLETION_TIME: 'Tue Nov 12 15:25:26 2024'},
+          {c.FIELD_ID: ObjectId('673139d61c77e7e99afd88ce'), c.FIELD_PIPELINE_NAME: 'cicd_pipeline2',
+           c.FIELD_RUN_NUMBER: 2, c.FIELD_GIT_COMMIT_HASH: '16adc46', c.FIELD_STATUS: c.STATUS_SUCCESS, c.FIELD_START_TIME:
+           'Tue Nov 12 18:26:15 2024', c.FIELD_COMPLETION_TIME: 'Tue Nov 12 18:26:30 2024'}]
 
         cmd_list = ['report', '--repo', 'https://github.com/sjchin88/cicd-python']
         result = self.runner.invoke(cmd_pipeline.pipeline, cmd_list)
@@ -386,30 +387,30 @@ class TestPipelineHistory(TestCase):
             mock_pipeline_summary (MagicMock): mock MongoAdapter.get_pipeline_run_summary func.
         """
         mock_pipeline_summary.return_value = [
-            {'_id': ObjectId('673139d61c77e7e99afd88ce'), 'pipeline_name': 'cicd_pipeline',
-             'run_number': 1, 'git_commit_hash': '16adc46', 'status': 'success',
-             'start_time': 'Sun Nov 10 17:33:33 2024', 'completion_time':
+            {c.FIELD_ID: ObjectId('673139d61c77e7e99afd88ce'), c.FIELD_PIPELINE_NAME: 'cicd_pipeline',
+             c.FIELD_RUN_NUMBER: 1, c.FIELD_GIT_COMMIT_HASH: '16adc46', c.FIELD_STATUS: c.STATUS_SUCCESS,
+             c.FIELD_START_TIME: 'Sun Nov 10 17:33:33 2024', c.FIELD_COMPLETION_TIME:
              'Sun Nov 10 17:33:48 2024', 
-             'logs': [{'stage_name': 'build', 'stage_status': 'success', 
-                       'jobs': [{'job_name': 'checkout', 'job_status': 'success',
-                                 'allows_failure': False, 'start_time': 'Sun Nov 10 17:33:35 2024',
-                                 'completion_time': 'Sun Nov 10 17:33:37 2024'},
-                                {'job_name': 'compile', 'job_status': 'success',
-                                 'allows_failure': False, 'start_time':'Sun Nov 10 17:33:37 2024',
-                                 'completion_time': 'Sun Nov 10 17:33:41 2024'
+             c.FIELD_LOGS: [{c.FIELD_STAGE_NAME: 'build', c.FIELD_STAGE_STATUS: c.STATUS_SUCCESS,
+                       c.FIELD_JOBS: [{c.FIELD_JOB_NAME: 'checkout', c.FIELD_JOB_STATUS: c.STATUS_SUCCESS,
+                                 c.FIELD_JOB_ALLOW_FAILURE: False, c.FIELD_START_TIME: 'Sun Nov 10 17:33:35 2024',
+                                 c.FIELD_COMPLETION_TIME: 'Sun Nov 10 17:33:37 2024'},
+                                {c.FIELD_JOB_NAME: 'compile', c.FIELD_JOB_STATUS: c.STATUS_SUCCESS,
+                                 c.FIELD_JOB_ALLOW_FAILURE: False, c.FIELD_START_TIME:'Sun Nov 10 17:33:37 2024',
+                                 c.FIELD_COMPLETION_TIME: 'Sun Nov 10 17:33:41 2024'
                                 }]
                     }]},
-            {'_id': ObjectId('673139d61c77e7e99afd88ce'), 'pipeline_name': 'cicd_pipeline',
-             'run_number': 2, 'git_commit_hash': '16adc46', 'status': 'success',
-             'start_time': 'Sun Nov 10 19:30:03 2024', 'completion_time':
+            {c.FIELD_ID: ObjectId('673139d61c77e7e99afd88ce'), c.FIELD_PIPELINE_NAME: 'cicd_pipeline',
+             c.FIELD_RUN_NUMBER: 2, c.FIELD_GIT_COMMIT_HASH: '16adc46', c.FIELD_STATUS: c.STATUS_SUCCESS,
+             c.FIELD_START_TIME: 'Sun Nov 10 19:30:03 2024', c.FIELD_COMPLETION_TIME:
              'Sun Nov 10 19:30:18 2024',
-             'logs': [{'stage_name': 'build', 'stage_status': 'success',
-                       'jobs': [{'job_name': 'checkout', 'job_status': 'success',
-                                 'allows_failure': False, 'start_time': 'Sun Nov 10 19:30:05 2024',
-                                 'completion_time': 'Sun Nov 10 19:30:06 2024'},
-                                {'job_name': 'compile', 'job_status': 'success',
-                                 'allows_failure': False, 'start_time': 'Sun Nov 10 19:30:06 2024',
-                                 'completion_time': 'Sun Nov 10 19:30:11 2024'}]
+             c.FIELD_LOGS: [{c.FIELD_STAGE_NAME: 'build', c.FIELD_STAGE_STATUS: c.STATUS_SUCCESS,
+                       c.FIELD_JOBS: [{c.FIELD_JOB_NAME: 'checkout', c.FIELD_JOB_STATUS: c.STATUS_SUCCESS,
+                                 c.FIELD_JOB_ALLOW_FAILURE: False, c.FIELD_START_TIME: 'Sun Nov 10 19:30:05 2024',
+                                 c.FIELD_COMPLETION_TIME: 'Sun Nov 10 19:30:06 2024'},
+                                {c.FIELD_JOB_NAME: 'compile', c.FIELD_JOB_STATUS: c.STATUS_SUCCESS,
+                                 c.FIELD_JOB_ALLOW_FAILURE: False, c.FIELD_START_TIME: 'Sun Nov 10 19:30:06 2024',
+                                 c.FIELD_COMPLETION_TIME: 'Sun Nov 10 19:30:11 2024'}]
                     }]}
         ]
         cmd_list = ['report', '--repo', 'https://github.com/sjchin88/cicd-python', '--pipeline',

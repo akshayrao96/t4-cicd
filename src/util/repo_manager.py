@@ -10,6 +10,7 @@ import subprocess
 import shutil
 from git import Repo, GitCommandError, InvalidGitRepositoryError
 from util.common_utils import get_logger
+import util.constant as c
 
 logger = get_logger(logger_name='util.repo_manager')
 
@@ -33,7 +34,7 @@ class RepoManager:
             self,
             repo_source: str,
             is_remote: bool,
-            branch: str = "main",
+            branch: str = c.DEFAULT_BRANCH,
             commit_hash: str = None) -> tuple[bool, str, dict]:
         """
         Validates the repository URL given, clones it, and returns repository details.
@@ -86,7 +87,7 @@ class RepoManager:
     def validate_and_clone_repo(
             self,
             repo_source: str,
-            branch: str = "main",
+            branch: str = c.DEFAULT_BRANCH,
             commit_hash: str = None,
             is_local: bool = False) -> tuple[bool, str, dict]:
         """

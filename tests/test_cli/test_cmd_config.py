@@ -10,6 +10,7 @@ from cli import (__main__, cmd_config)
 from util.common_utils import (get_logger)
 from util.db_mongo import MongoAdapter
 from util.model import (PipelineConfig, PipelineInfo, SessionDetail, ValidationResult)
+import util.constant as c
 
 logger = get_logger("tests.test_cmd_config")
 
@@ -50,7 +51,7 @@ class TestConfig(unittest.TestCase):
             user_id='random',
             repo_name='cicd-python',
             repo_url="https://github.com/sjchin88/cicd-python",
-            branch='main',
+            branch=c.DEFAULT_BRANCH,
             is_remote=True,
             commit_hash="abcdef"
         )
@@ -238,7 +239,7 @@ class TestConfigOverride(unittest.TestCase):
             user_id='random',
             repo_name='cicd-python',
             repo_url="https://github.com/sjchin88/cicd-python",
-            branch='main',
+            branch=c.DEFAULT_BRANCH,
             is_remote=True,
             commit_hash="abcdef"
         )
@@ -384,12 +385,12 @@ def test_set_repo_success(mock_handle_repo):
     """Test `set-repo` command with successful repository setup."""
     runner = CliRunner()
     result = runner.invoke(cmd_config.config, [
-        'set-repo', 'https://github.com/example/repo.git', '--branch', 'main', '--commit', '123abc'
+        'set-repo', 'https://github.com/example/repo.git', '--branch', c.DEFAULT_BRANCH, '--commit', '123abc'
     ])
 
     assert result.exit_code == 0
     assert "Repository set successfully" in result.output
-    mock_handle_repo.assert_called_once_with("https://github.com/example/repo.git", branch="main", commit_hash="123abc")
+    mock_handle_repo.assert_called_once_with("https://github.com/example/repo.git", branch=c.DEFAULT_BRANCH, commit_hash="123abc")
 
 
 # Test case for `set_repo` command with failure in repository setup
@@ -420,7 +421,7 @@ def test_set_repo_no_repo_given():
 @patch("cli.cmd_config.Controller.get_repo", return_value=(
     True,
     "Repository is configured in current directory",
-    MagicMock(repo_url="https://github.com/example/repo.git", repo_name="example_repo", branch="main", commit_hash="123abc")
+    MagicMock(repo_url="https://github.com/example/repo.git", repo_name="example_repo", branch=c.DEFAULT_BRANCH, commit_hash="123abc")
 ))
 def test_get_repo_success(mock_get_repo):
     """Test `get-repo` command when a repository is configured in the current directory."""
@@ -439,7 +440,7 @@ def test_get_repo_success(mock_get_repo):
 @patch("cli.cmd_config.Controller.get_repo", return_value=(
     False,
     "Current working directory is not a git repository",
-    MagicMock(repo_url="https://github.com/example/last-repo.git", repo_name="last_repo", branch="main", commit_hash="456def")
+    MagicMock(repo_url="https://github.com/example/last-repo.git", repo_name="last_repo", branch=c.DEFAULT_BRANCH, commit_hash="456def")
 ))
 def test_get_repo_last_set_repo(mock_get_repo):
     """Test `get-repo` command retrieving the last set repository."""

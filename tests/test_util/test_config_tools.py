@@ -17,7 +17,7 @@ class TestConfigChecker(unittest.TestCase):
             c.KEY_GLOBAL: {
                 c.KEY_PIPE_NAME: 'test_pipeline',
                 c.KEY_DOCKER:{
-                    c.KEY_DOCKER_REG: config.DEFAULT_DOCKER_REGISTRY,
+                    c.KEY_DOCKER_REG: c.DEFAULT_DOCKER_REGISTRY,
                     c.KEY_DOCKER_IMG:'ubuntu:latest'
                 },
                 c.KEY_ARTIFACT_PATH: 'Github.com'
@@ -34,7 +34,7 @@ class TestConfigChecker(unittest.TestCase):
             c.KEY_GLOBAL: {
                 c.KEY_PIPE_NAME: 'test_pipeline',
                 c.KEY_DOCKER:{
-                    c.KEY_DOCKER_REG:config.DEFAULT_DOCKER_REGISTRY,
+                    c.KEY_DOCKER_REG:c.DEFAULT_DOCKER_REGISTRY,
                     c.KEY_DOCKER_IMG:'ubuntu:latest'
                 },
                 c.KEY_ARTIFACT_PATH: 'Github.com'
@@ -81,7 +81,7 @@ class TestConfigChecker(unittest.TestCase):
         expected_dict = {
             c.KEY_GLOBAL: {
                 c.KEY_DOCKER:{
-                    c.KEY_DOCKER_REG:config.DEFAULT_DOCKER_REGISTRY,
+                    c.KEY_DOCKER_REG:c.DEFAULT_DOCKER_REGISTRY,
                     c.KEY_DOCKER_IMG:'ubuntu:latest'
                 },
                 c.KEY_ARTIFACT_PATH: 'Github.com'
@@ -290,7 +290,7 @@ def test_check_jobs_section():
         c.KEY_GLOBAL: {
                 c.KEY_PIPE_NAME: 'test_pipeline',
                 c.KEY_DOCKER:{
-                    c.KEY_DOCKER_REG:config.DEFAULT_DOCKER_REGISTRY,
+                    c.KEY_DOCKER_REG:c.DEFAULT_DOCKER_REGISTRY,
                     c.KEY_DOCKER_IMG:'ubuntu:latest'
                 },
                 c.KEY_ARTIFACT_PATH: 'Github.com'
@@ -323,7 +323,7 @@ def test_check_jobs_section():
         c.KEY_GLOBAL: {
                 c.KEY_PIPE_NAME: 'test_pipeline',
                 c.KEY_DOCKER:{
-                    c.KEY_DOCKER_REG:config.DEFAULT_DOCKER_REGISTRY,
+                    c.KEY_DOCKER_REG:c.DEFAULT_DOCKER_REGISTRY,
                     c.KEY_DOCKER_IMG:'ubuntu:latest'
                 },
                 c.KEY_ARTIFACT_PATH: 'Github.com'
@@ -348,10 +348,10 @@ def test_check_jobs_section():
             # Second job with minimal required defined
             'checkout':{
                 c.JOB_SUBKEY_STAGE: 'build',
-                c.JOB_SUBKEY_ALLOW: config.DEFAULT_FLAG_JOB_ALLOW_FAIL,
-                c.JOB_SUBKEY_NEEDS: config.DEFAULT_LIST,
+                c.JOB_SUBKEY_ALLOW: c.DEFAULT_FLAG_JOB_ALLOW_FAIL,
+                c.JOB_SUBKEY_NEEDS: c.DEFAULT_LIST,
                 c.KEY_DOCKER:{
-                    c.KEY_DOCKER_REG:config.DEFAULT_DOCKER_REGISTRY,
+                    c.KEY_DOCKER_REG:c.DEFAULT_DOCKER_REGISTRY,
                     c.KEY_DOCKER_IMG:'ubuntu:latest'
                 },
                 c.KEY_ARTIFACT_PATH: 'Github.com',
@@ -364,7 +364,7 @@ def test_check_jobs_section():
         c.KEY_GLOBAL: {
                 c.KEY_PIPE_NAME: 'test_pipeline',
                 c.KEY_DOCKER:{
-                    c.KEY_DOCKER_REG:config.DEFAULT_DOCKER_REGISTRY,
+                    c.KEY_DOCKER_REG:c.DEFAULT_DOCKER_REGISTRY,
                     c.KEY_DOCKER_IMG:'ubuntu:latest'
                 },
                 c.KEY_ARTIFACT_PATH: 'Github.com'

@@ -7,6 +7,7 @@ import collections
 import logging
 import yaml
 from dotenv import dotenv_values
+import util.constant as c
 
 
 def get_logger(logger_name='', log_level=logging.DEBUG, log_file='../debug.log') -> logging.Logger:
@@ -251,7 +252,7 @@ class MongoHelper:
     @staticmethod
     def build_match_filter(repo_url: str, pipeline_name: str = None) -> dict:
         """Builds the match filter for a MongoDB aggregation pipeline."""
-        match_filter = {"repo_url": repo_url}
+        match_filter = {c.FIELD_REPO_URL: repo_url}
         if pipeline_name:
             match_filter["pipelines." + pipeline_name] = {"$exists": True}
         return match_filter
@@ -273,7 +274,7 @@ class MongoHelper:
                         "in": {"$toObjectId": "$$history_id"}}}}},
             {"$lookup": {
                 "from": "jobs_history", "localField": "pipelines_array.v.job_run_history",
-                "foreignField": "_id", "as": "job_details_list"}},
+                "foreignField": c.FIELD_ID, "as": "job_details_list"}},
             {"$unwind": "$job_details_list"},
         ])
         if run_number or stage_name or job_name:
@@ -335,43 +336,43 @@ class MongoHelper:
                          run_number: int = None) -> dict:
         """Builds the projection stage for MongoDB aggregation based on stage and job fields."""
         projection_fields = {
-            "pipeline_name": "$pipelines_array.k",
-            "run_number": "$job_details_list.run_number",
-            "git_commit_hash": "$job_details_list.git_commit_hash",
-            "status": "$job_details_list.status",
-            "start_time": "$job_details_list.start_time",
-            "completion_time": "$job_details_list.completion_time",
+            c.FIELD_PIPELINE_NAME: "$pipelines_array.k",
+            c.FIELD_RUN_NUMBER: "$job_details_list.run_number",
+            c.FIELD_GIT_COMMIT_HASH: "$job_details_list.git_commit_hash",
+            c.FIELD_STATUS: "$job_details_list.status",
+            c.FIELD_START_TIME: "$job_details_list.start_time",
+            c.FIELD_COMPLETION_TIME: "$job_details_list.completion_time",
         }
         if run_number:
-            projection_fields["logs"] = {
+            projection_fields[c.FIELD_LOGS] = {
                 "$map": {
                     "input": "$job_details_list.logs", "as": "log",
                     "in": {
-                        "stage_name": "$$log.stage_name",
-                        "stage_status": "$$log.stage_status",
-                        "start_time": "$$log.start_time",
-                        "completion_time": "$$log.completion_time",
+                        c.FIELD_STAGE_NAME: "$$log.stage_name",
+                        c.FIELD_STAGE_STATUS: "$$log.stage_status",
+                        c.FIELD_START_TIME: "$$log.start_time",
+                        c.FIELD_COMPLETION_TIME: "$$log.completion_time",
                     },
                 }
             }
         if stage_name or job_name:
-            projection_fields["logs"] = {
+            projection_fields[c.FIELD_LOGS] = {
                 "$map": {
                     "input": "$job_details_list.logs", "as": "log",
                     "in": {
-                        "stage_name": "$$log.stage_name",
-                        "stage_status": "$$log.stage_status",
-                        "start_time": "$$log.start_time",
-                        "completion_time": "$$log.completion_time",
-                        "jobs": {
+                        c.FIELD_STAGE_NAME: "$$log.stage_name",
+                        c.FIELD_STAGE_STATUS: "$$log.stage_status",
+                        c.FIELD_START_TIME: "$$log.start_time",
+                        c.FIELD_COMPLETION_TIME: "$$log.completion_time",
+                        c.FIELD_JOBS: {
                             "$map": {
                                 "input": "$$log.jobs_array", "as": "job",
                                 "in": {
-                                    "job_name": "$$job.k",
-                                    "job_status": "$$job.v.job_status",
-                                    "allows_failure": "$$job.v.allow_failure",
-                                    "start_time": "$$job.v.start_time",
-                                    "completion_time": "$$job.v.completion_time",
+                                    c.FIELD_JOB_NAME: "$$job.k",
+                                    c.FIELD_JOB_STATUS: "$$job.v.job_status",
+                                    c.FIELD_JOB_ALLOW_FAILURE: "$$job.v.allow_failure",
+                                    c.FIELD_START_TIME: "$$job.v.start_time",
+                                    c.FIELD_COMPLETION_TIME: "$$job.v.completion_time",
                                 },
                             }
                         },
@@ -427,9 +428,9 @@ class DryRun:
     or YAML format."""
     def __init__(self, config_dict: dict):
         self.config = config_dict
-        self.global_dict = config_dict.get("global")
-        self.jobs_dict = config_dict.get("jobs")
-        self.stages_order = config_dict.get('stages')
+        self.global_dict = config_dict.get(c.KEY_GLOBAL)
+        self.jobs_dict = config_dict.get(c.KEY_JOBS)
+        self.stages_order = config_dict.get(c.KEY_STAGES)
         self.dry_run_msg = ""
         self.yaml_output_msg = ""
 
@@ -486,7 +487,7 @@ class DryRun:
                 else:
                     global_dict[key] = value.strip("'")
 
-        yaml_output = yaml.dump({'global': global_dict}, sort_keys=False)
+        yaml_output = yaml.dump({c.KEY_GLOBAL: global_dict}, sort_keys=False)
         return yaml_output
 
     def _parse_jobs(self, text:str) -> str:
@@ -533,7 +534,7 @@ class DryRun:
                 # Add job to the jobs dictionary
                 jobs_dict[job_name] = job_dict
 
-        yaml_output = yaml.dump({'jobs': jobs_dict}, sort_keys=False)
+        yaml_output = yaml.dump({c.KEY_JOBS: jobs_dict}, sort_keys=False)
         return yaml_output
 
 
@@ -604,59 +605,59 @@ class PipelineReport:
         """
         output_msg = ""
         for pipeline in self.pipeline_data:
-            output_msg += f"Pipeline Name: {pipeline['pipeline_name']}\n"
-            output_msg += f"Run Number: {pipeline['run_number']}\n"
-            output_msg += f"Git Commit Hash: {pipeline['git_commit_hash']}\n"
-            output_msg += f"Status: {pipeline['status']}\n"
-            output_msg += f"Start Time: {pipeline['start_time']}\n"
-            output_msg += f"Completion Time: {pipeline['completion_time']}\n"
+            output_msg += f"Pipeline Name: {pipeline[c.FIELD_PIPELINE_NAME]}\n"
+            output_msg += f"Run Number: {pipeline[c.FIELD_RUN_NUMBER]}\n"
+            output_msg += f"Git Commit Hash: {pipeline[c.FIELD_GIT_COMMIT_HASH]}\n"
+            output_msg += f"Status: {pipeline[c.FIELD_STATUS]}\n"
+            output_msg += f"Start Time: {pipeline[c.FIELD_START_TIME]}\n"
+            output_msg += f"Completion Time: {pipeline[c.FIELD_COMPLETION_TIME]}\n"
             
-            logs = pipeline.get("logs", [])
+            logs = pipeline.get(c.FIELD_LOGS, [])
             if logs:
                 output_msg += "Stages:\n"
             for log in logs:
-                output_msg += f"  Stage Name: {log['stage_name']}\n"
-                output_msg += f"  Status: {log['stage_status']}\n"
-                output_msg += f"  Start Time: {pipeline['start_time']}\n"
-                output_msg += f"  Completion Time: {pipeline['completion_time']}\n\n"
+                output_msg += f"  Stage Name: {log[c.FIELD_STAGE_NAME]}\n"
+                output_msg += f"  Status: {log[c.FIELD_STAGE_STATUS]}\n"
+                output_msg += f"  Start Time: {pipeline[c.FIELD_START_TIME]}\n"
+                output_msg += f"  Completion Time: {pipeline[c.FIELD_COMPLETION_TIME]}\n\n"
         return output_msg
     
     def print_stage_summary(self) -> str:
 
         output_msg = ""
         for pipeline in self.pipeline_data:
-            for log in pipeline.get("logs", []):
-                output_msg += f"Pipeline Name: {pipeline['pipeline_name']}\n"
-                output_msg += f"Run Number: {pipeline['run_number']}\n"
-                output_msg += f"Git Commit Hash: {pipeline['git_commit_hash']}\n"
-                output_msg += f"Stage Name: {log['stage_name']}\n"
-                output_msg += f"Stage Status: {log['stage_status']}\n"
+            for log in pipeline.get(c.FIELD_LOGS, []):
+                output_msg += f"Pipeline Name: {pipeline[c.FIELD_PIPELINE_NAME]}\n"
+                output_msg += f"Run Number: {pipeline[c.FIELD_RUN_NUMBER]}\n"
+                output_msg += f"Git Commit Hash: {pipeline[c.FIELD_GIT_COMMIT_HASH]}\n"
+                output_msg += f"Stage Name: {log[c.FIELD_STAGE_NAME]}\n"
+                output_msg += f"Stage Status: {log[c.FIELD_STAGE_STATUS]}\n"
                 
-                jobs = log.get("jobs", [])
+                jobs = log.get(c.FIELD_JOBS, [])
                 if jobs:
                     output_msg += "Jobs:\n"
                 for job in jobs:
-                    output_msg += f"  Job Name: {job['job_name']}\n"
-                    output_msg += f"    Job Status: {job['job_status']}\n"
-                    output_msg += f"    Allows Failure: {job['allows_failure']}\n"
-                    output_msg += f"    Start Time: {job['start_time']}\n"
-                    output_msg += f"    Completion Time: {job['completion_time']}\n\n"
+                    output_msg += f"  Job Name: {job[c.FIELD_JOB_NAME]}\n"
+                    output_msg += f"    Job Status: {job[c.FIELD_JOB_STATUS]}\n"
+                    output_msg += f"    Allows Failure: {job[c.FIELD_JOB_ALLOW_FAILURE]}\n"
+                    output_msg += f"    Start Time: {job[c.FIELD_START_TIME]}\n"
+                    output_msg += f"    Completion Time: {job[c.FIELD_COMPLETION_TIME]}\n\n"
         return output_msg
     
     def print_job_summary(self) -> str:
 
         output_msg = ""
         for pipeline in self.pipeline_data:
-            for log in pipeline.get("logs", []):
-                for job in log.get("jobs", []):
-                    output_msg += f"Pipeline Name: {pipeline['pipeline_name']}\n"
-                    output_msg += f"Run Number: {pipeline['run_number']}\n"
-                    output_msg += f"Git Commit Hash: {pipeline['git_commit_hash']}\n"
-                    output_msg += f"Stage Name: {log['stage_name']}\n"
-                    output_msg += f"Job Name: {job['job_name']}\n"
-                    output_msg += f"Job Status: {job['job_status']}\n"
-                    output_msg += f"Allows Failure: {job['allows_failure']}\n"
-                    output_msg += f"Start Time: {job['start_time']}\n"
-                    output_msg += f"Completion Time: {job['completion_time']}\n\n"
+            for log in pipeline.get(c.FIELD_LOGS, []):
+                for job in log.get(c.FIELD_JOBS, []):
+                    output_msg += f"Pipeline Name: {pipeline[c.FIELD_PIPELINE_NAME]}\n"
+                    output_msg += f"Run Number: {pipeline[c.FIELD_RUN_NUMBER]}\n"
+                    output_msg += f"Git Commit Hash: {pipeline[c.FIELD_GIT_COMMIT_HASH]}\n"
+                    output_msg += f"Stage Name: {log[c.FIELD_STAGE_NAME]}\n"
+                    output_msg += f"Job Name: {job[c.FIELD_JOB_NAME]}\n"
+                    output_msg += f"Job Status: {job[c.FIELD_JOB_STATUS]}\n"
+                    output_msg += f"Allows Failure: {job[c.FIELD_JOB_ALLOW_FAILURE]}\n"
+                    output_msg += f"Start Time: {job[c.FIELD_START_TIME]}\n"
+                    output_msg += f"Completion Time: {job[c.FIELD_COMPLETION_TIME]}\n\n"
 
         return output_msg

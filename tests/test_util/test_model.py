@@ -4,7 +4,7 @@ import copy
 import pprint
 import unittest
 import time
-import util.constant as c 
+import util.constant as c
 import util.model as model
 from util.common_utils import (get_logger)
 
@@ -32,12 +32,12 @@ class TestModel(unittest.TestCase):
                 c.JOB_SUBKEY_SCRIPTS:['sh','ls'],
             }
         self.sample_session = {
-            "user_id":"random",
-            "repo_name": "cicd-python",
-            "repo_url": "https://github.com/sjchin88/cicd-python",
-            "branch": "main",
-            "commit_hash": "random",
-            "is_remote": True, 
+            c.FIELD_USER_ID:"random",
+            c.FIELD_REPO_NAME: "cicd-python",
+            c.FIELD_REPO_URL: "https://github.com/sjchin88/cicd-python",
+            c.FIELD_BRANCH: c.DEFAULT_BRANCH,
+            c.FIELD_COMMIT_HASH: "random",
+            c.FIELD_IS_REMOTE: True, 
         }
         self.sample_stage = {
                     "job_graph": {
@@ -54,11 +54,11 @@ class TestModel(unittest.TestCase):
                     ]
         }
         self.sample_pipeline_config = {
-            'global':self.global_section, 
-            'stages':{
+            c.KEY_GLOBAL:self.global_section, 
+            c.KEY_STAGES:{
                 'stage1':self.sample_stage
             },
-            'jobs':{
+            c.FIELD_JOBS:{
                 'job1':self.sample_job_config
             }
         }
@@ -102,10 +102,10 @@ class TestModel(unittest.TestCase):
     
     def test_pipeline_history(self):
         pipeline_history = {
-            "pipeline_name": "sample_pipeline",
-            "pipeline_file_name": "sample_pipeline.yml",
-            "last_commit_hash": "random",
-            "pipeline_config":self.sample_pipeline_config
+            c.FIELD_PIPELINE_NAME: "sample_pipeline",
+            c.FIELD_PIPELINE_FILE_NAME: "sample_pipeline.yml",
+            c.FIELD_LAST_COMMIT_HASH: "random",
+            c.FIELD_PIPELINE_CONFIG:self.sample_pipeline_config
         }
         history = model.PipelineInfo.model_validate(pipeline_history)
         print(history.model_dump())
@@ -113,11 +113,11 @@ class TestModel(unittest.TestCase):
         
         # Test handling of None field
         pipeline_history = {
-            "pipeline_name": "sample_pipeline",
-            "pipeline_file_name": "sample_pipeline.yml",
-            "job_run_history": None,
-            "last_commit_hash": "random",
-            "pipeline_config":self.sample_pipeline_config
+            c.FIELD_PIPELINE_NAME: "sample_pipeline",
+            c.FIELD_PIPELINE_FILE_NAME: "sample_pipeline.yml",
+            c.FIELD_JOB_RUN_HISTORY: None,
+            c.FIELD_LAST_COMMIT_HASH: "random",
+            c.FIELD_PIPELINE_CONFIG:self.sample_pipeline_config
         }
         history = model.PipelineInfo.model_validate(pipeline_history)
         logger.debug(history)

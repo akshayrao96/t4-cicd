@@ -7,6 +7,7 @@ import sys
 import click
 from util.common_utils import (get_logger, MongoHelper)
 from controller.controller import Controller
+import util.constant as c
 
 logger = get_logger('cli.cmd_config')
 
@@ -98,7 +99,7 @@ def config(ctx, check: bool, check_all: bool, no_set: bool, config_file: str, di
             results = controller.validate_n_save_configs(dir, session_data=repo_details)
         for pipeline_name, res in results.items():
             valid = res.valid
-            status_msg = f"\nStatus for {pipeline_name}:{'passed' if valid else 'failed'}"
+            status_msg = f"\nStatus for {pipeline_name}:{'passed' if valid else c.STATUS_FAILED}"
             if not valid:
                 click.secho(status_msg, fg='red')
                 click.secho(f"error message:\n{res.error_msg}")
