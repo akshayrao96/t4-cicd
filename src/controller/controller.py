@@ -566,6 +566,22 @@ class Controller:
             message = f"Error with docker service. error is {str(de)}\n"
             self.logger.warning(message)
             status = False
+        except KeyboardInterrupt:
+            running_status_fail = False
+            updates = {
+            'running':running_status_fail,
+            }
+            update_success = self.mongo_ds.update_pipeline_info(
+                git_details.repo_name,
+                git_details.repo_url,
+                git_details.branch,
+                pipeline_config.global_.pipeline_name,
+                updates
+            )
+            # if update unsuccessful, prompt user.
+            if not update_success:
+                click.confirm('Cannot update into db, do you want to continue?', abort=True)
+            return (running_status_fail, " User Interrupted program. Cleaning up before exiting.")
 
         if not status:
             message += '\nPipeline runs fail'
