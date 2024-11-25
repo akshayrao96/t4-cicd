@@ -97,7 +97,7 @@ class TestConfig(unittest.TestCase):
         result = self.runner.invoke(cmd_config.config, ['--check-all', '--no-set'])
         assert result.exit_code == 2
         assert f"Invalid directory:" in result.output
-    
+
     @patch("cli.cmd_config.Controller.validate_n_save_configs", return_value={})
     @patch("cli.cmd_config.os.path.isdir", return_value=True)
     def test_config_check_all_no_set(self, mock_isdir, mock_validates):
@@ -113,7 +113,20 @@ class TestConfig(unittest.TestCase):
         logger.debug(result.output)
         assert result.exit_code == 0
         assert f"checking all config files in directory {dir}" in result.output
-        
+    
+    def test_config_check_dir_no_check_all(self):
+        """Test config command --dir will fail without --check-all.
+        """
+        dir = '.cicd-pipelines'
+        result_msg = "--dir can only be used with --check-all."
+
+        result = self.runner.invoke(
+            cmd_config.config, ['--dir', dir])
+        logger.debug(result.output)
+        assert result.exit_code == 2
+        assert result_msg in result.output
+
+
     # Patch the validate_n_save_configs of Controller method in cli.cmd_config
     # module
     @patch("cli.cmd_config.Controller.validate_n_save_configs")
@@ -254,8 +267,8 @@ class TestConfigOverride(unittest.TestCase):
         # Check that the command exited correctly and the error message was printed
         assert result.exit_code == 2
         assert "Invalid override format" in result.output
-        mock_build_nested_dict.assert_called_once_with(('invalid_override_format',))   
-        
+        mock_build_nested_dict.assert_called_once_with(('invalid_override_format',))
+
     @patch("cli.cmd_config.Controller.handle_repo")
     def test_override_invalid_repo(self, mock_handle):
         """ Test handling of invalid repo result
@@ -266,9 +279,10 @@ class TestConfigOverride(unittest.TestCase):
         mock_handle.return_value = (False, "", None)
         result = self.runner.invoke(
             cmd_config.config,
-            ['override', '--pipeline', 'test_pipeline', '--override', "global.docker.image=gradle:jdk8"])
+            ['override', '--pipeline', 'test_pipeline', '--override',
+             "global.docker.image=gradle:jdk8"])
         assert result.exit_code == 2
-    
+
     @patch("cli.cmd_config.Controller.override_config")
     @patch("cli.cmd_config.Controller.handle_repo")
     def test_override_failed_ops(self, mock_handle, mock_override):
@@ -282,9 +296,10 @@ class TestConfigOverride(unittest.TestCase):
         mock_override.return_value = (False, 'error', None)
         result = self.runner.invoke(
             cmd_config.config,
-            ['override', '--pipeline', 'test_pipeline', '--override', "global.docker.image=gradle:jdk8"])
+            ['override', '--pipeline', 'test_pipeline', '--override', 
+             "global.docker.image=gradle:jdk8"])
         assert result.exit_code == 1
-    
+
     @patch("cli.cmd_config.Controller.override_config")
     @patch("cli.cmd_config.Controller.handle_repo")
     def test_override_success_ops(self, mock_handle, mock_override):
