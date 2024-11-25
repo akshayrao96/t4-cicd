@@ -15,7 +15,7 @@ The tool is packaged into a single binary, with a CLI offering documentation.
 ## Implemented Features
 
 | Abbr.  | Feature                          | Description                                                                                           | Notes              |
-|--------|----------------------------------|-------------------------------------------------------------------------------------------------------|--------------------|
+| ------ | -------------------------------- | ----------------------------------------------------------------------------------------------------- | ------------------ |
 | U1     | Remote Repo Local CI/CD Run      | Run a CI/CD pipeline locally for a public Git repository using the CLI.                               | Fully implemented. |
 | U2     | Local Repo Local CI/CD Run       | Run a CI/CD pipeline locally for a cloned Git repository on the developer's machine.                  | Fully implemented. |
 | C1     | Configuration File Location      | All configuration files are stored in a `.cicd-pipelines` folder in the target repository.            | Fully implemented. |
@@ -45,9 +45,10 @@ The tool is packaged into a single binary, with a CLI offering documentation.
 
 ## Partially Implemented Features
 
-| Abbr.  | Feature                | Implemented Work                                                        | Future Work Needed                                     |
-|--------|------------------------|-------------------------------------------------------------------------|--------------------------------------------------------|
-| C5.5   | Job Allow Failure      | Allows marking jobs as "failed" but continues to the next job or stage. | Ensure remaining commands in failed jobs are executed. |
-| C5.7.1 | Artifact Specification | Supports specifying files and folders for upload.                       | Specifying artifacts via regex patterns.               |
+| Abbr.                       | Feature                | Implemented Work                                                                                       | Future Work Needed                                               |
+| --------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------- |
+| Initial set of Requirements | Job Parallel Run       | The validated pipeline configuration will store jobs for a stage in groups that can be run in parallel | Update pipeline run method to execute the job groups in parallel |
+| C5.5                        | Job Allow Failure      | Allows marking jobs as "failed" but continues to the next job or stage.                                | Ensure remaining commands in failed jobs are executed.           |
+| C5.7.1                      | Artifact Specification | Supports specifying files and folders for upload.                                                      | Specifying artifacts via regex patterns.                         |
 
 ---
