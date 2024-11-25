@@ -156,7 +156,7 @@ Printing processed_config
 - **Description**: The --no-set flag allows to check all config files within the directory only without further interaction with the cicd system. Ie. it will not set the repo, and will not save the config file to datastore.
   The directory argument must be supplied.
 
-### `cid config set-repo <REPO>` TODO: need to update
+### `cid config --set-repo <REPO>` TODO: need to update
 
 - **Description**: Configures the cid service to work on the given repository.
 
@@ -165,15 +165,13 @@ Printing processed_config
   - The user must not be in a git repository directory in the terminal when running this command.
   - Need to determine how configurations will work when the project is packaged/unpackaged (binaries).
 
-### `cid config get-repo` TODO: need to update
+### `cid config --get-repo` TODO: need to update
 
 - **Description**: Returns the repository for the cid service to work on.
 
 - **Considerations**:
   - Return the repository that the user is currently in, if applicable.
   - Otherwise, return the last set repository.
-
-### `cid config override` TODO: need to update
 
 ## `cid pipeline`
 
