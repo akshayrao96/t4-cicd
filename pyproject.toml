@@ -17,7 +17,6 @@ packages = [
 python = "^3.12"
 click = "^8.1.7"
 gitpython = "^3.1"
-pyyaml = "^6.0" 
 pymongo = "^4.10.1"
 python-dotenv = "^1.0.1"
 pathlib = "^1.0.1"

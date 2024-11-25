@@ -1,28 +1,72 @@
-# Component Design
+# Component Design Description
 
-## Overview of Main Component Classes
+## Cli Package
 
-## Descriptions for Each Components
+This package contains the cli functions developed using Click. Main command groups are cid config and cid pipeline. Kindly refer to the cli documentations and api documentation for more details.
 
-### CLI Module
+## Controller Package
 
 ### Controller Module
 
-### RepoManager Module
+<img src="../images/uml/Controller.JPG" alt="System Design" width="800" height="300">
 
-### Container(DockerManager) Module
+The controller has the following main methods as shown in the UML diagram, they are described below:
 
-### Db_mongo(MongoAdapter) Module
+#### checkout_repo(), get_repo(), handle_repo(), set_repo()
 
-### Db_artifact(S3Client) Module
+AR: Akshay to add
 
-### Config_tool(ConfigChecker) Module
+#### run_pipeline()
 
-### YamlParser Module
+- Refer the example sequence diagram for the summarized sequence flow of run_pipeline() method.
+- This method handle the cid pipeline run command after setting up the repository using the handle_repo() method.
+- The next step is check if there is any overrides, and apply the overrides using the apply_overrides() method from common_utils module.
+- Then it will validate and save the updated pipeline configuration using validate_n_save_config() method
+- If dry-run flag is provided, it will call the dry_run() function to print out the example dry_run sequence.
+- For actual run, the private method \_actual_pipeline_run() will be called.
+- A MongoAdapter class object (mongo_ds) will be used to interact with the MongoDB service.
 
-### Common_utils Module
+#### dry_run()
 
-### Other Module
+AR: Jason to add
+
+#### \_actual_pipeline_run()
+
+- This method performs actual run of the pipeline when called.
+- It requires 3 arguments,
+  - repo_data:SessionDetail, contain repository information required to interact with the MongoDB.
+  - pipeline_config:PipelineConfig, valid pipeline configuration.
+  - local:bool, indicator if the pipeline to be run in local.
+- remote pipeline run is currently not implemented, hence local=False will still run using local service by default.
+- This method will first retrieve the pipeline history from the MongoDB, break and return early if the same pipeline is already and still running.
+- If the pipeline can be run, a new pipeline run record will be initialized and inserted into the MongoDB, and current pipeline status will be updated to active.
+- it will then create a DockerManager object, using the default docker engine from the user's IDE environment, and creating a shared volume with name of the following syntax `<repo_name>-<pipeline_name>-<run_number>`. This will ensure the shared volume is unique within the user's IDE environment.
+- The stages for a single pipeline run will be iterated according to order.
+  - for each stage, the jobs will be iterated according to order specified. Parallel run of job is not implemented.
+  - for each job, the DockerManager run_job() method will be called to execute the pipeline run. If artifact section is present for the job, the run_job() method will handle upload of the artifact to the AWS S3.
+  - logs for each job are displayed to the user as soon as the job finished.
+  - if the job failed, the next job will proceed if the allow_failure flag is set. Otherwise the execution of the entire pipeline will break.
+  - at the end of each stage, the stage completion status is tallied based on all jobs status, and the job_logs for the entire stage are updated to the MongoDB.
+- At the end of all stage, the pipeline completion status is tallied based on all stages status. The pipeline status and history is updated to the MongoDB.
+- The Docker shared volume created early is removed.
+
+#### validate_config(), validate_n_save_config(), validate_n_save_configs
+
+- These three methods handle different scenarios for validating the pipeline configuration. They all use the ConfigChecker class object to perform the actual validation.
+- The validate_config() method can apply overrides and validate a single pipeline configuration without saving it into MongoDB. This is used when the users just want to validate a single pipeline configuration.
+- The validate_n_save_config() method use the validate_config() method and add the functionality to save the validated configuration into the datastore.
+- The validate_n_save_configs() method handle pipeline configuration validation for the entire directory.
+  - No override is applied.
+  - An optional saving flag can be used to save all pipeline configuration into the datastore.
+  - The validation process will not stop when validation fail for a single pipeline configuration, it will continue until all pipelines are validated.
+
+#### pipeline_history()
+
+AR: Jason to add
+
+## Util Package
+
+This package contains all the utility modules required to support the controller package. Kindly refer to the API documentation for more details.
 
 ## Example Sequence Diagram
 
@@ -30,7 +74,30 @@
 
 ## Suplement Information
 
+### List of external libraries used
+
+| Library       | Usage                                                                                                    | Scope       |
+| ------------- | -------------------------------------------------------------------------------------------------------- | ----------- |
+| gitpython     | Programmatic interaction with Git for all git operations                                                 | Production  |
+| pymongo       | Programmatic interaction with MongoDB for all datastore operation                                        | Production  |
+| python-dotenv | Reads key-value pairs from a .env file and can set them as environment variables                         | Production  |
+| pathlib       | Resolve directory and file path for different OS                                                         | Production  |
+| ruamel-yaml   | Parse yaml content from file                                                                             | Production  |
+| docker        | Python docker sdk for programmatic interaction with docker engine                                        | Production  |
+| pydantic      | Provide parsing and validation capabilities for input data to ensure the fields conform to specific type | Production  |
+| pylint        | Perform static code analysis and style check following PEP 8.                                            | Development |
+| pytest        | Perform unit testing                                                                                     | Development |
+| pytest-cov    | Analyse unit tests and provide test coverage report                                                      | Development |
+| mongomock     | Provide a mock MongoDB instance used for testing                                                         | Development |
+| pydoctor      | Generate API documentations from docstring                                                               | Development |
+
+For more details like version etc, kindly refer to the pyproject.toml file
+
 ### Pydantic Model vs Dict
 
-- pydantic model is used whenever applicable
+- pydantic model is used as much as we can after we start adopting it halfway during the development [ref](https://docs.pydantic.dev/1.10/usage/models/)
 - dictionary is used for raw pipeline configuration extracted from yaml files. This is to preserve the line and column information for error tracings.
+
+### Details for Testing
+
+Kindly refer to the TestingReadMe file.
