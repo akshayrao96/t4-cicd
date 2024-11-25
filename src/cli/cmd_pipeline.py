@@ -4,11 +4,10 @@ import sys
 import json
 import click
 from pydantic import ValidationError
-from util.common_utils import (get_logger,MongoHelper)
+from util.common_utils import (get_logger, ConfigOverride)
 from util.model import (PipelineHist)
 from controller.controller import (Controller)
-
-DEFAULT_CONFIG_FILE_PATH = ".cicd-pipelines/pipelines.yml"
+import util.constant as c
 logger = get_logger('cli.cmd_pipeline')
 
 @click.group()
@@ -17,7 +16,7 @@ def pipeline():
 
 @pipeline.command()
 @click.pass_context
-@click.option('--file', 'file_path', default=DEFAULT_CONFIG_FILE_PATH, help='configuration \
+@click.option('--file', 'file_path', default=c.DEFAULT_CONFIG_FILE_PATH, help='configuration \
 file path. if --file not specified, default to .cicd-pipelines/pipelines.yml')
 @click.option('--pipeline', 'pipeline_name', help='pipeline name to run' )
 @click.option('-r', '--repo', 'repo', default=None, help='repository url or \
@@ -64,7 +63,7 @@ def run(ctx, file_path:str, pipeline_name:str, repo:str, branch:str, commit:str,
 
     if overrides:
         try:
-            overrides = MongoHelper.build_nested_dict(overrides)
+            overrides = ConfigOverride.build_nested_dict(overrides)
         except ValueError as e:
             click.secho(str(e), fg='red')
             sys.exit(2)
@@ -107,7 +106,7 @@ def run(ctx, file_path:str, pipeline_name:str, repo:str, branch:str, commit:str,
 @click.option('--local', 'local', help='retrieve local pipeline history', is_flag=True)
 @click.option('--pipeline', 'pipeline_name', default=None,
               help='pipeline name to get the history')
-@click.option('-b', '--branch', 'branch', default='main',
+@click.option('-b', '--branch', 'branch', default=c.DEFAULT_BRANCH,
               help="branch name of the repository; default is 'main'")
 @click.option('-s', '--stage', 'stage', default=None, help='stage name to view report; \
 default stages options: [build, test, doc, deploy]')
@@ -136,24 +135,20 @@ def report(ctx, repo_url:str, local:bool, pipeline_name:str, branch:str, stage:s
     """
     ctrl = Controller()
     pipeline_model = {}
+    pipeline_model[c.FIELD_PIPELINE_NAME] = pipeline_name
 
-    #TODO: validate if --run is specified, --pipeline needs to exist
-
-    pipeline_model['pipeline_name'] = pipeline_name
-
-    if ctx.get_parameter_source("repo_url") != click.core.ParameterSource.DEFAULT:
-        #TODO: if repo location is specify as "--repo .", this needs to get the current $pwd.
-        pipeline_model['repo_url'] = repo_url
+    if ctx.get_parameter_source(c.FIELD_REPO_URL) != click.core.ParameterSource.DEFAULT:
+        pipeline_model[c.FIELD_REPO_URL] = repo_url
         # grab repo_name from the URL
-        pipeline_model['repo_name'] = repo_url.split('/')[-1]
+        pipeline_model[c.FIELD_REPO_NAME] = repo_url.split('/')[-1]
 
     # this is needed when user specify a different value than the default one.
     # this matches with the PipelineHist model.
-    pipeline_model['branch'] = branch
+    pipeline_model[c.FIELD_BRANCH] = branch
     pipeline_model['stage'] = stage
     pipeline_model['job'] = job
     pipeline_model['run'] = run_number
-    pipeline_model['is_remote'] = local
+    pipeline_model[c.FIELD_IS_REMOTE] = local
 
     try:
         err_msg = None
@@ -166,7 +161,7 @@ def report(ctx, repo_url:str, local:bool, pipeline_name:str, branch:str, stage:s
                 err_msg = f"Unknown Input: '{error.get('input', 'N/A')}', "
                 err_msg += f"Flag: {error['loc']}, Message: {error['msg']}"
             elif err_type == "missing":
-                if 'repo_url' in error['loc']:
+                if c.FIELD_REPO_URL in error['loc']:
                     err_msg = f"missing {error['loc']} input. please run cid pipeline report"
                     err_msg += "--repo.\nFor further help, run cid pipeline report --help "
                     err_msg += "for valid usage"
