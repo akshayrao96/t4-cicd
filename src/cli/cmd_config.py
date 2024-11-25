@@ -22,7 +22,7 @@ logger = get_logger('cli.cmd_config')
               saving the validated info to datastore")
 @click.option('--config-file', default='pipelines.yml', show_default=True, type=str,
               help="specifies the YAML configuration file to check. used with --check flag")
-@click.option('--dir', default='.cicd-pipelines', show_default=True,
+@click.option('--dir', default=None, show_default=True,
               type=str,
               help="specify the directory to check all configuration files.\
                   used with --check-all flag")
@@ -68,6 +68,15 @@ def config(ctx, check: bool, check_all: bool, no_set: bool, config_file: str, di
         err = f"Invalid file format: '{config_file}' must have a .yml or .yaml extension."
         click.secho(err, fg='red')
         sys.exit(2)
+
+    # Enforce that --dir can only be used with --check-all
+    if dir and not check_all:
+        err = "--dir can only be used with --check-all. please re-run the command with --check-all"
+        click.secho(err, fg='red')
+        sys.exit(2)
+
+    if dir is None:
+        dir = '.cicd-pipelines'
 
     controller = Controller()
 
