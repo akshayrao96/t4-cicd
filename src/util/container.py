@@ -8,18 +8,18 @@ import re
 import tarfile
 import time
 from abc import ABC, abstractmethod
+from shutil import make_archive
 import docker
 import docker.errors
+from botocore.exceptions import ClientError
 from docker.models.containers import Container
 import util.constant as c
 from util.common_utils import (get_logger)
+from util.db_artifact import S3Client
 from util.model import (JobConfig, JobLog)
 
-# pylint: disable=fixme
 logger = get_logger("util.docker")
 
-DEFAULT_DOCKER_DIR = '/app'
-REGEX_SHELL_ERR = r'(sh:\s?)(\d+)(:)'
 
 class ContainerManager(ABC):
     """ Abstract base class for Container Management
@@ -55,13 +55,13 @@ class DockerManager(ContainerManager):
     There should be one DockerManager object for each pipeline run
     """
 
-    def __init__(self, client:docker.DockerClient=docker.from_env(),
+    def __init__(self, client:docker.DockerClient=None,
                  log_tool=logger, repo:str="Repo", pipeline:str="pipeline", run:str="run"):
         """ Initialize the DockerManager
 
         Args:
             client (docker.DockerClient, optional): client for the DockerEngine. 
-                Defaults to docker.from_env().
+                Defaults to None.
             log_tool (_type_, optional): logging tool. Defaults to logger.
             repo (str, optional): repo name, use to uniquely identify the volume used. 
                 Defaults to "Repo".
@@ -69,11 +69,14 @@ class DockerManager(ContainerManager):
                 Defaults to "pipeline".
             run (str, optional): run, use to uniquely identify the volume used. Defaults to "run".
         """
-        self.client = client
+        if client is None:
+            self.client = docker.from_env()
+        else:
+            self.client = client
         self.logger = log_tool
         self.vol_name = repo + '-' + pipeline + '-' + run
         self.docker_vol = None
-    
+
     def run_job(self, job_name:str, job_config: dict) -> JobLog:
         """ run a single job and return its output
 
@@ -99,7 +102,6 @@ class DockerManager(ContainerManager):
         # Update docker_img based on docker_reg value
         if docker_reg != c.DEFAULT_DOCKER_REGISTRY:
             docker_img = docker_reg + '/' + docker_img
-            print(docker_img)
         upload_path = job_config[c.KEY_ARTIFACT_PATH]
         commands = job_config[c.JOB_SUBKEY_SCRIPTS]
 
@@ -117,11 +119,11 @@ class DockerManager(ContainerManager):
                     detach=True,
                     volumes={
                         self.vol_name:{
-                            'bind': DEFAULT_DOCKER_DIR,
+                            'bind': c.DEFAULT_DOCKER_DIR,
                             'mode': 'rw'
                         }
                     },
-                    working_dir=DEFAULT_DOCKER_DIR
+                    working_dir=c.DEFAULT_DOCKER_DIR
                 )
 
             # Wait for the container to finish, required as we are running in detach mode
@@ -131,8 +133,6 @@ class DockerManager(ContainerManager):
             # stdout and stderr, we want to also check the stderr
             output = container.logs().decode('utf-8')
             output_stderr = container.logs(stdout=False).decode('utf-8')
-            #print(output)
-            #print(f"err:{output_stderr}")
 
             # Note docker container will store some status log in stderr, currently
             # only way to check if error in execution is to look for the keyword
@@ -174,14 +174,16 @@ class DockerManager(ContainerManager):
         """
         # Look for sh exit status from the log
         # any sh: <number>: with number != 0 is error
-        shell_results = re.finditer(REGEX_SHELL_ERR, stderr)
+        shell_results = re.finditer(c.REGEX_SHELL_ERR, stderr)
         for match in shell_results:
             if int(match.group(2)) != 0:
                 return False
         return True
 
-    def _upload_artifact(self, container:Container,
-                         upload_path:str, extract_paths:list[str]) -> tuple[bool,str]:
+    def _upload_artifact(self,
+                         container:Container,
+                         upload_path:str,
+                         extract_paths:list[str]) -> tuple[bool,str]:
         """ Move the artifacts from container to target upload path
 
         Args:
@@ -194,8 +196,9 @@ class DockerManager(ContainerManager):
             a str for potential error message
         """
         try:
+            # First extract the contents in extract_paths from the docker
             for path in extract_paths:
-                bits, stat = container.get_archive(f"{DEFAULT_DOCKER_DIR}/{path}")
+                bits, _ = container.get_archive(f"{c.DEFAULT_DOCKER_DIR}/{path}")
                 # Write the archive to the host filesystem
                 upload_path_obj = Path(upload_path)
                 if not upload_path_obj.is_dir():
@@ -212,9 +215,34 @@ class DockerManager(ContainerManager):
                 with tarfile.open(f"{upload_path}/volume_contents.tar", "r") as tar:
                     tar.extractall(path=upload_path)
                 os.remove(f"{upload_path}/volume_contents.tar")
-            return True, ""
+
+            # Try upload to s3
+            status, err = self._upload_to_s3(container.name, upload_path)
+            return status, err
         except (docker.errors.DockerException, FileNotFoundError, AttributeError) as de:
             return False, str(de)
+
+    def _upload_to_s3(self, file_name:str, upload_path:str) -> tuple[bool,str]:
+        """ Zip the artifacts in upload_path and upload into s3
+
+        Args:
+            file_name (str): file name to save in s3
+            upload_path (str): target upload_path to zip
+
+        Returns:
+            tuple[bool,str]: tuple of boolean indicator if upload success and 
+            a str for potential error message
+        """
+        error_msg = f"Fail to upload to s3 for {file_name}"
+        try:
+            s3_client = S3Client(bucket_name=upload_path)
+            archive_name = make_archive(file_name, 'zip', root_dir=upload_path)
+            s3_client.upload_file(archive_name)
+            os.remove(archive_name)
+            return True, ""
+        except (ClientError, OSError) as e:
+            self.logger.warning(str(e))
+            return False, error_msg
 
     def stop_job(self, job_name: str) -> str:
         """ stop a job

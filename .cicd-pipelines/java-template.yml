@@ -6,7 +6,7 @@ global:
     docker: 
         registry: 'dockerhub'
         image: "gradle:latest"
-    artifact_upload_path: "temp"
+    artifact_upload_path: "test-cicd-cs6510"
 
 # default stages: [build, test, doc, deploy]
 stages: ['build', 'test', 'doc', 'deploy']
@@ -32,6 +32,7 @@ jobs:
     # Job for test stage
     testwithcoverage:
         stage: test
+        allow_failure: True
         scripts: 
             - 'chmod +x ./gradlew'
             - './gradlew test'
@@ -43,6 +44,7 @@ jobs:
     
     checkstyle:
         stage: test
+        allow_failure: True
         scripts: 
             - 'chmod +x ./gradlew'
             - './gradlew check'
@@ -53,6 +55,7 @@ jobs:
     
     javadoc:
         stage: doc
+        allow_failure: True
         scripts: 
             - 'chmod +x ./gradlew'
             - './gradlew javadoc'
