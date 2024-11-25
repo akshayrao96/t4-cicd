@@ -549,7 +549,6 @@ class Controller:
 
         # Step 5: check if pipeline is running dry-run or not
         if dry_run:
-            # TODO - Update dry_run to take PipelineConfig model instead of dict
             status, dry_run_msg = self.dry_run(config_dict, yaml_output)
             self.logger.debug(f"dry run status:{status}, {dry_run_msg}")
             return status, dry_run_msg

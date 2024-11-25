@@ -111,7 +111,7 @@ git@ if clone using ssh or https://')
 default stages options: [build, test, doc, deploy]')
 @click.option('--job', 'job', default=None, help="job name to view report")
 @click.option('-r', '--run', 'run_number', default=None, help='run number to get the report')
-def report(ctx, repo_url:str, local:bool, pipeline_name:str, stage:str,
+def report(repo_url:str, local:bool, pipeline_name:str, stage:str,
            job:str, run_number:int):
     """Report pipeline provides user to retrieve the pipeline history.
     User must specify the repo url. To retrieve which REPO_URL you currently at,
@@ -141,8 +141,10 @@ def report(ctx, repo_url:str, local:bool, pipeline_name:str, stage:str,
         pipeline_model['repo_url'] = repo_details.repo_url
         pipeline_model['repo_name'] = repo_details.repo_name
     else:
+        # parse repo_name from the URL input.
+        # Example repo_url = git@github.com:CS6510-SEA-F24/t4-cicd.git
+        # parsed repo_name = t4-cicd.git
         pipeline_model['repo_url'] = repo_url
-        # grab repo_name from the URL
         pipeline_model[c.FIELD_REPO_NAME] = repo_url.split('/')[-1]
 
     # this is needed when user specify a different value than the default one.
@@ -152,6 +154,7 @@ def report(ctx, repo_url:str, local:bool, pipeline_name:str, stage:str,
     pipeline_model['run'] = run_number
     pipeline_model[c.FIELD_IS_REMOTE] = local
 
+    # validate user input
     try:
         err_msg = None
         pipeline_model = PipelineHist.model_validate(pipeline_model)
@@ -172,7 +175,7 @@ def report(ctx, repo_url:str, local:bool, pipeline_name:str, stage:str,
                 click.secho(err_msg, fg="red")
         sys.exit(2)
 
-    #Step 2. call pipeline_history
+    # retrieve pipeline report
     resp_success, resp_message = ctrl.pipeline_history(pipeline_model)
     if not resp_success:
         click.secho(resp_message, fg='red')
