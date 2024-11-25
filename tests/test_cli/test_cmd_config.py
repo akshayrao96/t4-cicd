@@ -2,14 +2,13 @@
 """
 import json
 import os
-import tempfile
 import unittest
 from unittest.mock import MagicMock, patch
 from click.testing import CliRunner
 from cli import (__main__, cmd_config)
 from util.common_utils import (get_logger)
-from util.db_mongo import MongoAdapter
 from util.model import (PipelineConfig, PipelineInfo, SessionDetail, ValidationResult)
+import util.constant as c
 
 logger = get_logger("tests.test_cmd_config")
 
@@ -30,13 +29,15 @@ class TestConfig(unittest.TestCase):
     """
     def setUp(self):
         # Load sample validation result from json file
-        validation_result_path = os.path.join(os.path.dirname(__file__),'sample_validation_res.json')
+        validation_result_path = os.path.join(os.path.dirname(__file__),
+                                              'sample_validation_res.json')
         with open(validation_result_path, 'r', encoding='utf-8') as openfile:
             # Reading from json file
             self.validation_result_dict = json.load(openfile)
         # Single Validation result forConfigChecker.validate_config
         self.success_validation_res = ValidationResult.model_validate(self.validation_result_dict)
-        self.fail_validation_res = ValidationResult(valid=False, error_msg="error", pipeline_config={})
+        self.fail_validation_res = ValidationResult(valid=False,
+                                                    error_msg="error", pipeline_config={})
         self.pipeline_config_dict = self.success_validation_res.pipeline_config
         self.success_validation_res.pipeline_config = PipelineConfig.model_validate(self.pipeline_config_dict)
         self.sample_pipeline_info = PipelineInfo(
@@ -50,7 +51,7 @@ class TestConfig(unittest.TestCase):
             user_id='random',
             repo_name='cicd-python',
             repo_url="https://github.com/sjchin88/cicd-python",
-            branch='main',
+            branch=c.DEFAULT_BRANCH,
             is_remote=True,
             commit_hash="abcdef"
         )
@@ -60,7 +61,7 @@ class TestConfig(unittest.TestCase):
             "test_fail_pipeline": self.fail_validation_res
         }
         self.runner = CliRunner()
-        
+
     def test_config_help(self):
         """ Test the main config command just by calling it with --help option
         """
@@ -86,7 +87,7 @@ class TestConfig(unittest.TestCase):
         mock_handle.return_value = (False, "", None)
         result = self.runner.invoke(cmd_config.config)
         assert result.exit_code == 2
-    
+
     @patch("cli.cmd_config.os.path.isdir", return_value=False)
     def test_config_check_all_faildir(self, mock_isdir):
         """ Test config command with --check-all and invalid dir
@@ -127,7 +128,6 @@ class TestConfig(unittest.TestCase):
         assert result.exit_code == 2
         assert result_msg in result.output
 
-
     # Patch the validate_n_save_configs of Controller method in cli.cmd_config
     # module
     @patch("cli.cmd_config.Controller.validate_n_save_configs")
@@ -157,7 +157,7 @@ class TestConfig(unittest.TestCase):
             cmd_config.config, ['--check', '--config-file', 'invalid.yml', '--no-set'])
         assert result.exit_code == 2  # Non-zero exit code means error
         assert "Invalid config_file_path:" in result.output
-        
+
     # Patch the validate_n_save_config of Controller method in cli.cmd_config
     # module
     @patch("cli.cmd_config.Controller.validate_n_save_config")
@@ -204,7 +204,7 @@ class TestConfig(unittest.TestCase):
                 '--check', '--config-file', yaml_file_name, '--no-set'])
         assert result.exit_code == 0
         assert f"checking config file at: .cicd-pipelines/{yaml_file_name}" in result.output
-    
+
     @patch("cli.cmd_config.Controller.validate_config")
     @patch("cli.cmd_config.os.path.isfile", return_value=True)
     @patch("cli.cmd_config.Controller.handle_repo")
@@ -234,14 +234,16 @@ class TestConfigOverride(unittest.TestCase):
     """
     def setUp(self):
         self.runner = CliRunner()
-        validation_result_path = os.path.join(os.path.dirname(__file__),'sample_validation_res.json')
+        validation_result_path = os.path.join(os.path.dirname(__file__),
+                                              'sample_validation_res.json')
         with open(validation_result_path, 'r', encoding='utf-8') as openfile:
             # Reading from json file
             self.validation_result_dict = json.load(openfile)
         # Single Validation result forConfigChecker.validate_config
         self.success_validation_res = ValidationResult.model_validate(self.validation_result_dict)
-        self.fail_validation_res = ValidationResult(valid=False, error_msg="error", pipeline_config={})
-        self.pipeline_config_dict = self.success_validation_res.pipeline_config 
+        self.fail_validation_res = ValidationResult(valid=False, 
+                                                    error_msg="error", pipeline_config={})
+        self.pipeline_config_dict = self.success_validation_res.pipeline_config
         self.success_validation_res.pipeline_config = PipelineConfig.model_validate(self.pipeline_config_dict)
         self.pipeline_info = PipelineInfo(
             pipeline_name="test_pipeline",
@@ -252,13 +254,14 @@ class TestConfigOverride(unittest.TestCase):
             user_id='random',
             repo_name='cicd-python',
             repo_url="https://github.com/sjchin88/cicd-python",
-            branch='main',
+            branch=c.DEFAULT_BRANCH,
             is_remote=True,
             commit_hash="abcdef"
         )
         self.handle_repo_return = (True, "", self.session_data)
-    
-    @patch("cli.cmd_config.MongoHelper.build_nested_dict", side_effect=ValueError("Invalid override format"))
+
+    @patch("cli.cmd_config.ConfigOverride.build_nested_dict",
+           side_effect=ValueError("Invalid override format"))
     def test_override_value_error(self, mock_build_nested_dict):
         """ Test override command when a ValueError is raised """
         result = self.runner.invoke(
@@ -280,8 +283,8 @@ class TestConfigOverride(unittest.TestCase):
         mock_handle.return_value = (False, "", None)
         result = self.runner.invoke(
             cmd_config.config,
-            ['override', '--pipeline', 'test_pipeline', '--override',
-             "global.docker.image=gradle:jdk8"])
+            ['override', '--pipeline', 'test_pipeline',
+             '--override', "global.docker.image=gradle:jdk8"])
         assert result.exit_code == 2
 
     @patch("cli.cmd_config.Controller.override_config")
@@ -297,8 +300,8 @@ class TestConfigOverride(unittest.TestCase):
         mock_override.return_value = (False, 'error', None)
         result = self.runner.invoke(
             cmd_config.config,
-            ['override', '--pipeline', 'test_pipeline', '--override', 
-             "global.docker.image=gradle:jdk8"])
+            ['override', '--pipeline', 'test_pipeline',
+             '--override', "global.docker.image=gradle:jdk8"])
         assert result.exit_code == 1
 
     @patch("cli.cmd_config.Controller.override_config")
@@ -314,7 +317,8 @@ class TestConfigOverride(unittest.TestCase):
         mock_override.return_value = (True, "", self.success_validation_res.pipeline_config)
         result = self.runner.invoke(
             cmd_config.config,
-            ['override', '--pipeline', 'test_pipeline', '--override', "global.docker.image=gradle:jdk8", '--json'])
+            ['override', '--pipeline', 'test_pipeline',
+             '--override', "global.docker.image=gradle:jdk8", '--json'])
         assert result.exit_code == 0
 
     ## The rest of test cases are Integration tests with Controller.override_config
@@ -331,9 +335,10 @@ class TestConfigOverride(unittest.TestCase):
         mock_get_hist.return_value = {}
         result = self.runner.invoke(
             cmd_config.config,
-            ['override', '--pipeline', 'test_pipeline', '--override', "global.docker.image=gradle:jdk8", '--json'])
+            ['override', '--pipeline', 'test_pipeline',
+             '--override', "global.docker.image=gradle:jdk8", '--json'])
         assert result.exit_code == 1
-    
+
     @patch("controller.controller.ConfigChecker.validate_config")
     @patch("controller.controller.MongoAdapter.get_pipeline_history")
     @patch("cli.cmd_config.Controller.handle_repo")
@@ -351,9 +356,10 @@ class TestConfigOverride(unittest.TestCase):
         mock_validate.return_value = self.fail_validation_res
         result = self.runner.invoke(
             cmd_config.config,
-            ['override', '--pipeline', 'test_pipeline', '--override', "global.docker.image=gradle:jdk8", '--json'])
+            ['override', '--pipeline', 'test_pipeline', 
+             '--override', "global.docker.image=gradle:jdk8", '--json'])
         assert result.exit_code == 1
-    
+
     @patch("controller.controller.MongoAdapter.update_pipeline_info")
     @patch("controller.controller.ConfigChecker.validate_config")
     @patch("controller.controller.MongoAdapter.get_pipeline_history")
@@ -373,9 +379,10 @@ class TestConfigOverride(unittest.TestCase):
         mock_update.return_value = False
         result = self.runner.invoke(
             cmd_config.config,
-            ['override', '--pipeline', 'test_pipeline', '--override', "global.docker.image=gradle:jdk8", '--save'])
+            ['override', '--pipeline', 'test_pipeline',
+             '--override', "global.docker.image=gradle:jdk8", '--save'])
         assert result.exit_code == 1
-    
+
     @patch("controller.controller.ConfigChecker.validate_config")
     @patch("controller.controller.MongoAdapter.get_pipeline_history")
     @patch("cli.cmd_config.Controller.handle_repo")
@@ -392,20 +399,23 @@ class TestConfigOverride(unittest.TestCase):
         mock_validate.return_value = self.success_validation_res
         result = self.runner.invoke(
             cmd_config.config,
-            ['override', '--pipeline', 'test_pipeline', '--override', "global.docker.image=gradle:jdk8"])
+            ['override', '--pipeline', 'test_pipeline', 
+             '--override', "global.docker.image=gradle:jdk8"])
         assert result.exit_code == 0
-        
+
 @patch("cli.cmd_config.Controller.handle_repo", return_value=(True, "Repository set successfully", MagicMock()))
 def test_set_repo_success(mock_handle_repo):
     """Test `set-repo` command with successful repository setup."""
     runner = CliRunner()
     result = runner.invoke(cmd_config.config, [
-        'set-repo', 'https://github.com/example/repo.git', '--branch', 'main', '--commit', '123abc'
+        'set-repo', 'https://github.com/example/repo.git', 
+        '--branch', c.DEFAULT_BRANCH, '--commit', '123abc'
     ])
 
     assert result.exit_code == 0
     assert "Repository set successfully" in result.output
-    mock_handle_repo.assert_called_once_with("https://github.com/example/repo.git", branch="main", commit_hash="123abc")
+    mock_handle_repo.assert_called_once_with("https://github.com/example/repo.git",
+                                             branch=c.DEFAULT_BRANCH, commit_hash="123abc")
 
 
 # Test case for `set_repo` command with failure in repository setup
@@ -414,12 +424,14 @@ def test_set_repo_failure(mock_handle_repo):
     """Test `set-repo` command with a failure in repository setup."""
     runner = CliRunner()
     result = runner.invoke(cmd_config.config, [
-        'set-repo', 'https://github.com/example/repo.git', '--branch', 'invalid', '--commit', 'unknown_commit'
+        'set-repo', 'https://github.com/example/repo.git', '--branch',
+        'invalid', '--commit', 'unknown_commit'
     ])
 
     assert result.exit_code == 0
     assert "Failed to set repository" in result.output
-    mock_handle_repo.assert_called_once_with("https://github.com/example/repo.git", branch="invalid", commit_hash="unknown_commit")
+    mock_handle_repo.assert_called_once_with("https://github.com/example/repo.git",
+                                             branch="invalid", commit_hash="unknown_commit")
 
 
 # Test case for `set_repo` command when no repository URL is provided
@@ -436,7 +448,8 @@ def test_set_repo_no_repo_given():
 @patch("cli.cmd_config.Controller.get_repo", return_value=(
     True,
     "Repository is configured in current directory",
-    MagicMock(repo_url="https://github.com/example/repo.git", repo_name="example_repo", branch="main", commit_hash="123abc")
+    MagicMock(repo_url="https://github.com/example/repo.git",
+              repo_name="example_repo", branch=c.DEFAULT_BRANCH, commit_hash="123abc")
 ))
 def test_get_repo_success(mock_get_repo):
     """Test `get-repo` command when a repository is configured in the current directory."""
@@ -455,7 +468,8 @@ def test_get_repo_success(mock_get_repo):
 @patch("cli.cmd_config.Controller.get_repo", return_value=(
     False,
     "Current working directory is not a git repository",
-    MagicMock(repo_url="https://github.com/example/last-repo.git", repo_name="last_repo", branch="main", commit_hash="456def")
+    MagicMock(repo_url="https://github.com/example/last-repo.git",
+              repo_name="last_repo", branch=c.DEFAULT_BRANCH, commit_hash="456def")
 ))
 def test_get_repo_last_set_repo(mock_get_repo):
     """Test `get-repo` command retrieving the last set repository."""
@@ -470,7 +484,11 @@ def test_get_repo_last_set_repo(mock_get_repo):
     assert "Commit Hash: 456def" in result.output
     mock_get_repo.assert_called_once()
 
-@patch("cli.cmd_config.Controller.handle_repo", return_value=(False, "Working directory is not a git repository. No previous repository has been set.", None))
+@patch("cli.cmd_config.Controller.handle_repo",
+       return_value=(False,
+                     "Working directory is not a git repository. "
+                     "No previous repository has been set.",
+                     None))
 def test_get_repo_no_repo_set(mock_handle_repo):
     """Test `get-repo` command when no repository is configured."""
     runner = CliRunner()

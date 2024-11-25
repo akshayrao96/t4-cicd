@@ -8,26 +8,18 @@ import os
 import time
 from pathlib import Path
 
-#import pprint
 import click
-#import git.exc
 from docker.errors import DockerException
 from pydantic import ValidationError
 from ruamel.yaml import YAMLError
-import util.constant as const
+import util.constant as c
 from util.container import (DockerManager)
 from util.model import (SessionDetail, PipelineConfig, ValidatedStage, PipelineInfo, PipelineHist)
-from util.common_utils import (get_logger, MongoHelper, DryRun, PipelineReport)
+from util.common_utils import (get_logger, ConfigOverride, DryRun, PipelineReport)
 from util.repo_manager import (RepoManager)
 from util.db_mongo import (MongoAdapter)
 from util.yaml_parser import YamlParser
 from util.config_tools import (ConfigChecker)
-
-REPO_SOURCE = ""
-REPO_TARGET_PATH = ""
-REPO_BRANCH_NAME = "main"
-MONGO_PIPELINES_TABLE = "repo_configs"
-DEFAULT_CONFIG_DIR = ".cicd-pipelines/"
 
 # pylint: disable=logging-fstring-interpolation
 # pylint: disable=logging-not-lazy
@@ -39,9 +31,8 @@ class Controller:
         """Initialize the controller class
         """
         self.repo_manager = RepoManager()
-        self.mongo_ds = MongoAdapter()  # init DataStore (MongoDB, Postgres)
-        self.config_checker = ConfigChecker()  # init Configuration Checker
-        # ..and many more
+        self.mongo_ds = MongoAdapter()
+        self.config_checker = ConfigChecker()
         self.logger = get_logger('cli.controller')
 
     def handle_repo(self, repo_url: str = None,
@@ -71,7 +62,7 @@ class Controller:
         # Get the current repository details, or last set repo from user
         return self.get_repo()
 
-    def set_repo(self, repo_url: str = None, branch: str = "main",
+    def set_repo(self, repo_url: str = None, branch: str = c.DEFAULT_BRANCH,
                  commit_hash: str = None) -> tuple[bool, str, SessionDetail | None]:
         """
         Configure and save a Git repository for CI/CD checks.
@@ -116,7 +107,7 @@ class Controller:
         if not is_remote:
             repo_url = str(Path(repo_url).resolve())
 
-        time_log = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        time_log = datetime.now().strftime(c.DATETIME_FORMAT)
         user_id = os.getlogin()
 
         # Put the information into a SessionDetail Object.
@@ -124,13 +115,13 @@ class Controller:
         # Else: If not, return false, message, and none
         try:
             repo_data = SessionDetail.model_validate({
-                "user_id": user_id,
-                "repo_url": repo_url,
-                "repo_name": repo_details["repo_name"],
-                "branch": repo_details["branch"],
-                "commit_hash": repo_details["commit_hash"],
-                "is_remote": is_remote,
-                "time": time_log
+                c.FIELD_USER_ID: user_id,
+                c.FIELD_REPO_URL: repo_url,
+                c.FIELD_REPO_NAME: repo_details[c.FIELD_REPO_NAME],
+                c.FIELD_BRANCH: repo_details[c.FIELD_BRANCH],
+                c.FIELD_COMMIT_HASH: repo_details[c.FIELD_COMMIT_HASH],
+                c.FIELD_IS_REMOTE: is_remote,
+                c.FIELD_TIME: time_log
             })
 
             inserted_id = self.mongo_ds.update_session(repo_data.model_dump())
@@ -189,24 +180,24 @@ class Controller:
 
             repo_details = self.repo_manager.get_current_repo_details()
 
-            if not repo_details or not repo_details.get("repo_url"):
+            if not repo_details or not repo_details.get(c.FIELD_REPO_URL):
                 return False, "Failed to retrieve repository details.", None
 
-            time_log = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            time_log = datetime.now().strftime(c.DATETIME_FORMAT)
 
             # Retrieve existing session
             existing_session = self.mongo_ds.get_session(user_id)
-            existing_is_remote = existing_session.get("is_remote") \
-                if existing_session and "is_remote" in existing_session else False
+            existing_is_remote = existing_session.get(c.FIELD_IS_REMOTE) \
+                if existing_session and c.FIELD_IS_REMOTE in existing_session else False
 
             repo_data = SessionDetail.model_validate({
-                "user_id": user_id,
-                "repo_url": str(Path(repo_details["repo_url"]).resolve()),
-                "repo_name": repo_details["repo_name"],
-                "branch": repo_details["branch"],
-                "commit_hash": repo_details["commit_hash"],
-                "is_remote": existing_is_remote,
-                "time": time_log
+                c.FIELD_USER_ID: user_id,
+                c.FIELD_REPO_URL: str(Path(repo_details[c.FIELD_REPO_URL]).resolve()),
+                c.FIELD_REPO_NAME: repo_details[c.FIELD_REPO_NAME],
+                c.FIELD_BRANCH: repo_details[c.FIELD_BRANCH],
+                c.FIELD_COMMIT_HASH: repo_details[c.FIELD_COMMIT_HASH],
+                c.FIELD_IS_REMOTE: existing_is_remote,
+                c.FIELD_TIME: time_log
             })
 
             # Save the session details in the database
@@ -247,21 +238,21 @@ class Controller:
 
             repo_details = self.repo_manager.get_current_repo_details()
 
-            time_log = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            time_log = datetime.now().strftime(c.DATETIME_FORMAT)
 
             try:
                 existing_session = self.mongo_ds.get_session(user_id)
-                existing_is_remote = existing_session.get("is_remote") \
-                    if existing_session and "is_remote" in existing_session else False
+                existing_is_remote = existing_session.get(c.FIELD_IS_REMOTE) \
+                    if existing_session and c.FIELD_IS_REMOTE in existing_session else False
 
                 repo_data = SessionDetail.model_validate({
-                    "user_id": user_id,
-                    "repo_url": repo_details["repo_url"],
-                    "repo_name": repo_details["repo_name"],
-                    "branch": repo_details["branch"],
-                    "commit_hash": repo_details["commit_hash"],
-                    "is_remote": existing_is_remote,
-                    "time": time_log
+                    c.FIELD_USER_ID: user_id,
+                    c.FIELD_REPO_URL: repo_details[c.FIELD_REPO_URL],
+                    c.FIELD_REPO_NAME: repo_details[c.FIELD_REPO_NAME],
+                    c.FIELD_BRANCH: repo_details[c.FIELD_BRANCH],
+                    c.FIELD_COMMIT_HASH: repo_details[c.FIELD_COMMIT_HASH],
+                    c.FIELD_IS_REMOTE: existing_is_remote,
+                    c.FIELD_TIME: time_log
                 })
 
                 # Save the session details in the database
@@ -316,10 +307,10 @@ class Controller:
             # Perform saving
             if status and saving:
                 updates = {
-                    'pipeline_name': pipeline_name,
-                    'pipeline_file_name':values.pipeline_file_name,
-                    'pipeline_config': response.pipeline_config.model_dump(by_alias=True),
-                    'last_commit_hash': session_data.commit_hash
+                    c.FIELD_PIPELINE_NAME: pipeline_name,
+                    c.FIELD_PIPELINE_FILE_NAME:values.pipeline_file_name,
+                    c.FIELD_PIPELINE_CONFIG: response.pipeline_config.model_dump(by_alias=True),
+                    c.FIELD_LAST_COMMIT_HASH: session_data.commit_hash
                 }
                 status = self.mongo_ds.update_pipeline_info(
                         repo_name=session_data.repo_name,
@@ -331,7 +322,6 @@ class Controller:
                 if not status:
                     response.valid = status
                     response.error_msg = "Fail to save to datastore"
-        # stub response for save
         return results
 
     def validate_n_save_config(
@@ -375,10 +365,10 @@ class Controller:
         # We dont use the PipelineInfo object directly as we dont want to
         # override the existing data in the db
         updates = {
-            'pipeline_name': pipeline_name,
-            'pipeline_file_name':pipeline_info.pipeline_file_name,
-            'pipeline_config': pipeline_config,
-            'last_commit_hash': session_data.commit_hash
+            c.FIELD_PIPELINE_NAME: pipeline_name,
+            c.FIELD_PIPELINE_FILE_NAME:pipeline_info.pipeline_file_name,
+            c.FIELD_PIPELINE_CONFIG: pipeline_config,
+            c.FIELD_LAST_COMMIT_HASH: session_data.commit_hash
         }
         status = self.mongo_ds.update_pipeline_info(
                 repo_name=session_data.repo_name,
@@ -419,7 +409,7 @@ class Controller:
         if pipeline_name is not None:
             try:
                 pipeline_info = parser.parse_yaml_by_pipeline_name(
-                    pipeline_name, DEFAULT_CONFIG_DIR)
+                    pipeline_name, c.DEFAULT_CONFIG_DIR)
                 pipeline_file_name = pipeline_info.pipeline_file_name
                 pipeline_config = pipeline_info.pipeline_config
             except FileNotFoundError as fe:
@@ -430,7 +420,7 @@ class Controller:
             try:
                 pipeline_config = parser.parse_yaml_file(file_name)
                 # get the pipeline_name for ConfigChecker
-                pipeline_name = pipeline_config[const.KEY_GLOBAL][const.KEY_PIPE_NAME]
+                pipeline_name = pipeline_config[c.KEY_GLOBAL][c.KEY_PIPE_NAME]
                 # Extract the filename without extension or path
                 pipeline_file_name = os.path.basename(file_name)
             except (FileNotFoundError, YAMLError) as e:
@@ -440,7 +430,7 @@ class Controller:
 
         # Process Override if have.
         if override_configs:
-            pipeline_config = MongoHelper.apply_overrides(
+            pipeline_config = ConfigOverride.apply_overrides(
                 pipeline_config,
                 override_configs)
         click.echo(f"Validating file in {pipeline_file_name}")
@@ -493,7 +483,7 @@ class Controller:
             return False, err, None
 
         pipeline_config = his_obj.pipeline_config.model_dump(by_alias=True)
-        updated_config = MongoHelper.apply_overrides(pipeline_config, overrides)
+        updated_config = ConfigOverride.apply_overrides(pipeline_config, overrides)
         # validate the updated pipeline configuration
         validation_res = self.config_checker.validate_config(pipeline_name,
                                                             updated_config,
@@ -512,9 +502,9 @@ class Controller:
                 repo_url=session_data.repo_url,
                 branch=session_data.branch,
                 pipeline_name=pipeline_name,
-                # Update for last_commit_hash is not required, as original 
+                # Update for last_commit_hash is not required, as original
                 # config came from data store
-                updates={'pipeline_config':resp_pipeline_config})
+                updates={c.FIELD_PIPELINE_CONFIG:resp_pipeline_config})
             if not success:
                 err = "Validation passed, but error in saving"
                 return False, err, validation_res.pipeline_config
@@ -557,7 +547,7 @@ class Controller:
             return status, error_msg
         config_dict = pipeline_info.pipeline_config.model_dump(by_alias=True)
 
-        # Step 5: check if pipeline is  running dry-run or not
+        # Step 5: check if pipeline is running dry-run or not
         if dry_run:
             # TODO - Update dry_run to take PipelineConfig model instead of dict
             status, dry_run_msg = self.dry_run(config_dict, yaml_output)
@@ -681,8 +671,8 @@ class Controller:
         his_obj.job_run_history.append(job_id)
         run_number = len(his_obj.job_run_history)
         updates = {
-            "job_run_history":his_obj.job_run_history,
-            'running':True,
+            c.FIELD_JOB_RUN_HISTORY:his_obj.job_run_history,
+            c.FIELD_RUNNING:True,
         }
         update_success = self.mongo_ds.update_pipeline_info(
             repo_data.repo_name,
@@ -702,10 +692,10 @@ class Controller:
                 run=str(len(his_obj.job_run_history))
             )
         # Step 3: Iterate through all stages, for each jobs
-        pipeline_status = const.STATUS_SUCCESS
+        pipeline_status = c.STATUS_SUCCESS
         early_break = False
         for stage_name, stage_config in pipeline_config.stages.items():
-            stage_status = const.STATUS_SUCCESS
+            stage_status = c.STATUS_SUCCESS
             stage_config = ValidatedStage.model_validate(stage_config)
             job_logs = {}
             stage_start_time = time.asctime()
@@ -719,11 +709,11 @@ class Controller:
                     click.echo(job_log.job_logs)
                     job_logs[job_name] = job_log.model_dump()
                     # single fail job will switch the stage status to fail
-                    if job_log.job_status == const.STATUS_FAILED:
-                        stage_status = const.STATUS_FAILED
+                    if job_log.job_status == c.STATUS_FAILED:
+                        stage_status = c.STATUS_FAILED
                         click.secho(f"Job:{job_name} failed\n", fg="red")
                         # Early break
-                        if job_config[const.JOB_SUBKEY_ALLOW] is False:
+                        if job_config[c.JOB_SUBKEY_ALLOW] is False:
                             early_break = True
                             break
                     else:
@@ -737,13 +727,13 @@ class Controller:
                 stage_status,
                 job_logs,
                 stage_time={
-                    "start_time": stage_start_time,
-                    "completion_time": time.asctime()
+                    c.FIELD_START_TIME: stage_start_time,
+                    c.FIELD_COMPLETION_TIME: time.asctime()
                 }
             )
             # single fail stage will switch the pipeline status to fail
-            if stage_status == const.STATUS_FAILED:
-                pipeline_status = const.STATUS_FAILED
+            if stage_status == c.STATUS_FAILED:
+                pipeline_status = c.STATUS_FAILED
                 click.secho(f"Stage:{stage_name} failed\n", fg="red")
             else:
                 click.secho(f"Stage:{stage_name} success\n", fg="green")
@@ -754,12 +744,12 @@ class Controller:
         # Wrap up and return
         docker_manager.remove_vol()
         run_update = {
-            "status":pipeline_status,
-            "completion_time": time.asctime()
+            c.FIELD_STATUS:pipeline_status,
+            c.FIELD_COMPLETION_TIME: time.asctime()
         }
         self.mongo_ds.update_job(job_id, run_update)
         final_updates = {
-            'running':False
+            c.FIELD_RUNNING:False
         }
         update_success = self.mongo_ds.update_pipeline_info(
             repo_data.repo_name,
@@ -768,7 +758,7 @@ class Controller:
             pipeline_config.global_.pipeline_name,
             final_updates
         )
-        pipeline_pass = pipeline_status == const.STATUS_SUCCESS
+        pipeline_pass = pipeline_status == c.STATUS_SUCCESS
         run_msg = f"run_number:{run_number}" if pipeline_pass else ""
         return pipeline_pass, run_msg
 
@@ -785,20 +775,9 @@ class Controller:
         Returns:
             str: _description_
         """
-        # TODO - Do the clean up on doctsring and methods
         dry_run = DryRun(config_dict)
         dry_run_msg = dry_run.get_plaintext_format()
         yaml_output_msg = dry_run.get_yaml_format()
-        # mongo = MongoAdapter()
-
-        #GET TIME
-        #now = datetime.now()
-        #time_log = now.strftime("%Y-%m-%d %H:%M:%S")
-        #pipeline_history = {"config_file": yaml_output_msg, "executed_time": time_log}
-
-        # dry-run is not stored to mongo DB
-        #pipeline_id = mongo.insert_pipeline(pipeline_history)
-        #pipeline_id = "dry_run"
 
         # set yaml format if user specify "--yaml" flag.
         if is_yaml_output:
@@ -819,8 +798,8 @@ class Controller:
                 "output_msg: str": pipeline report return to user CLI
         """
         pipeline_dict = pipeline_details.model_dump()
-        pipeline_name = pipeline_dict['pipeline_name']
-        repo_url = pipeline_dict['repo_url']
+        pipeline_name = pipeline_dict[c.FIELD_PIPELINE_NAME]
+        repo_url = pipeline_dict[c.FIELD_REPO_URL]
         job = pipeline_dict['job']
         run_number = pipeline_dict['run']
         stage = pipeline_dict['stage']

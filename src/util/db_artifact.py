@@ -4,8 +4,8 @@ import os
 import boto3
 from botocore.exceptions import ClientError
 from util.common_utils import (get_env, get_logger)
+import util.constant as c
 
-DEFAULT_S3_LOC = 'us-west-2'
 env = get_env()
 logger = get_logger("util.db_artifact")
 # pylint: disable=logging-fstring-interpolation
@@ -25,7 +25,7 @@ class S3Client:
         """
         try:
             self.bucket_name = bucket_name
-            s3_region = DEFAULT_S3_LOC
+            s3_region = c.DEFAULT_S3_LOC
             if "AWS_S3_REGION" in env:
                 s3_region = env["AWS_S3_REGION"]
             self.s3_client = boto3.client('s3')

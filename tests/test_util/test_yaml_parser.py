@@ -1,10 +1,9 @@
-# For code walk on 15th Oct only, delete/modify after
 import os
 import json
 import unittest
 from collections import OrderedDict
 import ruamel.yaml
-import util.constant as c 
+import util.constant as c
 from util.yaml_parser import YamlParser
 from util.config_tools import ConfigChecker
 from util.common_utils import get_logger
@@ -72,27 +71,30 @@ class TestYamlParser(unittest.TestCase):
 
     def test_parse_yaml_file_valid(self):
         """ Test parse the valid config file """
-        valid_file_path = os.path.join(os.path.dirname(__file__), 'test_data/valid_directory/valid_config.yml')
+        valid_file_path = os.path.join(os.path.dirname(__file__),
+                                       'test_data/valid_directory/valid_config.yml')
         extracted = self.parser.parse_yaml_file(valid_file_path)
         expected = self.expected_ans_json['test_parse_yaml_file_valid']
         assert extracted == expected
-        
+
         # Integration Test with ConfigChecker
         result = self.checker.validate_config("valid_pipeline", extracted)
         result_dict = result.model_dump(by_alias=True)
         expected_dict = self.expected_ans_json['test_validate_config_valid']
         # Required to ensure ordereddict are the same....
-        expected_dict['pipeline_config']['stages'] = OrderedDict(expected_dict['pipeline_config']['stages'])
+        expected_dict[c.FIELD_PIPELINE_CONFIG][c.KEY_STAGES] = OrderedDict(expected_dict[c.FIELD_PIPELINE_CONFIG][c.KEY_STAGES])
         assert result_dict == expected_dict
-        
+
         # Integration Test with ConfigChecker using another file
-        valid_file_path = os.path.join(os.path.dirname(__file__), 'test_data/valid_directory/pipelines.yml')
+        valid_file_path = os.path.join(os.path.dirname(__file__),
+                                       'test_data/valid_directory/pipelines.yml')
         extracted = self.parser.parse_yaml_file(valid_file_path)
-        result = self.checker.validate_config("valid_pipeline_default", extracted, "pipelines.yml", error_lc=True)
+        result = self.checker.validate_config("valid_pipeline_default",
+                                              extracted, "pipelines.yml", error_lc=True)
         result_dict = result.model_dump(by_alias=True)
         expected_dict = self.expected_ans_json['test_validate_config_valid_default']
         # Required to ensure ordereddict are the same....
-        expected_dict['pipeline_config']['stages'] = OrderedDict(expected_dict['pipeline_config']['stages'])
+        expected_dict[c.FIELD_PIPELINE_CONFIG][c.KEY_STAGES] = OrderedDict(expected_dict[c.FIELD_PIPELINE_CONFIG][c.KEY_STAGES])
         assert result_dict == expected_dict 
 
     def test_parse_yaml_by_pipeline_name(self):
@@ -103,7 +105,7 @@ class TestYamlParser(unittest.TestCase):
         expected = self.expected_ans_json['test_parse_yaml_file_valid']
         assert extracted.pipeline_config == expected
         assert extracted.pipeline_file_name == "valid_config.yml"
-    
+
     def test_parse_yaml_by_pipeline_name_fail(self):
         """ Test the method parse_yaml_by_pipeline_name with no pipeline_name exits
         """
@@ -114,35 +116,38 @@ class TestYamlParser(unittest.TestCase):
             assert False
         except FileNotFoundError as fe:
             assert True
-        
+
     def test_parse_yaml_file_cycle_detection(self):
         """ Test for cycle detection
         """
-        cycle_file_path = os.path.join(os.path.dirname(__file__), 'test_data/valid_directory/cycle_config.yml')
+        cycle_file_path = os.path.join(os.path.dirname(__file__),
+                                       'test_data/valid_directory/cycle_config.yml')
         extracted = self.parser.parse_yaml_file(cycle_file_path)
-        
+
         # Integration Test with ConfigChecker
         result = self.checker.validate_config("cycle_pipeline", extracted)
         result_dict = result.model_dump(by_alias=True)
         expected_dict = self.expected_ans_json['test_parse_yaml_file_cycle_detection_1']
         assert result_dict == expected_dict
-        
+
         # Integration Test with ConfigChecker, second cycle check
-        cycle_file_path = os.path.join(os.path.dirname(__file__), 'test_data/valid_directory/cycle_config_2.yml')
+        cycle_file_path = os.path.join(os.path.dirname(__file__),
+                                       'test_data/valid_directory/cycle_config_2.yml')
         extracted = self.parser.parse_yaml_file(cycle_file_path)
         expected_dict = self.expected_ans_json['test_parse_yaml_file_cycle_detection_2']
-        result = self.checker.validate_config("cycle_pipeline", extracted, 'cycle_config_2.yml',error_lc=True)
+        result = self.checker.validate_config("cycle_pipeline", extracted,
+                                              'cycle_config_2.yml',error_lc=True)
         result_dict = result.model_dump(by_alias=True)
         assert result_dict == expected_dict
 
     def test_parse_yaml_file_invalid_config(self):
-        file_path = os.path.join(os.path.dirname(__file__), 'test_data/valid_directory/invalid_config.yml')
+        file_path = os.path.join(os.path.dirname(__file__),
+                                 'test_data/valid_directory/invalid_config.yml')
         extracted = self.parser.parse_yaml_file(file_path)
-        
+
         # Integration Test with ConfigChecker, test for invalid config
-        result = self.checker.validate_config("invalid_pipeline", extracted, 'invalid_config.yml',error_lc=True)
+        result = self.checker.validate_config("invalid_pipeline", extracted,
+                                              'invalid_config.yml',error_lc=True)
         result_dict = result.model_dump(by_alias=True)
         expected_dict = self.expected_ans_json['test_validate_config_invalid']
         assert result_dict == expected_dict
-        
-
