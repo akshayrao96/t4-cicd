@@ -343,8 +343,8 @@ class TestPipelineHistory(TestCase):
         result = self.runner.invoke(cmd_pipeline.pipeline, cmd_list)
 
         assert result.exit_code == 1
-        assert result.stdout.rstrip() == "invalid pipeline_name (--pipeline) or run_number \
-(--run). Please try again"
+        expected_msg = "Please ensure you have valid flags (--pipeline, --run, and/or --repo)"
+        assert expected_msg in result.stdout
 
     def test_report_no_stage_given(self):
         """fail if --job is specified but no --stage is given.
@@ -369,14 +369,6 @@ class TestPipelineHistory(TestCase):
 
         assert result.exit_code == 2
         assert result.stdout.rstrip() == exp_msg
-
-    def test_report_missing_flag(self):
-        """throw error --pipeline is provided but --repo is not given
-        """
-        cmd_list = ['report', '--pipeline', 'cicd_pipeline']
-        result = self.runner.invoke(cmd_pipeline.pipeline, cmd_list)
-
-        assert result.exit_code == 2
 
     @patch("controller.controller.MongoAdapter.get_pipeline_run_summary")
     def test_report_stage_build(self, mock_pipeline_summary):

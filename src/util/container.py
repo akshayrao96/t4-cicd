@@ -244,6 +244,7 @@ class DockerManager(ContainerManager):
             return True, ""
         except (ClientError, OSError) as e:
             self.logger.warning(str(e))
+            error_msg += f"\nReason: {e}"
             return False, error_msg
 
     def stop_job(self, job_name: str) -> str:

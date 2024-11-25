@@ -75,7 +75,9 @@ def config(ctx, check: bool, check_all: bool, no_set: bool, config_file: str, di
         click.secho(err, fg='red')
         sys.exit(2)
 
-    if dir is None:
+    # set current_dir to .cicd-pipelines if user explicitly define the path
+    current_dir = "./"
+    if dir is None or dir == current_dir:
         dir = '.cicd-pipelines'
 
     controller = Controller()

@@ -577,13 +577,23 @@ class Controller:
             self.logger.warning(message)
             status = False
         except DockerException as de:
+            status = False
+            updates = {
+            'running':status
+            }
+            update_success = self.mongo_ds.update_pipeline_info(
+                git_details.repo_name,
+                git_details.repo_url,
+                git_details.branch,
+                pipeline_config.global_.pipeline_name,
+                updates
+            )
             message = f"Error with docker service. error is {str(de)}\n"
             self.logger.warning(message)
-            status = False
         except KeyboardInterrupt:
-            running_status_fail = False
+            status = False
             updates = {
-            'running':running_status_fail,
+            'running':status
             }
             update_success = self.mongo_ds.update_pipeline_info(
                 git_details.repo_name,
@@ -595,7 +605,20 @@ class Controller:
             # if update unsuccessful, prompt user.
             if not update_success:
                 click.confirm('Cannot update into db, do you want to continue?', abort=True)
-            return (running_status_fail, " User Interrupted program. Cleaning up before exiting.")
+            message = "User Interrupted program. Cleaning up before exiting.\n"
+        except Exception as e:
+            status = False
+            updates = {
+            'running':status
+            }
+            update_success = self.mongo_ds.update_pipeline_info(
+                git_details.repo_name,
+                git_details.repo_url,
+                git_details.branch,
+                pipeline_config.global_.pipeline_name,
+                updates
+            )
+            message = f"Unknown exception found. Exception: {e}\n"
 
         if not status:
             message += '\nPipeline runs fail'
@@ -834,8 +857,9 @@ class Controller:
         except IndexError as ie:
             self.logger.warning(f"job_number is out of bound. error: {ie}")
             is_success = False
-            err_msg = "invalid pipeline_name (--pipeline) or run_number (--run). Please try again"
+            err_msg = f"No Report found on database for {repo_url}\nPlease ensure you have valid"
+            err_msg += " flags (--pipeline, --run, and/or --repo) and execute cid pipeline run"
+            err_msg += " to generate pipeline report."
             return is_success, err_msg
-
         is_success = True
         return is_success, output_msg
