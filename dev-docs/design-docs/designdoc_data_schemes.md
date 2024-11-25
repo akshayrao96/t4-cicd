@@ -17,26 +17,26 @@ Schema design for the datastore used in the CI/CD system.
 3. **jobs_history**  
    Maintains the history of all job runs, including their statuses and logs.
 
-> **Note:** MongoDB automatically adds an `ObjectId` for each document.
+> **Note:** MongoDB automatically adds an `ObjectId (_id)`for each document.
 
 ---
 
 ## Table Details
 
-### **1. sessions**
+### **1. Sessions**
 
 **Fields Required**:
-- `userid` (Primary Key): Unique identifier for the user.
+- `user_id` (Primary Key): Unique identifier for the user.
 - `repo_name`: Name of the repository.
 - `repo_url`: URL of the repository.
 - `branch`: Current branch being worked on.
 - `commit_hash`: Commit hash of the current work.
-- `is_remote`: Indicates whether the repository is local or remote.
-- `last_access_timestamp`: Timestamp of the last session access.
+- `is_remote` (Boolean): Indicates whether the repository is local or remote.
+- `time`: Timestamp of the last session access.
 
 ---
 
-### **2. repo_configs**
+### **2. Repo_Configs**
 
 **Primary Keys**: `repo_name`, `repo_url`, `branch`
 
@@ -44,8 +44,8 @@ Schema design for the datastore used in the CI/CD system.
 - `repo_name`: Name of the repository.
 - `repo_url`: URL of the repository.
 - `branch`: Current branch being worked on.
-- `pipelines`: Dictionary containing past and present pipeline information.
-  - `pipeline_name` (Primary Key for pipelines): Unique name of the pipeline.
+- `pipelines`(Dictionary): Contains information about all pipelines (past and present) for the repository
+  - `pipeline_name` Key for identifying pipeline items.
   - `pipeline_file_name`: File name associated with the pipeline (may differ from `pipeline_name`).
   - `pipeline_config`: Validated pipeline configuration. Failed validations are not stored.
   - `job_run_history`: List of job run IDs associated with the pipeline.
@@ -55,10 +55,9 @@ Schema design for the datastore used in the CI/CD system.
 
 ---
 
-### **3. jobs_history**
+### **3. Jobs_History**
 
 **Fields Required**:
-- `jobs_id` (Primary Key): Unique identifier for each job run.
 - `pipeline_name`: Name of the associated pipeline.
 - `run_number`: Sequential run number for the pipeline.
 - `git_commit_hash`: Commit hash used during the job execution.
@@ -91,5 +90,3 @@ The database URL must be stored in the `~/.bashrc` or `~/.zshrc` file as an envi
 ```bash
 "export MONGO_DB_URL="<your-mongodb-url>"
 ```
-
-
