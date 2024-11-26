@@ -101,7 +101,6 @@ def run(ctx, file_path:str, pipeline_name:str, repo:str, branch:str, commit:str,
 
 
 @pipeline.command()
-@click.pass_context
 @click.option('-r', '--repo', 'repo_url', default=None, help='url of the repository \
 git@ if clone using ssh or https://')
 @click.option('--local', 'local', help='retrieve local pipeline history', is_flag=True)
@@ -138,13 +137,13 @@ def report(repo_url:str, local:bool, pipeline_name:str, stage:str,
 
     if repo_url is None:
         _, _, repo_details = ctrl.handle_repo()
-        pipeline_model['repo_url'] = repo_details.repo_url
-        pipeline_model['repo_name'] = repo_details.repo_name
+        pipeline_model[c.FIELD_REPO_URL] = repo_details.repo_url
+        pipeline_model[c.FIELD_REPO_NAME] = repo_details.repo_name
     else:
         # parse repo_name from the URL input.
         # Example repo_url = git@github.com:CS6510-SEA-F24/t4-cicd.git
         # parsed repo_name = t4-cicd.git
-        pipeline_model['repo_url'] = repo_url
+        pipeline_model[c.FIELD_REPO_URL] = repo_url
         pipeline_model[c.FIELD_REPO_NAME] = repo_url.split('/')[-1]
 
     # this is needed when user specify a different value than the default one.
