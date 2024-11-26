@@ -55,6 +55,8 @@ class Controller:
         """
         if repo_url:
             # Set up the repository by doing a clone of the given repo_url
+            if branch is None:
+                branch = c.DEFAULT_BRANCH
             return self.set_repo(repo_url=repo_url, branch=branch, commit_hash=commit_hash)
         if branch or commit_hash:
             # Check out with specified branch or commit
@@ -650,15 +652,15 @@ class Controller:
         if not update_success:
             click.confirm('Cannot update into db, do you want to continue?', abort=True)
 
-        # Initialize Docker Manager
-        docker_manager = DockerManager(
-                repo=repo_data.repo_name,
-                pipeline=pipeline_config.global_.pipeline_name,
-                run=str(len(his_obj.job_run_history))
-            )
-        # Step 3: Iterate through all stages, for each jobs
         pipeline_status = c.STATUS_PENDING
         try:
+            # Initialize Docker Manager
+            docker_manager = DockerManager(
+                    repo=repo_data.repo_name,
+                    pipeline=pipeline_config.global_.pipeline_name,
+                    run=str(len(his_obj.job_run_history))
+                )
+            # Step 3: Iterate through all stages, for each jobs
             early_break = False
             for stage_name, stage_config in pipeline_config.stages.items():
                 stage_status = c.STATUS_PENDING
