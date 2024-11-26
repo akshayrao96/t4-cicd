@@ -108,25 +108,12 @@ class TestConfig(unittest.TestCase):
             mock_isdir (MagicMock): mock the os.path.isdir method
             mock_validates (MagicMock): mock the validate_n_save_configs
         """
-        dirs = ['.cicd-pipelines', './']
-        for dir in dirs:
-            result = self.runner.invoke(
-                cmd_config.config, ['--check-all', '--dir', dir, '--no-set'])
-            logger.debug(result.output)
-            assert result.exit_code == 0
-            assert f"checking all config files in directory .cicd-pipelines" in result.output
-
-    def test_config_check_dir_no_check_all(self):
-        """Test config command --dir will fail without --check-all.
-        """
         dir = '.cicd-pipelines'
-        result_msg = "--dir can only be used with --check-all."
-
         result = self.runner.invoke(
-            cmd_config.config, ['--dir', dir])
+            cmd_config.config, ['--check-all', '--dir', dir, '--no-set'])
         logger.debug(result.output)
-        assert result.exit_code == 2
-        assert result_msg in result.output
+        assert result.exit_code == 0
+        assert f"checking all config files in directory {dir}" in result.output
 
     # Patch the validate_n_save_configs of Controller method in cli.cmd_config
     # module

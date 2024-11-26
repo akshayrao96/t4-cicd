@@ -569,12 +569,6 @@ class Controller:
             status = False
             message = f"Error with docker service. error is {str(de)}\n"
             self.logger.warning(message)
-        except KeyboardInterrupt:
-            status = False
-            message = "User Interrupted program. Cleaning up before exiting.\n"
-        except Exception as e:
-            status = False
-            message = f"Unknown exception found. Exception: {e}\n"
         finally:
             updates = {
             'running':status
