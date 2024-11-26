@@ -78,7 +78,8 @@ class DockerManager(ContainerManager):
         self.docker_vol = None
 
     def run_job(self, job_name:str, job_config: dict) -> JobLog:
-        """ run a single job and return its output
+        """ run a single job and return its output. Docker exception 
+        will be caught and handled.
 
         Args:
             job_name (str): name of the job
@@ -242,6 +243,7 @@ class DockerManager(ContainerManager):
             return True, ""
         except (ClientError, OSError) as e:
             self.logger.warning(str(e))
+            error_msg += f"\nReason: {e}"
             return False, error_msg
 
     def stop_job(self, job_name: str) -> str:

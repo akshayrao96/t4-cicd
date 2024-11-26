@@ -24,7 +24,7 @@ local directory path')
 @click.option('-b', '--branch', 'branch', default=None, help='repository branch name')
 @click.option('-c', '--commit', 'commit', default=None, help='commit hash')
 @click.option('--local', 'local', help='run pipeline locally', is_flag=True)
-@click.option('--dry-run', 'dry_run', help='dry-run options to simulate the pipeline\
+@click.option('--dry-run', 'dry_run', help='dry-run options to simulate the pipeline \
 process', is_flag=True)
 @click.option('--yaml', 'yaml_output', help='print output in yaml format', is_flag=True)
 @click.option('--override', 'overrides', multiple=True,
@@ -101,34 +101,30 @@ def run(ctx, file_path:str, pipeline_name:str, repo:str, branch:str, commit:str,
 
 
 @pipeline.command()
-@click.pass_context
-@click.option('-r', '--repo', 'repo_url', default='./', help='url of the repository (https://)')
+@click.option('-r', '--repo', 'repo_url', default=None, help='url of the repository \
+git@ if clone using ssh or https://')
 @click.option('--local', 'local', help='retrieve local pipeline history', is_flag=True)
 @click.option('--pipeline', 'pipeline_name', default=None,
               help='pipeline name to get the history')
-@click.option('-b', '--branch', 'branch', default=c.DEFAULT_BRANCH,
-              help="branch name of the repository; default is 'main'")
 @click.option('-s', '--stage', 'stage', default=None, help='stage name to view report; \
 default stages options: [build, test, doc, deploy]')
 @click.option('--job', 'job', default=None, help="job name to view report")
 @click.option('-r', '--run', 'run_number', default=None, help='run number to get the report')
-def report(ctx, repo_url:str, local:bool, pipeline_name:str, branch:str, stage:str,
+def report(repo_url:str, local:bool, pipeline_name:str, stage:str,
            job:str, run_number:int):
-    """Report pipeline provides user to retrieve the pipeline history. \f
-    To retrieve which REPO_URL you currently at, run `cid config get-repo | grep "Repository URL:"`
-    Example of basic usage: \f
-      cid pipeline report --repo REPO_URL | list all report for a repository \f
+    """Report pipeline provides user to retrieve the pipeline history.
+    if --repo is not specified, it will default to the current repo\f
+    Example of basic usage:
+      cid pipeline report [--repo REPO_URL] | list all report for a repository
       cid pipeline report --repo REPO_URL --pipeline PIPELINE_NAME | list all runs of the given
-      PIPELINE_NAME.\f
+      PIPELINE_NAME.
       cid pipeline report --repo REPO_URL --pipeline PIPELINE_NAME --run RUN | list the output
-      history of the run # given the PIPELINE_NAME and RUN number. \f
+      history of the run # given the PIPELINE_NAME and RUN number.
 
     Args:
-        ctx (context): click context
         repo_url (str): repository url to display the report
         local (bool): (current version) everything runs locally
         pipeline_name (str): pipeline name to get the report
-        branch (str): branch to get the report (default to main)
         stage (str): stage name to view the report options such as (build, test, doc, deploy)
         job (str): filter by job name for the report
         run_number (int): the run number to view the specific run report.
@@ -137,19 +133,25 @@ def report(ctx, repo_url:str, local:bool, pipeline_name:str, branch:str, stage:s
     pipeline_model = {}
     pipeline_model[c.FIELD_PIPELINE_NAME] = pipeline_name
 
-    if ctx.get_parameter_source(c.FIELD_REPO_URL) != click.core.ParameterSource.DEFAULT:
+    if repo_url is None:
+        _, _, repo_details = ctrl.handle_repo()
+        pipeline_model[c.FIELD_REPO_URL] = repo_details.repo_url
+        pipeline_model[c.FIELD_REPO_NAME] = repo_details.repo_name
+    else:
+        # parse repo_name from the URL input.
+        # Example repo_url = git@github.com:CS6510-SEA-F24/t4-cicd.git
+        # parsed repo_name = t4-cicd.git
         pipeline_model[c.FIELD_REPO_URL] = repo_url
-        # grab repo_name from the URL
         pipeline_model[c.FIELD_REPO_NAME] = repo_url.split('/')[-1]
 
     # this is needed when user specify a different value than the default one.
     # this matches with the PipelineHist model.
-    pipeline_model[c.FIELD_BRANCH] = branch
     pipeline_model['stage'] = stage
     pipeline_model['job'] = job
     pipeline_model['run'] = run_number
     pipeline_model[c.FIELD_IS_REMOTE] = local
 
+    # validate user input
     try:
         err_msg = None
         pipeline_model = PipelineHist.model_validate(pipeline_model)
@@ -170,7 +172,7 @@ def report(ctx, repo_url:str, local:bool, pipeline_name:str, branch:str, stage:s
                 click.secho(err_msg, fg="red")
         sys.exit(2)
 
-    #Step 2. call pipeline_history
+    # retrieve pipeline report
     resp_success, resp_message = ctrl.pipeline_history(pipeline_model)
     if not resp_success:
         click.secho(resp_message, fg='red')

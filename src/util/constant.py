@@ -82,6 +82,7 @@ REPORT_KEY_END = 'completion_time'
 REPORT_KEY_JOBLOG = 'job_logs'
 
 # Other Constants
+DEFAULT_CONFIG_PL_FILE = "pipelines.yml"
 DEFAULT_CONFIG_FILE_PATH = ".cicd-pipelines/pipelines.yml"
 DEFAULT_CONFIG_DIR = '.cicd-pipelines/'
 DEFAULT_S3_LOC = 'us-west-2'

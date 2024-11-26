@@ -4,6 +4,7 @@
 """
 
 from datetime import datetime
+import copy
 import os
 import time
 from pathlib import Path
@@ -14,7 +15,7 @@ from pydantic import ValidationError
 from ruamel.yaml import YAMLError
 import util.constant as c
 from util.container import (DockerManager)
-from util.model import (SessionDetail, PipelineConfig, ValidatedStage, PipelineInfo, PipelineHist)
+from util.model import (JobLog, SessionDetail, PipelineConfig, ValidatedStage, PipelineInfo, PipelineHist)
 from util.common_utils import (get_logger, ConfigOverride, DryRun, PipelineReport)
 from util.repo_manager import (RepoManager)
 from util.db_mongo import (MongoAdapter)
@@ -290,8 +291,12 @@ class Controller:
             saving (optional, bool): whether to save the result to db.
             Default to True
 
+        Raises:
+            FileNotFoundError: if the directory does not exist
+            ValueError: for duplicate pipeline_name
+            
         Returns:
-            dict: dictionary of {<pipeline_name>:<single validation results>}
+            dict: dictionary of {pipeline_name:single validation results}
         """
         parser = YamlParser()
         results = {}
@@ -412,7 +417,7 @@ class Controller:
                     pipeline_name, c.DEFAULT_CONFIG_DIR)
                 pipeline_file_name = pipeline_info.pipeline_file_name
                 pipeline_config = pipeline_info.pipeline_config
-            except FileNotFoundError as fe:
+            except (ValueError, FileNotFoundError) as fe:
             # if 'pipeline' name could not be located, return False and error message
                 self.logger.error(f"error in extracting from pipeline_name, {fe}")
                 return False, str(fe), None
@@ -549,7 +554,6 @@ class Controller:
 
         # Step 5: check if pipeline is running dry-run or not
         if dry_run:
-            # TODO - Update dry_run to take PipelineConfig model instead of dict
             status, dry_run_msg = self.dry_run(config_dict, yaml_output)
             self.logger.debug(f"dry run status:{status}, {dry_run_msg}")
             return status, dry_run_msg
@@ -563,13 +567,13 @@ class Controller:
             status, run_msg = self._actual_pipeline_run(git_details, pipeline_config, local)
             message += run_msg
         except ValidationError as ve:
+            status = False
             message = f"validation error occur, error is {str(ve)}\n"
             self.logger.warning(message)
-            status = False
         except DockerException as de:
+            status = False
             message = f"Error with docker service. error is {str(de)}\n"
             self.logger.warning(message)
-            status = False
 
         if not status:
             message += '\nPipeline runs fail'
@@ -653,72 +657,103 @@ class Controller:
                 run=str(len(his_obj.job_run_history))
             )
         # Step 3: Iterate through all stages, for each jobs
-        pipeline_status = c.STATUS_SUCCESS
-        early_break = False
-        for stage_name, stage_config in pipeline_config.stages.items():
-            stage_status = c.STATUS_SUCCESS
-            stage_config = ValidatedStage.model_validate(stage_config)
-            job_logs = {}
-            stage_start_time = time.asctime()
-            # run the job, get the record, update job history
-            for job_group in stage_config.job_groups:
-                for job_name in job_group:
-                    job_config = pipeline_config.jobs[job_name]
-                    job_log = docker_manager.run_job(job_name, job_config)
-                    click.secho(f"Stage:{stage_name} Job:{job_name} - Streaming Job Logs",
-                                fg='green')
-                    click.echo(job_log.job_logs)
-                    job_logs[job_name] = job_log.model_dump()
-                    # single fail job will switch the stage status to fail
-                    if job_log.job_status == c.STATUS_FAILED:
-                        stage_status = c.STATUS_FAILED
-                        click.secho(f"Job:{job_name} failed\n", fg="red")
-                        # Early break
-                        if job_config[c.JOB_SUBKEY_ALLOW] is False:
-                            early_break = True
-                            break
+        pipeline_status = c.STATUS_PENDING
+        try:
+            early_break = False
+            for stage_name, stage_config in pipeline_config.stages.items():
+                stage_status = c.STATUS_PENDING
+                stage_config = ValidatedStage.model_validate(stage_config)
+                job_logs = {}
+                stage_start_time = time.asctime()
+                try:
+                    # run the job, get the record, update job history
+                    for job_group in stage_config.job_groups:
+                        for job_name in job_group:
+                            job_config = pipeline_config.jobs[job_name]
+                            try:
+                                job_log = docker_manager.run_job(job_name, job_config)
+                                click.secho(f"Stage:{stage_name} Job:{job_name} - Streaming Job Logs",
+                                                fg='green')
+                                click.echo(job_log.job_logs)
+                                job_logs[job_name] = job_log.model_dump()
+                                # single fail job will switch the stage status to fail
+                                if job_log.job_status == c.STATUS_FAILED:
+                                    stage_status = c.STATUS_FAILED
+                                    click.secho(f"Job:{job_name} failed\n", fg="red")
+                                    # Early break
+                                    if job_config[c.JOB_SUBKEY_ALLOW] is False:
+                                        early_break = True
+                                        break
+                                else:
+                                    click.secho(f"Job:{job_name} success\n", fg="green")
+                            except KeyboardInterrupt:
+                                # Only create a job_log if current job not yet saved
+                                if job_name not in job_logs:
+                                    job_log_info = copy.deepcopy(job_config)
+                                    job_log_info[c.REPORT_KEY_JOBNAME] = job_name
+                                    job_log_info[c.REPORT_KEY_START] = time.asctime()
+                                    job_log = JobLog.model_validate(job_log_info)
+                                    job_log.job_status = c.STATUS_CANCELLED
+                                    job_log.completion_time = time.asctime()
+                                    job_logs[job_name] = job_log.model_dump()
+                                if stage_status != c.STATUS_FAILED:
+                                    stage_status = c.STATUS_CANCELLED  
+                                raise
+                            # If early break, skip next job group execution
+                            if early_break:
+                                break
+                    # If we reach this step, if stage status still pending, update to success
+                    if stage_status == c.STATUS_PENDING:
+                        stage_status = c.STATUS_SUCCESS
+                finally:
+                    # Ensure job logs always updated regardless exception thrown
+                    self.mongo_ds.update_job_logs(
+                        job_id,
+                        stage_name,
+                        stage_status,
+                        job_logs,
+                        stage_time={
+                            c.FIELD_START_TIME: stage_start_time,
+                            c.FIELD_COMPLETION_TIME: time.asctime()
+                        }
+                    )
+                    # single fail stage will switch the pipeline status to fail
+                    if stage_status == c.STATUS_FAILED:
+                        pipeline_status = c.STATUS_FAILED
+                        click.secho(f"Stage:{stage_name} failed\n", fg="red")
+                    elif stage_status == c.STATUS_CANCELLED:
+                        # Fail status take precedence
+                        if pipeline_status != c.STATUS_FAILED:
+                            pipeline_status = c.STATUS_CANCELLED
+                        click.secho(f"Stage:{stage_name} cancelled\n", fg="yellow")
                     else:
-                        click.secho(f"Job:{job_name} success\n", fg="green")
-                # If early break, skip next job group execution
+                        click.secho(f"Stage:{stage_name} success\n", fg="green")
+                # If early break, skip next stages execution
                 if early_break:
                     break
-            self.mongo_ds.update_job_logs(
-                job_id,
-                stage_name,
-                stage_status,
-                job_logs,
-                stage_time={
-                    c.FIELD_START_TIME: stage_start_time,
-                    c.FIELD_COMPLETION_TIME: time.asctime()
-                }
+        finally:
+            #if stage status still pending, update to success
+            if pipeline_status == c.STATUS_PENDING:
+                pipeline_status = c.STATUS_SUCCESS
+            # Ensure always Wrap up and return
+            run_update = {
+                c.FIELD_STATUS:pipeline_status,
+                c.FIELD_COMPLETION_TIME: time.asctime()
+            }
+            self.mongo_ds.update_job(job_id, run_update)
+            final_updates = {
+                c.FIELD_RUNNING:False
+            }
+            update_success = self.mongo_ds.update_pipeline_info(
+                repo_data.repo_name,
+                repo_data.repo_url,
+                repo_data.branch,
+                pipeline_config.global_.pipeline_name,
+                final_updates
             )
-            # single fail stage will switch the pipeline status to fail
-            if stage_status == c.STATUS_FAILED:
-                pipeline_status = c.STATUS_FAILED
-                click.secho(f"Stage:{stage_name} failed\n", fg="red")
-            else:
-                click.secho(f"Stage:{stage_name} success\n", fg="green")
-            # If early break, skip next stages execution
-            if early_break:
-                break
-
-        # Wrap up and return
-        docker_manager.remove_vol()
-        run_update = {
-            c.FIELD_STATUS:pipeline_status,
-            c.FIELD_COMPLETION_TIME: time.asctime()
-        }
-        self.mongo_ds.update_job(job_id, run_update)
-        final_updates = {
-            c.FIELD_RUNNING:False
-        }
-        update_success = self.mongo_ds.update_pipeline_info(
-            repo_data.repo_name,
-            repo_data.repo_url,
-            repo_data.branch,
-            pipeline_config.global_.pipeline_name,
-            final_updates
-        )
+            if not update_success:
+                click.secho(f"Failed to update pipeline status, please do manual update\n", fg="red")
+            docker_manager.remove_vol()
         pipeline_pass = pipeline_status == c.STATUS_SUCCESS
         run_msg = f"run_number:{run_number}" if pipeline_pass else ""
         return pipeline_pass, run_msg
@@ -797,8 +832,9 @@ class Controller:
         except IndexError as ie:
             self.logger.warning(f"job_number is out of bound. error: {ie}")
             is_success = False
-            err_msg = "invalid pipeline_name (--pipeline) or run_number (--run). Please try again"
+            err_msg = f"No Report found on database for {repo_url}\nPlease ensure you have valid"
+            err_msg += " flags (--pipeline, --run, and/or --repo) and execute cid pipeline run"
+            err_msg += " to generate pipeline report."
             return is_success, err_msg
-
         is_success = True
         return is_success, output_msg
