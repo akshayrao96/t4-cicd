@@ -566,24 +566,15 @@ class Controller:
             self.logger.warning(message)
             status = False
         except DockerException as de:
-            status = False
-            updates = {
-            'running':status
-            }
-            update_success = self.mongo_ds.update_pipeline_info(
-                git_details.repo_name,
-                git_details.repo_url,
-                git_details.branch,
-                pipeline_config.global_.pipeline_name,
-                updates
-            )
             message = f"Error with docker service. error is {str(de)}\n"
             self.logger.warning(message)
         except KeyboardInterrupt:
+            message = "User Interrupted program. Cleaning up before exiting.\n"
+        except Exception as e:
+            message = f"Unknown exception found. Exception: {e}\n"
+        finally:
             status = False
-            updates = {
-            'running':status
-            }
+            updates = {'running': status}
             update_success = self.mongo_ds.update_pipeline_info(
                 git_details.repo_name,
                 git_details.repo_url,
@@ -594,21 +585,7 @@ class Controller:
             # if update unsuccessful, prompt user.
             if not update_success:
                 click.confirm('Cannot update into db, do you want to continue?', abort=True)
-            message = "User Interrupted program. Cleaning up before exiting.\n"
-        except Exception as e:
-            status = False
-            updates = {
-            'running':status
-            }
-            update_success = self.mongo_ds.update_pipeline_info(
-                git_details.repo_name,
-                git_details.repo_url,
-                git_details.branch,
-                pipeline_config.global_.pipeline_name,
-                updates
-            )
-            message = f"Unknown exception found. Exception: {e}\n"
-
+            
         if not status:
             message += '\nPipeline runs fail'
         else:
