@@ -113,17 +113,15 @@ default stages options: [build, test, doc, deploy]')
 def report(repo_url:str, local:bool, pipeline_name:str, stage:str,
            job:str, run_number:int):
     """Report pipeline provides user to retrieve the pipeline history.
-    User must specify the repo url. To retrieve which REPO_URL you currently at,
-    run `cid config get-repo | grep "Repository URL:"` \f
+    if --repo is not specified, it will default to the current repo\f
     Example of basic usage:
-      cid pipeline report --repo REPO_URL | list all report for a repository
+      cid pipeline report [--repo REPO_URL] | list all report for a repository
       cid pipeline report --repo REPO_URL --pipeline PIPELINE_NAME | list all runs of the given
       PIPELINE_NAME.
       cid pipeline report --repo REPO_URL --pipeline PIPELINE_NAME --run RUN | list the output
       history of the run # given the PIPELINE_NAME and RUN number.
 
     Args:
-        ctx (context): click context
         repo_url (str): repository url to display the report
         local (bool): (current version) everything runs locally
         pipeline_name (str): pipeline name to get the report
