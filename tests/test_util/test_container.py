@@ -130,6 +130,11 @@ class MockDockerApi:
         self.volumes = MockVolumesApi()
 
 class TestDockerManager(unittest.TestCase):
+    """ Test suite for the container
+
+    Args:
+        unittest.TestCase (class): base class
+    """
     def setUp(self):
         self.sample_job_config = {
             c.JOB_SUBKEY_STAGE: 'stage',

@@ -14,16 +14,19 @@ logger = get_logger('cli.cmd_config')
 
 @click.group(invoke_without_command=True)
 @click.pass_context
-@click.option('--check', is_flag=True, default=False,
-              help="checks the validity of the YAML configuration file.")
+@click.option('--check', is_flag=True,
+              help="checks the validity of the YAML configuration file. \
+              Default behaviour. If this option is selected, the --dir argument will be ignored.")
 @click.option('--check-all', is_flag=True,
-              help="checks validity of all YAML configuration files")
+              help="checks validity of all YAML configuration files.\
+                  If this option is selected, the --config-file argument will be ignored.")
 @click.option('--no-set', is_flag=True,
               help="validate the config/configs without setting the repo and\
               saving the validated info to datastore")
-@click.option('--config-file', default='pipelines.yml', show_default=True, type=str,
-              help="specifies the YAML configuration file to check. used with --check flag")
-@click.option('--dir', default=None, show_default=True,
+@click.option('--config-file', default=c.DEFAULT_CONFIG_PL_FILE, show_default=True, type=str,
+              help="specifies the YAML configuration file to check. \
+              used with --check flag. If not specified, default to .cicd-pipelines/pipelines.yml")
+@click.option('--dir', default=c.DEFAULT_CONFIG_DIR, show_default=True,
               type=str,
               help="specify the directory to check all configuration files.\
                   used with --check-all flag")
@@ -40,26 +43,25 @@ def config(ctx, check: bool, check_all: bool, no_set: bool, config_file: str, di
 
     To set up repo, check and save the default config file (pipelines.yml):
 
-    - cid config / cid config --check --config-file pipelines.yml
+    $ cid config / cid config --check --config-file pipelines.yml
 
     To set up repo, check and save a specific config file located in
     .cicd-pipelines folder:
 
-    - cid config --check --config-file <filename.yml>
+    $ cid config --check --config-file <filename.yml>
 
     To set up repo, check and save all config file located in
     .cicd-pipelines folder:
 
-    - cid config --check-all
+    $ cid config --check-all
 
     To check a specific config file only without repo set up and saving:
 
-    - cid config --check --config-file <absolute path to config.yml> --no-set
-
+    $ cid config --check --config-file <absolute path to config.yml> --no-set
 
     To check config files in a directory only without repo set up and saving:
 
-    - cid config --check-all --dir <absolute path to directory> --no-set
+    $ cid config --check-all --dir <absolute path to directory> --no-set
     """
     # If subcommand is called return so it called the subcommand instead
     if ctx.invoked_subcommand is not None:
@@ -71,17 +73,14 @@ def config(ctx, check: bool, check_all: bool, no_set: bool, config_file: str, di
         sys.exit(2)
 
     # Enforce that --dir can only be used with --check-all
-    if dir and not check_all:
-        err = "--dir can only be used with --check-all. please re-run the command with --check-all"
+    if check and check_all:
+        err = "Please select only one option between --check and --check-all"
         click.secho(err, fg='red')
         sys.exit(2)
 
-    # default folder if --dir is not specified by user
-    if dir is None:
-        dir = '.cicd-pipelines'
-
     controller = Controller()
 
+    repo_details = None
     if not no_set:
         # Check repo only if required saving
         # First check the current directory is a git repo
@@ -100,13 +99,20 @@ def config(ctx, check: bool, check_all: bool, no_set: bool, config_file: str, di
             click.secho(f"Invalid directory:{config_dir_path}", fg='red')
             sys.exit(2)
         click.echo(config_dir_path)
-        if no_set:
-            click.echo(f"checking all config files in directory {dir}")
-            results = controller.validate_n_save_configs(dir, saving=False)
-        else:
-            click.echo(
-                f"set repo, checking and saving all config files in directory {dir}")
-            results = controller.validate_n_save_configs(dir, session_data=repo_details)
+        # passed different options based on no_set flag
+        try:
+            if no_set:
+                click.echo(f"checking all config files in directory {dir}")
+                results = controller.validate_n_save_configs(dir, saving=False)
+            else:
+                click.echo(
+                    f"set repo, checking and saving all config files in directory {dir}")
+                results = controller.validate_n_save_configs(dir, session_data=repo_details)
+        except (ValueError, FileNotFoundError) as e:
+            # Invalid directory or duplicated pipeline_name
+            click.secho(f"Error in parsing directory: {str(e)}")
+            sys.exit(1)
+
         for pipeline_name, res in results.items():
             valid = res.valid
             status_msg = f"\nStatus for {pipeline_name}:{'passed' if valid else c.STATUS_FAILED}"
@@ -126,23 +132,24 @@ def config(ctx, check: bool, check_all: bool, no_set: bool, config_file: str, di
                     for line in config_str.splitlines()[:10]:
                         click.echo(line)
     else:
-        # Temp steps to ensure the path to the file is valid
+        # steps to ensure the path to the file is valid
         config_file_path = config_file
+        pipeline_info = None
         if not os.path.isfile(config_file):
             # assume it will be in .cicd-pipelines folder
             config_file_path = os.path.join(
-                os.getcwd(), '.cicd-pipelines', config_file)
+                os.getcwd(), c.DEFAULT_CONFIG_DIR ,config_file)
         if not os.path.isfile(config_file_path):
             click.echo(f"Invalid config_file_path:{config_file_path}")
             sys.exit(2)
         if check or ctx.invoked_subcommand is None:
             if no_set:
-                click.echo(f"checking config file at: {dir}/{config_file}")
+                click.echo(f"checking config file at: {config_file_path}")
                 # logger.debug("Checking config file at: %s", config_file)
                 passed, err, pipeline_info = controller.validate_config(
                     config_file_path)
             else:
-                msg = f"set repo, checking and saving config file at: {dir}/{config_file}"
+                msg = f"set repo, checking and saving config file at: {config_file_path}"
                 click.echo(msg)
                 passed, err, pipeline_info = controller.validate_n_save_config(
                         file_name=config_file_path,

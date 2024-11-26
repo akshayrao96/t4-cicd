@@ -24,7 +24,7 @@ local directory path')
 @click.option('-b', '--branch', 'branch', default=None, help='repository branch name')
 @click.option('-c', '--commit', 'commit', default=None, help='commit hash')
 @click.option('--local', 'local', help='run pipeline locally', is_flag=True)
-@click.option('--dry-run', 'dry_run', help='dry-run options to simulate the pipeline\
+@click.option('--dry-run', 'dry_run', help='dry-run options to simulate the pipeline \
 process', is_flag=True)
 @click.option('--yaml', 'yaml_output', help='print output in yaml format', is_flag=True)
 @click.option('--override', 'overrides', multiple=True,
