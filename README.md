@@ -183,8 +183,8 @@ poetry remove <dependency/lib/package> --group dev
 
 ## Development - Using Logging
 
-Steps:
+### Steps:
 
-- Get logger from util.common_utils get_logger() function
-- supplied arguments if required
-- By Default a debug.log file will be created at project root directory, you can change its location.
+- Use the `get_logger()` function from `util.common_utils`
+- Provide arguments to change the logging level and/or directory
+- By Default a debug.log file will be created in the parent directory of the current working directory, eg. `(../)` You can customize this location by specifying the `log_file` argument.

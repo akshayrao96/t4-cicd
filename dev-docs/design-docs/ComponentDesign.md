@@ -1,5 +1,13 @@
 # Component Design Description
 
+This project is structured into three main packages that live `./src`
+
+**Cli:** Handles all command-line interface functionality.
+
+**Controller:** Implements the core system logic interaction with external services.
+
+**Util:** Provides utility modules and shared functionality that support the cli and controller
+
 ## Cli Package
 
 This package contains the cli functions developed using Click. Main command groups are cid config and cid pipeline. Kindly refer to the cli documentations and api documentation for more details.
@@ -12,9 +20,39 @@ This package contains the cli functions developed using Click. Main command grou
 
 The controller has the following main methods as shown in the UML diagram, they are described below:
 
-#### `checkout_repo(), get_repo(), handle_repo(), set_repo()`
+#### Repository Management:
 
-AR: Akshay to add
+These methods manage repository operations based on the context and input provided through the CLI.
+
+`handle_repo()`: Determines which operation to execute:
+- If --repo is provided, calls `set_repo()` to clone the repository.
+- If branch/commit is provided, calls `checkout_repo()` to update the current repository in $PWD.
+- If neither is provided, calls `get_repo()` to use the repository in `$PWD` or suggests the last session repository.
+
+#### `set_repo()`
+
+- The `$PWD` must be empty before cloning.
+- Clones a repository into the current working directory and optionally checks out a branch and/or commit. 
+- Defaults to the main branch and the latest commit if branch, commit not given
+- If inputs are invalid, the method exits without changes
+
+#### `checkout_repo()`
+
+- Ensures inputs are valid and `$PWD` is a valid repository.
+- This method updates the repository in the current working directory to a specified branch and/or commit. It supports checking out:
+- Local branches: Uses existing tracking branches.
+- Remote branches: Fetches updates for branches not tracked locally and creates a corresponding local branch.
+- Remote references: Programmatically fetches changes for untracked origins, creates a local branch, and fast-forwards it to match the remote state.
+- Defaults to the current branch if branch not given. Uses latest commit if no commit given.
+
+#### `get_repo()`
+
+- Uses the current working directory as the repository if it is valid. 
+- If `$PWD` is not a repository, retrieves the last successfully used repository from the session state and prompts the user with options to continue using it or specify a different repository.
+
+#### Pipeline Runs:
+
+These methods manage the execution flow of pipelines based on the provided context and inputs:
 
 #### `run_pipeline()`
 
@@ -27,7 +65,6 @@ AR: Akshay to add
 - A MongoAdapter class object (mongo_ds) will be used to interact with the MongoDB service.
 
 #### `dry_run()`
-- dry-run options to simulate the pipeline process
 
 AR: Jason to add
 
@@ -52,7 +89,11 @@ AR: Jason to add
 - At the end of all stage, the Finally block tallies the pipeline completion status based on all stages status. The pipeline status and history is updated to the MongoDB.
 - The Docker shared volume created early is also removed in the Finally block.
 
-#### `validate_config(), validate_n_save_config(), validate_n_save_configs`
+#### Configuration Files:
+
+These methods handle pipeline configuration files, either individually or for an entire directory.
+
+#### `validate_config()`, `validate_n_save_config()`, `validate_n_save_configs()`
 
 - These three methods handle different scenarios for validating the pipeline configuration. They all use the ConfigChecker class object to perform the actual validation.
 - The `validate_config()` method can apply overrides and validate a single pipeline configuration without saving it into MongoDB. This is used when the users just want to validate a single pipeline configuration.
@@ -84,7 +125,7 @@ This package contains all the utility modules required to support the controller
 ### List of external libraries used
 
 | Library       | Usage                                                                                                    | Scope       |
-| ------------- | -------------------------------------------------------------------------------------------------------- | ----------- |
+|---------------|----------------------------------------------------------------------------------------------------------|-------------|
 | gitpython     | Programmatic interaction with Git for all git operations                                                 | Production  |
 | pymongo       | Programmatic interaction with MongoDB for all datastore operation                                        | Production  |
 | python-dotenv | Reads key-value pairs from a .env file and can set them as environment variables                         | Production  |
