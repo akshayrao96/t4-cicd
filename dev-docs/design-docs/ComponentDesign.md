@@ -66,7 +66,9 @@ These methods manage the execution flow of pipelines based on the provided conte
 
 #### `dry_run()`
 
-AR: Jason to add
+- `dry_run()` method is simply reading the configuration file that is converted into `dict` type (in our case, `OrderedDict`) to preserve the steps order of execution and then print it to the console
+- this uses the `common_utils.DryRun` class that returns a string when called. This functions are `get_plaintext_format` and `get_yaml_format()`
+- controller return the `dry_run_msg` to the cli and display it to user.
 
 #### `_actual_pipeline_run()`
 
