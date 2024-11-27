@@ -36,6 +36,15 @@ To view the database, use MongoDB Compass (came together with MongoDB installati
 
 ## Setting up the AWS S3 Service
 
+S3 bucket names must be globally unique across all AWS accounts. In order for `Upload Artifact` feature to work, developer needs to specify a unique name in their configuration file `artifact_upload_path: "<UNIQUE_BUCKET_NAME>"`.
+
+```yml
+global:
+  pipeline_name: "cicd_pipeline"
+  docker: #...
+  artifact_upload_path: <UNIQUE_BUCKET_NAME>
+```
+
 You need to copy and paste the following AWS credentials into ~/.aws/credentials file.
 The credentials you provided must be able to create a bucket and upload into S3.
 
@@ -94,6 +103,14 @@ source myenv/Scripts/activate
 source myenv/bin/activate
 ```
 
+The alternative way to activate the virtual environment is to run poetry shell.
+This is less recommended as the downside of this approach is any command not starting with poetry
+will run using your background environment package instead from the virtual environment.
+
+```sh
+poetry shell
+```
+
 ## Installation, Lint & Test
 
 ```shell
@@ -135,4 +152,5 @@ Steps:
 
 - Get logger from util.common_utils get_logger() function
 - supplied arguments if required
-- By Default a debug.log file will be created at project root directory, you can change its location.
+- By Default a debug.log file will be created at a parent directory where your run the command, you can change its location.
+  ie, if you run the command under directory /temp/t4-cicd, a debug.log will be at /temp

@@ -8,14 +8,6 @@ from util.common_utils import (get_logger, UnionFind, TopoSort)
 
 logger = get_logger("util.config_tools")
 
-DEFAULT_DOCKER_REGISTRY = 'dockerhub'
-DEFAULT_STAGES = ['build', 'test', 'doc', 'deploy']
-DEFAULT_FLAG_JOB_ALLOW_FAIL = False
-DEFAULT_FLAG_ARTIFACT_UPLOAD_ONSUCCESS = True
-DEFAULT_STR = ""
-DEFAULT_LIST = []
-DEFAULT_DICT = {}
-
 # pylint: disable=logging-fstring-interpolation
 # pylint: disable=too-few-public-methods
 
@@ -24,7 +16,7 @@ class ConfigChecker:
     pipeline configurations.
     """
 
-    def __init__(self, pipeline_name: str = DEFAULT_STR, file_name: str = DEFAULT_STR,
+    def __init__(self, pipeline_name: str = c.DEFAULT_STR, file_name: str = c.DEFAULT_STR,
                  log_tool=logger) -> None:
         """ Default Constructor
 
@@ -43,7 +35,7 @@ class ConfigChecker:
     def validate_config(self,
                         pipeline_name: str,
                         pipeline_config: dict,
-                        file_name: str = DEFAULT_STR,
+                        file_name: str = c.DEFAULT_STR,
                         error_lc: bool = False
                         ) -> ValidationResult:
         """ validate the pipeline configuration file. 
@@ -90,18 +82,13 @@ class ConfigChecker:
                 pipeline_config=processed_pipeline_config if result_flag else {}
             )
         return validation_res
-        # return {
-        #     c.RETURN_KEY_VALID:result_flag,
-        #     c.RETURN_KEY_ERR: result_error_msg,
-        #     c.KEY_PIPE_CONFIG: processed_pipeline_config if result_flag else {}
-        # }
 
     def _check_individual_config(self, sub_key: str,
                                  config_dict: dict,
                                  res_dict: dict,
                                  default_if_absent: any = None,
                                  expected_type: any = str,
-                                 error_prefix: str = DEFAULT_STR,
+                                 error_prefix: str = c.DEFAULT_STR,
                                  error_lc: bool = False) -> tuple[bool, str]:
         """ Helper method to check individual config
 
@@ -189,7 +176,7 @@ class ConfigChecker:
                 ]
             default_list = [
                 None,
-                DEFAULT_STR,
+                c.DEFAULT_STR,
             ]
             # all expected_types are string
             for sub_key, default in zip(sub_key_list, default_list):
@@ -210,7 +197,7 @@ class ConfigChecker:
                 docker_config = global_config[c.KEY_DOCKER]
             processed_section[c.KEY_DOCKER] = {}
             sub_key_list = [c.KEY_DOCKER_REG, c.KEY_DOCKER_IMG]
-            default_list = [DEFAULT_DOCKER_REGISTRY, DEFAULT_STR]
+            default_list = [c.DEFAULT_DOCKER_REGISTRY, c.DEFAULT_STR]
             # all expected_types are string
             for sub_key, default in zip(sub_key_list, default_list):
                 flag, error = self._check_individual_config(
@@ -258,7 +245,7 @@ class ConfigChecker:
                     c.KEY_STAGES,
                     pipeline_config,
                     processed_section,
-                    default_if_absent=DEFAULT_STAGES,
+                    default_if_absent=c.DEFAULT_STAGES,
                     expected_type=list,
                     error_lc=error_lc
                 )
@@ -495,7 +482,6 @@ class ConfigChecker:
                 uf.add_edge(node, req)
 
         job_groups = uf.get_separated_groups()
-        self.logger.debug(job_groups)
         group_orders = []
         topo_sorter = TopoSort(adjacency_list)
         for group in job_groups:
@@ -536,7 +522,6 @@ class ConfigChecker:
             global_docker_reg = processed_config[c.KEY_GLOBAL][c.KEY_DOCKER][c.KEY_DOCKER_REG]
             global_docker_img = processed_config[c.KEY_GLOBAL][c.KEY_DOCKER][c.KEY_DOCKER_IMG]
             global_upload_path = processed_config[c.KEY_GLOBAL][c.KEY_ARTIFACT_PATH]
-            self.logger.debug(job_configs)
             for job, config in job_configs.items():
                 job_error_prefix = error_prefix + f"{job} "
                 # if error_lc and hasattr(config, 'lc'):
@@ -552,8 +537,8 @@ class ConfigChecker:
                 ]
                 default_list = [
                     None,
-                    DEFAULT_FLAG_JOB_ALLOW_FAIL,
-                    DEFAULT_LIST,
+                    c.DEFAULT_FLAG_JOB_ALLOW_FAIL,
+                    c.DEFAULT_LIST,
                     global_upload_path,
                     None
                 ]
@@ -601,7 +586,7 @@ class ConfigChecker:
 
                 # Check artifacts
                 if c.JOB_SUBKEY_ARTIFACT in config:
-                    if processed_job[c.KEY_ARTIFACT_PATH] == DEFAULT_STR:
+                    if processed_job[c.KEY_ARTIFACT_PATH] == c.DEFAULT_STR:
                         result_flag = False
                         element = config[c.JOB_SUBKEY_ARTIFACT]
                         err = ""
@@ -616,7 +601,7 @@ class ConfigChecker:
                         sub_key=c.ARTIFACT_SUBKEY_ONSUCCESS,
                         config_dict=artifact_dict,
                         res_dict=artifact_config,
-                        default_if_absent=DEFAULT_FLAG_ARTIFACT_UPLOAD_ONSUCCESS,
+                        default_if_absent=c.DEFAULT_FLAG_ARTIFACT_UPLOAD_ONSUCCESS,
                         expected_type=bool,
                         error_prefix=job_error_prefix,
                         error_lc=error_lc
@@ -641,7 +626,6 @@ class ConfigChecker:
                 processed_config[sec_key] = processed_section
             else:
                 processed_config[sec_key] = {}
-            self.logger.debug(result_error_msg)
             return (result_flag, result_error_msg)
         except (LookupError, IndexError, KeyError) as e:
             self.logger.warning(f"Error in parsing job sections, exception msg is {e}\n"

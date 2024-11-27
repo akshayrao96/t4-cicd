@@ -3,35 +3,35 @@
 # pylint: disable=logging-fstring-interpolation
 import os
 import pprint
+import sys
 import click
-from util.common_utils import (get_logger, MongoHelper)
+from util.common_utils import (get_logger, ConfigOverride)
 from controller.controller import Controller
+import util.constant as c
 
 logger = get_logger('cli.cmd_config')
 
 
 @click.group(invoke_without_command=True)
 @click.pass_context
-@click.option('--check', is_flag=True, default=False,
-              help="checks the validity of the YAML configuration file.")
+@click.option('--check', is_flag=True,
+              help="checks the validity of the YAML configuration file. \
+              Default behaviour. If this option is selected, the --dir argument will be ignored.")
 @click.option('--check-all', is_flag=True,
-              help="checks validity of all YAML configuration files")
+              help="checks validity of all YAML configuration files.\
+                  If this option is selected, the --config-file argument will be ignored.")
 @click.option('--no-set', is_flag=True,
               help="validate the config/configs without setting the repo and\
               saving the validated info to datastore")
-@click.option('--config-file', default='pipelines.yml', show_default=True, type=str,
-              help="specifies the YAML configuration file to check. used with --check flag")
-@click.option('--dir', default='.cicd-pipelines', show_default=True,
+@click.option('--config-file', default=c.DEFAULT_CONFIG_PL_FILE, show_default=True, type=str,
+              help="specifies the YAML configuration file to check. \
+              used with --check flag. If not specified, default to .cicd-pipelines/pipelines.yml")
+@click.option('--dir', default=c.DEFAULT_CONFIG_DIR, show_default=True,
               type=str,
               help="specify the directory to check all configuration files.\
                   used with --check-all flag")
-def config(
-        ctx,
-        check: bool,
-        check_all: bool,
-        no_set: bool,
-        config_file: str,
-        dir: str):
+@click.option('--json', is_flag=True, help="output in json format")
+def config(ctx, check: bool, check_all: bool, no_set: bool, config_file: str, dir: str, json:bool):
     """
     Command working with pipeline and repo configurations
 
@@ -43,26 +43,25 @@ def config(
 
     To set up repo, check and save the default config file (pipelines.yml):
 
-    - cid config / cid config --check --config-file pipelines.yml
+    $ cid config / cid config --check --config-file pipelines.yml
 
     To set up repo, check and save a specific config file located in
     .cicd-pipelines folder:
 
-    - cid config --check --config-file <filename.yml>
+    $ cid config --check --config-file <filename.yml>
 
     To set up repo, check and save all config file located in
     .cicd-pipelines folder:
 
-    - cid config --check-all
+    $ cid config --check-all
 
     To check a specific config file only without repo set up and saving:
 
-    - cid config --check --config-file <absolute path to config.yml> --no-set
-
+    $ cid config --check --config-file <absolute path to config.yml> --no-set
 
     To check config files in a directory only without repo set up and saving:
 
-    - cid config --check-all --dir <absolute path to directory> --no-set
+    $ cid config --check-all --dir <absolute path to directory> --no-set
     """
     # If subcommand is called return so it called the subcommand instead
     if ctx.invoked_subcommand is not None:
@@ -70,72 +69,114 @@ def config(
 
     if not config_file.endswith(('.yml', '.yaml')):
         err = f"Invalid file format: '{config_file}' must have a .yml or .yaml extension."
-        logger.error(err)
-        raise click.ClickException(err)
+        click.secho(err, fg='red')
+        sys.exit(2)
+
+    # Enforce that --dir can only be used with --check-all
+    if check and check_all:
+        err = "Please select only one option between --check and --check-all"
+        click.secho(err, fg='red')
+        sys.exit(2)
+
     controller = Controller()
+
+    repo_details = None
+    if not no_set:
+        # Check repo only if required saving
+        # First check the current directory is a git repo
+        status, message, repo_details = controller.handle_repo()
+        if not status:
+            click.secho(message, fg='red')
+            sys.exit(2)
+        click.secho(message, fg='green')
     passed = True
     err = ""
+
+    # This branch handle checking all files within the specified directory
     if check_all:
         config_dir_path = dir
         if not os.path.isdir(config_dir_path):
-            click.echo(f"Invalid directory:{config_dir_path}")
-            return
+            click.secho(f"Invalid directory:{config_dir_path}", fg='red')
+            sys.exit(2)
         click.echo(config_dir_path)
-        if no_set:
-            click.echo(f"checking all config files in directory {dir}")
-            results = controller.validate_n_save_configs(dir, saving=False)
-        else:
-            click.echo(
-                f"set repo, checking and saving all config files in directory {dir}")
-            results = controller.validate_n_save_configs(dir)
+        # passed different options based on no_set flag
+        try:
+            if no_set:
+                click.echo(f"checking all config files in directory {dir}")
+                results = controller.validate_n_save_configs(dir, saving=False)
+            else:
+                click.echo(
+                    f"set repo, checking and saving all config files in directory {dir}")
+                results = controller.validate_n_save_configs(dir, session_data=repo_details)
+        except (ValueError, FileNotFoundError) as e:
+            # Invalid directory or duplicated pipeline_name
+            click.secho(f"Error in parsing directory: {str(e)}")
+            sys.exit(1)
+
         for pipeline_name, res in results.items():
             valid = res.valid
-            err = res.error_msg
-            click.echo(
-                f"\nStatus for {pipeline_name}: {
-                    'passed' if valid else 'failed'}")
+            status_msg = f"\nStatus for {pipeline_name}:{'passed' if valid else c.STATUS_FAILED}"
             if not valid:
-                click.echo(f"error message:\n{err}")
+                click.secho(status_msg, fg='red')
+                click.secho(f"error message:\n{res.error_msg}")
             else:
-                click.echo("printing top 10 lines of processed config:")
-                pipe_config = res.pipeline_config.model_dump(by_alias=True)
-                config_str = pprint.pformat(pipe_config)
-                for line in config_str.splitlines()[:10]:
-                    click.echo(line)
+                click.secho(status_msg, fg='green')
+                if json:
+                    click.echo("printing processed config in json format:")
+                    json_str = res.pipeline_config.model_dump_json(by_alias=True, indent=2)
+                    click.echo(json_str)
+                else:
+                    click.echo("printing top 10 lines of processed config:")
+                    pipe_config = res.pipeline_config.model_dump(by_alias=True)
+                    config_str = pprint.pformat(pipe_config)
+                    for line in config_str.splitlines()[:10]:
+                        click.echo(line)
     else:
-        # Temp steps to ensure the path to the file is valid
+        # steps to ensure the path to the file is valid
         config_file_path = config_file
+        pipeline_info = None
         if not os.path.isfile(config_file):
             # assume it will be in .cicd-pipelines folder
             config_file_path = os.path.join(
-                os.getcwd(), '.cicd-pipelines', config_file)
+                os.getcwd(), c.DEFAULT_CONFIG_DIR ,config_file)
         if not os.path.isfile(config_file_path):
             click.echo(f"Invalid config_file_path:{config_file_path}")
-            return
+            sys.exit(2)
         if check or ctx.invoked_subcommand is None:
             if no_set:
-                click.echo(f"checking config file at: {dir}/{config_file}")
+                click.echo(f"checking config file at: {config_file_path}")
                 # logger.debug("Checking config file at: %s", config_file)
                 passed, err, pipeline_info = controller.validate_config(
                     config_file_path)
             else:
-                msg = f"set repo, checking and saving config file at: {dir}/{config_file}"
+                msg = f"set repo, checking and saving config file at: {config_file_path}"
                 click.echo(msg)
                 passed, err, pipeline_info = controller.validate_n_save_config(
-                    config_file_path)
+                        file_name=config_file_path,
+                        session_data=repo_details
+                    )
 
         # Print Validation Results
-        click.echo(f"Check passed = {passed}")
-        click.echo(f"Error message (if any) =\n{err}")
-        click.echo("Printing processed_config")
-        # Note pydantic model can dump json straight with model_dump()
-        # click.echo(pipeline_info.pipeline_config.model_dump_json(by_alias=True))
-        pprint.pprint(pipeline_info.pipeline_config.model_dump(by_alias=True))
+        check_msg = f"Check passed = {passed}"
+        err_msg = f"Error message (if any) =\n{err}"
 
+        # Note pydantic model can dump json straight with model_dump()
+        if passed:
+            click.secho(check_msg, fg='green')
+            click.echo("Printing processed_config")
+            if json:
+                json_str = pipeline_info.pipeline_config.model_dump_json(by_alias=True, indent=2)
+                click.echo(json_str)
+            else:
+                pprint.pprint(pipeline_info.pipeline_config.model_dump(by_alias=True))
+        else:
+            click.secho(check_msg, fg='red')
+            click.secho(err_msg, fg='red')
+            sys.exit(1)
 
 @config.command()
 @click.argument('repo_url', required=True)
-@click.option('--branch', default="main", help="Specify the branch to retrieve.\
+@click.option('--branch', default=c.DEFAULT_BRANCH, help="Specify the branch to retrieve.\
  If not given, 'main' is used.")
 @click.option('--commit', default=None, help="Specify the commit hash to retrieve.\
  If not given, latest commit is used.")
@@ -195,7 +236,8 @@ def set_repo(repo_url: str, branch: str, commit: str) -> None:
         # message = success if repo is set, otherwise, specific error message of what the error is
         # repo_details = SessionDetails if success, otherwise, none
 
-        status, message, repo_details = controller.handle_repo(repo_url, branch=branch, commit_hash=commit)
+        status, message, repo_details = controller.handle_repo(repo_url,
+                                                               branch=branch, commit_hash=commit)
 
         # Display the result message
         click.echo(f"{message}\n")
@@ -222,9 +264,10 @@ def get_repo():
     set repository stored in the system.
 
     Behavior:
-        - If the current directory is a Git repository, it displays the URL, branch, and latest commit hash.
-        - If the current directory is not a Git repository but a previous repository configuration exists,
-          it retrieves and displays details of the last configured repository.
+        - If the current directory is a Git repository, it displays the URL, branch, 
+        and latest commit hash.
+        - If the current directory is not a Git repository but a previous repository configuration 
+        exists, it retrieves and displays details of the last configured repository.
         - If no repository is configured, it provides guidance for setting a repository.
 
     Output:
@@ -259,28 +302,53 @@ def get_repo():
 
 @config.command()
 @click.option('--pipeline', required=True, help="pipeline name to update")
-@click.option('--override', 'overrides', multiple=True, 
+@click.option('--override', 'overrides', multiple=True,
               help="Override configuration in 'key=value' format")
-def override(pipeline, overrides):
+@click.option('--save', is_flag=True, help="flag to save the overrides config into database")
+@click.option('--json', is_flag=True, help="output in json format")
+def override(pipeline, overrides, save, json):
     """
-    Apply configuration overrides to a pipeline and optionally save to the database. 
+    Apply configuration overrides to a pipeline configuration stored in the database, 
+    check the validation result. 
     Override configurations in 'key=value' format. Multiple overrides can be provided.
 
     Example usage:
         cid config override --pipeline pipeline_name --override "global.docker.image=gradle:jdk8"
     """
     try:
-        updates = MongoHelper.build_nested_dict(overrides)
+        updates = ConfigOverride.build_nested_dict(overrides)
     except ValueError as e:
         click.echo(str(e))
-        return
-    # Prompt the user to confirm storing in the database
-    if click.confirm("Do you want to apply these overrides and save them to the database?"):
-        control = Controller()
-        success = control.override_config(pipeline, updates)
-        if success:
-            click.echo(f"Pipeline '{pipeline}' updated successfully with overrides: {updates}")
+        sys.exit(2)
+    controller = Controller()
+    # First check the current directory is a git repo
+    status, message, repo_details = controller.handle_repo()
+    if not status:
+        click.secho(message, fg='red')
+        sys.exit(2)
+    click.secho(message, fg='green')
+
+    passed, err, pipeline_config = controller.override_config(
+            pipeline_name=pipeline,
+            overrides=updates,
+            session_data=repo_details,
+            save=save
+        )
+
+    # Print Validation Results
+    check_msg = f"Check passed = {passed}"
+    err_msg = f"Error message (if any) =\n{err}"
+
+    # Note pydantic model can dump json straight with model_dump()
+    if passed:
+        click.secho(check_msg, fg='green')
+        click.echo("Printing processed_config")
+        if json:
+            json_str = pipeline_config.model_dump_json(by_alias=True, indent=2)
+            click.echo(json_str)
         else:
-            click.echo(f"Failed to update pipeline '{pipeline}'.")
+            pprint.pprint(pipeline_config.model_dump(by_alias=True))
     else:
-        click.echo("No changes were made to the configuration.")
+        click.secho(check_msg, fg='red')
+        click.secho(err_msg, fg='red')
+        sys.exit(1)

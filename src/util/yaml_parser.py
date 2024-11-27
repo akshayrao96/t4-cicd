@@ -73,7 +73,6 @@ class MyConstructor(ruamel.yaml.constructor.RoundTripConstructor):
         Returns:
             ruamel.yaml.nodes.ScalarNode: dictionary cell with lc.line and lc.col info
         """
-        # type: (Any) -> Any
         # pylint: disable=attribute-defined-outside-init
         if not isinstance(node, ruamel.yaml.nodes.ScalarNode):
             raise ruamel.yaml.constructor.ConstructorError(
@@ -166,7 +165,7 @@ class YamlParser:
                     yaml_dict[pl_name] = RawPipelineInfo(pipeline_name=pl_name,
                                                       pipeline_file_name=pipeline_file_name,
                                                       pipeline_config=yaml_content)
-            except (FileNotFoundError, ruamel.yaml.YAMLError) as e:
+            except (FileNotFoundError, ruamel.yaml.YAMLError, TypeError) as e:
                 # We want to continue process rest of the file, so catch the error here.
                 logger.warning("Failed to parse YAML file at %s. Error: %s", yaml_file, e)
             except KeyError as k:

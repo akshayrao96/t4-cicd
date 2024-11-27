@@ -2,13 +2,12 @@
 """
 import copy
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 from botocore.exceptions import ClientError
 from docker.errors import DockerException
 import util.constant as c
 from util.container import (DockerManager)
 from util.common_utils import (get_logger)
-from util.model import (JobLog)
 
 logger = get_logger("tests.test_util.test_container")
 
@@ -131,6 +130,11 @@ class MockDockerApi:
         self.volumes = MockVolumesApi()
 
 class TestDockerManager(unittest.TestCase):
+    """ Test suite for the container
+
+    Args:
+        unittest.TestCase (class): base class
+    """
     def setUp(self):
         self.sample_job_config = {
             c.JOB_SUBKEY_STAGE: 'stage',
@@ -250,7 +254,6 @@ class TestDockerManager(unittest.TestCase):
             },
             operation_name='create_bucket'
         )
-        
         docker_manager = DockerManager(client=MockDockerApi())
         test_job_name = "sample_job"
         job_config_with_upload = copy.deepcopy(self.sample_job_config)
@@ -261,7 +264,7 @@ class TestDockerManager(unittest.TestCase):
         job_log = docker_manager.run_job(test_job_name, job_config_with_upload)
         job_log = job_log.model_dump()
         assert job_log[c.REPORT_KEY_JOBSTATUS] == c.STATUS_FAILED
-        
+
     def test_stop_container(self):
         docker_manager = DockerManager(client=MockDockerApi())
         docker_manager.stop_job("sample_job")

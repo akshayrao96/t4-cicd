@@ -20,8 +20,6 @@ from util.model import (JobConfig, JobLog)
 
 logger = get_logger("util.docker")
 
-DEFAULT_DOCKER_DIR = '/app'
-REGEX_SHELL_ERR = r'(sh:\s?)(\d+)(:)'
 
 class ContainerManager(ABC):
     """ Abstract base class for Container Management
@@ -80,7 +78,8 @@ class DockerManager(ContainerManager):
         self.docker_vol = None
 
     def run_job(self, job_name:str, job_config: dict) -> JobLog:
-        """ run a single job and return its output
+        """ run a single job and return its output. Docker exception 
+        will be caught and handled.
 
         Args:
             job_name (str): name of the job
@@ -121,11 +120,11 @@ class DockerManager(ContainerManager):
                     detach=True,
                     volumes={
                         self.vol_name:{
-                            'bind': DEFAULT_DOCKER_DIR,
+                            'bind': c.DEFAULT_DOCKER_DIR,
                             'mode': 'rw'
                         }
                     },
-                    working_dir=DEFAULT_DOCKER_DIR
+                    working_dir=c.DEFAULT_DOCKER_DIR
                 )
 
             # Wait for the container to finish, required as we are running in detach mode
@@ -176,7 +175,7 @@ class DockerManager(ContainerManager):
         """
         # Look for sh exit status from the log
         # any sh: <number>: with number != 0 is error
-        shell_results = re.finditer(REGEX_SHELL_ERR, stderr)
+        shell_results = re.finditer(c.REGEX_SHELL_ERR, stderr)
         for match in shell_results:
             if int(match.group(2)) != 0:
                 return False
@@ -200,7 +199,7 @@ class DockerManager(ContainerManager):
         try:
             # First extract the contents in extract_paths from the docker
             for path in extract_paths:
-                bits, stat = container.get_archive(f"{DEFAULT_DOCKER_DIR}/{path}")
+                bits, _ = container.get_archive(f"{c.DEFAULT_DOCKER_DIR}/{path}")
                 # Write the archive to the host filesystem
                 upload_path_obj = Path(upload_path)
                 if not upload_path_obj.is_dir():
@@ -244,6 +243,7 @@ class DockerManager(ContainerManager):
             return True, ""
         except (ClientError, OSError) as e:
             self.logger.warning(str(e))
+            error_msg += f"\nReason: {e}"
             return False, error_msg
 
     def stop_job(self, job_name: str) -> str:
