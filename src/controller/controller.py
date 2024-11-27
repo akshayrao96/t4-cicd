@@ -699,7 +699,7 @@ class Controller:
                                     job_log.completion_time = time.asctime()
                                     job_logs[job_name] = job_log.model_dump()
                                 if stage_status != c.STATUS_FAILED:
-                                    stage_status = c.STATUS_CANCELLED  
+                                    stage_status = c.STATUS_CANCELLED
                                 raise
                             # If early break, skip next job group execution
                             if early_break:
@@ -733,10 +733,10 @@ class Controller:
                 # If early break, skip next stages execution
                 if early_break:
                     break
-        finally:
             #if stage status still pending, update to success
             if pipeline_status == c.STATUS_PENDING:
                 pipeline_status = c.STATUS_SUCCESS
+        finally:
             # Ensure always Wrap up and return
             run_update = {
                 c.FIELD_STATUS:pipeline_status,
