@@ -32,7 +32,7 @@ AR: Jason to add
 
 #### \_actual_pipeline_run()
 
-- This method performs actual run of the pipeline when called.
+- This method performs actual run of the pipeline when called. Refer to the sequence diagram for illustration of flow.
 - It requires 3 arguments,
   - repo_data:SessionDetail, contain repository information required to interact with the MongoDB.
   - pipeline_config:PipelineConfig, valid pipeline configuration.
@@ -46,9 +46,10 @@ AR: Jason to add
   - for each job, the DockerManager run_job() method will be called to execute the pipeline run. If artifact section is present for the job, the run_job() method will handle upload of the artifact to the AWS S3.
   - logs for each job are displayed to the user as soon as the job finished.
   - if the job failed, the next job will proceed if the allow_failure flag is set. Otherwise the execution of the entire pipeline will break.
-  - at the end of each stage, the stage completion status is tallied based on all jobs status, and the job_logs for the entire stage are updated to the MongoDB.
-- At the end of all stage, the pipeline completion status is tallied based on all stages status. The pipeline status and history is updated to the MongoDB.
-- The Docker shared volume created early is removed.
+  - if KeyboardInterruption is encountered, the job status will be updated to cancel. Stage status is updated accordingly.
+  - at the end of each stage, the Finally block tallies the stage completion status based on all jobs status, and the job_logs for the entire stage are updated to the MongoDB.
+- At the end of all stage, the Finally block tallies the pipeline completion status based on all stages status. The pipeline status and history is updated to the MongoDB.
+- The Docker shared volume created early is also removed in the Finally block.
 
 #### validate_config(), validate_n_save_config(), validate_n_save_configs
 
@@ -70,7 +71,9 @@ This package contains all the utility modules required to support the controller
 
 ## Example Sequence Diagram
 
-<img src="../images/SeqPipelineRun.jpg" alt="System Design" width="1000" height="1500">
+<img src="../images/SeqPipelineRun.jpg" alt="Pipeline Run" width="1000" height="1500">
+
+<img src="../images/SeqActualRun.jpg" alt="Actual Run" width="600" height="900">
 
 ## Suplement Information
 

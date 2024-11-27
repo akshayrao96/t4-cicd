@@ -11,6 +11,12 @@ This readme file explains how the tests are organized within the test folder.
 - Classes, Functions or Features required by multiple modules are placed in conftest.py file
 - Classes, Functions or Features required by the same module are initialize in the setUp method of respective test class.
 
+## Mock and Patching Information
+
+- mongomock library is used to mock the actual MongoDB services for some of the MongoDB interactions.
+- Custom Mock Docker API and container classes is used to mock the actual Docker Engine Services.
+- Other methods required to be mocked for unit tests or isolation tests are patched using unittest.mock's patch method.
+
 ## List of Integration Test
 
 ### cli.cmd_config, Controller and common_utils
