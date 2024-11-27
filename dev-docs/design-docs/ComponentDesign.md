@@ -12,25 +12,26 @@ This package contains the cli functions developed using Click. Main command grou
 
 The controller has the following main methods as shown in the UML diagram, they are described below:
 
-#### checkout_repo(), get_repo(), handle_repo(), set_repo()
+#### `checkout_repo(), get_repo(), handle_repo(), set_repo()`
 
 AR: Akshay to add
 
-#### run_pipeline()
+#### `run_pipeline()`
 
-- Refer the example sequence diagram for the summarized sequence flow of run_pipeline() method.
-- This method handle the cid pipeline run command after setting up the repository using the handle_repo() method.
-- The next step is check if there is any overrides, and apply the overrides using the apply_overrides() method from common_utils module.
-- Then it will validate and save the updated pipeline configuration using validate_n_save_config() method
-- If dry-run flag is provided, it will call the dry_run() function to print out the example dry_run sequence.
-- For actual run, the private method \_actual_pipeline_run() will be called.
+- Refer the example sequence diagram for the summarized sequence flow of `run_pipeline()` method.
+- This method handle the cid pipeline run command after setting up the repository using the `handle_repo()` method.
+- The next step is check if there is any overrides, and apply the overrides using the `apply_overrides()` method from common_utils module.
+- Then it will validate and save the updated pipeline configuration using `validate_n_save_config()` method
+- If dry-run flag is provided, it will call the `dry_run()` function to print out the example dry_run sequence.
+- For actual run, the private method `_actual_pipeline_run()` will be called.
 - A MongoAdapter class object (mongo_ds) will be used to interact with the MongoDB service.
 
-#### dry_run()
+#### `dry_run()`
+- dry-run options to simulate the pipeline process
 
 AR: Jason to add
 
-#### \_actual_pipeline_run()
+#### `_actual_pipeline_run()`
 
 - This method performs actual run of the pipeline when called. Refer to the sequence diagram for illustration of flow.
 - It requires 3 arguments,
@@ -43,7 +44,7 @@ AR: Jason to add
 - it will then create a DockerManager object, using the default docker engine from the user's IDE environment, and creating a shared volume with name of the following syntax `<repo_name>-<pipeline_name>-<run_number>`. This will ensure the shared volume is unique within the user's IDE environment.
 - The stages for a single pipeline run will be iterated according to order.
   - for each stage, the jobs will be iterated according to order specified. Parallel run of job is not implemented.
-  - for each job, the DockerManager run_job() method will be called to execute the pipeline run. If artifact section is present for the job, the run_job() method will handle upload of the artifact to the AWS S3.
+  - for each job, the DockerManager `run_job()` method will be called to execute the pipeline run. If artifact section is present for the job, the `run_job()` method will handle upload of the artifact to the AWS S3.
   - logs for each job are displayed to the user as soon as the job finished.
   - if the job failed, the next job will proceed if the allow_failure flag is set. Otherwise the execution of the entire pipeline will break.
   - if KeyboardInterruption is encountered, the job status will be updated to cancel. Stage status is updated accordingly.
@@ -51,19 +52,22 @@ AR: Jason to add
 - At the end of all stage, the Finally block tallies the pipeline completion status based on all stages status. The pipeline status and history is updated to the MongoDB.
 - The Docker shared volume created early is also removed in the Finally block.
 
-#### validate_config(), validate_n_save_config(), validate_n_save_configs
+#### `validate_config(), validate_n_save_config(), validate_n_save_configs`
 
 - These three methods handle different scenarios for validating the pipeline configuration. They all use the ConfigChecker class object to perform the actual validation.
-- The validate_config() method can apply overrides and validate a single pipeline configuration without saving it into MongoDB. This is used when the users just want to validate a single pipeline configuration.
-- The validate_n_save_config() method use the validate_config() method and add the functionality to save the validated configuration into the datastore.
-- The validate_n_save_configs() method handle pipeline configuration validation for the entire directory.
+- The `validate_config()` method can apply overrides and validate a single pipeline configuration without saving it into MongoDB. This is used when the users just want to validate a single pipeline configuration.
+- The `validate_n_save_config()` method use the `validate_config()` method and add the functionality to save the validated configuration into the datastore.
+- The `validate_n_save_configs()` method handle pipeline configuration validation for the entire directory.
   - No override is applied.
   - An optional saving flag can be used to save all pipeline configuration into the datastore.
   - The validation process will not stop when validation fail for a single pipeline configuration, it will continue until all pipelines are validated.
 
 #### pipeline_history()
-
-AR: Jason to add
+- `pipeline_history()` receives user query to retrieve pipeline report they have previously done using `cid pipeline run`. This function receives one argument:
+  - `PipelineHist` is a Pydantic Model that contains repo_name, pipeline_name, run number, etc.
+- Given the flags given by the user, it will go to the conditional statement (L4.1 Show all Summary, L4.2 pipeline Run Summary, L4.3 Show Stage Summary, L4.4 Show Job Summary)
+  - based on the number of arguments given (ex `pipeline_name, repo, job_name, stage_name`) retrieve the data in Mongo using `mongo.get_pipeline_run_summary()`
+- return the string of the output message by calling a helper function called `PipelineReport.print_job_summary()`
 
 ## Util Package
 
