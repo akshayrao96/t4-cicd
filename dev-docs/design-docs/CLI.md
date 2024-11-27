@@ -41,9 +41,9 @@ Commands:
 - **Output**: Displays current version
 
 ```
-% cid
+% cid --version
 
-cid version 1.0.0
+cid version 0.1.0
 ```
 
 ## `cid config`
@@ -113,7 +113,7 @@ Printing processed_config
   - Only files in the `.cicd-pipelines` folder are allowed. Running `cid config --check --config-file ./cicd-pipelines/valid_config.yml` results in an error.
   - files with duplicate names are not allowed by any File System. Files with duplicate pipeline names are only check against what is in the datastore.
 
-### `cid config --check --config-file <FILENAME> --no-set`
+### `cid config --check --config-file <FILENAME>.yml --no-set`
 
 - **Description**: The --no-set flag allows to check the config file only without further interaction with the cicd system. Ie. it will not set the repo, and will not save the config file to datastore.
 - **Input**: `<FILENAME>` is a file with a `.yml` file extension, and it must reside in `.cicd-pipelines/`.
@@ -150,38 +150,132 @@ Printing processed_config
   - Only files in the `.cicd-pipelines` folder will be checked.
   - files with duplicate names are not allowed by any File System. Files with duplicate pipeline names will be checked when loading.
 
+```txt
+Repository is configured in current directory
+.cicd-pipelines
+set repo, checking and saving all config files in directory .cicd-pipelines
+...
+Status for invalid_pipeline:failed
+error message:
+invalid_config.yml:11:8 Error in section:jobs job:nostage No stage key defined
+invalid_config.yml:17:15 Error in section:jobs job:wrongstage stage value ['wrong-stage'] defined does not exist in stages list
+Error in section:stages stage:deploy No job defined for this stage
+invalid_config.yml:11:8 jobs:nostage key not found error for subkey:stage
+invalid_config.yml:23:8 jobs:checkout key not found error for subkey:scripts
+invalid_config.yml:50:12 jobs:compile no artifact upload path defined
+jobs:pytest key not found error for subkey:image
+
+Status for cicd-javascript:passed
+printing top 10 lines of processed config:
+{'global': {'artifact_upload_path': 'test-cicd-cs6510',
+            'docker': {'image': 'node:latest', 'registry': 'dockerhub'},
+            'pipeline_name': 'cicd-javascript'},
+ 'jobs': {'checkout': {'allow_failure': False,
+                       'artifact_upload_path': 'test-cicd-cs6510',
+                       'docker': {'image': 'node:latest',
+                                  'registry': 'dockerhub'},
+                       'needs': [],
+                       'scripts': ['git clone '
+                                   'https://github.com/sjchin88/cicd-javascript '
+...
+```
+
 ### `cid config --check-all --dir <directory> --no-set`
 
-- csj added 2024-10-19
 - **Description**: The --no-set flag allows to check all config files within the directory only without further interaction with the cicd system. Ie. it will not set the repo, and will not save the config file to datastore.
   The directory argument must be supplied.
+- **Input**: folder path location of the `.cicd-pipelines` to validate the configuration files.
+- **Output**: will out the same as running `cid config --check-all`
+- **Consideration**:
+  - return error if directory given is an invalid with error message `Invalid directory:<dir>`
 
-### `cid config --set-repo <REPO>` TODO: need to update
+### `cid config set-repo REPO_URL`
+```sh
+% cid config set-repo --help                                 
+Usage: cid config set-repo [OPTIONS] REPO_URL
 
+  Configure a new repository for pipeline checks in the current directory.
+
+  This command clones the specified repository into the current working
+  directory (PWD) and optionally checks out the specified branch and commit.
+  The current directory must be empty for this operation to succeed.
+  ...
+
+Options:
+  --branch TEXT  Specify the branch to retrieve. If not given, 'main' is used.
+  --commit TEXT  Specify the commit hash to retrieve. If not given, latest
+                 commit is used.
+  --help         Show this message and exit.
+```
 - **Description**: Configures the cid service to work on the given repository.
-
+- **Input**: valid public repository url (such as https://www.github.com, git@github.com, https://www.gitlab.com)
+- **Output**: 
+  - On success: Displays the repository details (URL, branch, and commit hash).
+  - On failure: Displays an error message indicating the reason for failure.
 - **Considerations**:
-  - `<REPO>` can be either local or remote?
-  - The user must not be in a git repository directory in the terminal when running this command.
-  - Need to determine how configurations will work when the project is packaged/unpackaged (binaries).
+  - The repository is cloned into the PWD.     
+  - If `--branch` is provided, the specified branch is checked out (default: 'main').
+  - If `--commit` is provided, the specified commit is checked out. If not provided,
+  the latest commit on the branch is used.
+  - If the current directory is not empty, the operation will fail with an error message.
 
-### `cid config --get-repo` TODO: need to update
+```sh
+#On success
+empty-repo $ cid config set-repo https://github.com/sjchin88/cicd-python                   
+Repository set successfully.
 
+Current working directory configured:
+
+Repository URL: https://github.com/sjchin88/cicd-python
+Repository Name: cicd-python
+Branch: main
+Commit Hash: 9bbc007bcf0e20eabb58765983e0722e8c7f39f4
+
+#On failure
+t4-cicd git:(main) $ cid config set-repo https://github.com/sjchin88/cicd-python
+Currently in a Git repository: 't4-cicd'. Please navigate to an empty directory.
+```
+
+### `cid config get-repo`
+```sh
+cid config get-repo --help                  
+Usage: cid config get-repo [OPTIONS]
+
+  Display information about the currently configured repository.
+
+  This command retrieves and displays details of the currently configured Git
+  repository, either from the current working directory if it is a Git
+  repository, or from the last set repository stored in the system.
+
+  ...
+Options:
+  --help  Show this message and exit.
+```
 - **Description**: Returns the repository for the cid service to work on.
-
+- **Input**: None
+- **Output**: Repository information of the saved repository
 - **Considerations**:
-  - Return the repository that the user is currently in, if applicable.
-  - Otherwise, return the last set repository.
+    - If the current directory is a Git repository, it displays the URL, branch, and latest commit hash.     
+    - If the current directory is not a Git repository but a previous repository configuration 
+    exists, it retrieves and displays details of the last configured repository.    
+    - If no repository is configured, it provides guidance for setting a repository.
+
+```sh
+$ cid config get-repo       
+Repository is configured in current directory
+
+Repository configured in current working directory:
+
+Repository URL: git@github.com:CS6510-SEA-F24/t4-cicd.git
+Repository Name: t4-cicd
+Branch: 124-project-documentation
+Commit Hash: 8ea04ac58b62ef65e8d2328f7b29d28943fbd13a
+```
 
 ## `cid pipeline`
 
 All pipeline related commands. Pipeline in this case is anything to do with executions of a yaml file
 Codebase: `./src/cli/cmd_pipeline.py`
-
-### `cid pipeline`
-- **Description**: Returns help for commands to run for `cid pipeline`.
-- **Input**: None
-- **Output**: Help commands.
 
 ```
 % cid pipeline
@@ -197,6 +291,11 @@ Commands:
   report  Report pipeline provides user to retrieve the pipeline history.
   run     Run pipeline given the configuration file.
 ```
+
+### `cid pipeline [--help]`
+- **Description**: Returns help for commands to run for `cid pipeline`.
+- **Input**: None
+- **Output**: Help commands.
 
 ### `cid pipeline run`
 
@@ -257,9 +356,12 @@ Running job: "checkout", ..., docker: {'registry': 'dockerhub', 'image': 'sjchin
 Running job: "pylint", ..., docker: {'registry': 'dockerhub', 'image': 'sjchin88/python-git-poetry:latest'}, artifacts: {'on_success_only': False, 'paths': ['htmlcov']}
 ```
 
-### `cid pipeline run --dry-run --pipeline <PIPELINE_NAME>`
+### `cid pipeline run --dry-run --yaml`
+- **Description**: print
+
+### `cid pipeline run --dry-run --pipeline PIPELINE_NAME`
 - **Description**: In dry-run, user is able to specify the Pipeline Name that they define in `global.pipeline_name` in the yaml file.
-- **Input**: `pipeline_name` that validate the configuration file
+- **Input**: `PIPELINE_NAME` to be executed in dry_run
 - **Output**: print the dry run jobs in the order that is specified in the file. 
 ```sh
 % cid pipeline run --dry-run --pipeline cicd-javascript        
@@ -273,7 +375,42 @@ pipeline_name: cicd-javascript, docker: {'registry': 'dockerhub', 'image': 'node
 ...
 ```
 
+### `cid pipeline run --override <OVERRIDE> --dry-run [--yaml]`
+- **Description**: perform override of default configuration file `pipelines.yml` and print in yaml format
+- **Input**: `OVERRIDE` key.value to change from the configuration file.
+- **Output**: print the configuration file in plain text or yaml (if `--yaml` flag is specified)
+
+```sh
+% cid pipeline run --override global.docker.image=gradle:jdk8 --dry-run --yaml
+Repository is configured in current directory
+Validating file in pipelines.yml
+global:
+  pipeline_name: cicd_pipeline
+  docker:
+    registry: dockerhub
+    image: sjchin88/python-git-poetry:latest
+  artifact_upload_path: test-cicd-cs6510
+jobs:
+    ...
+```
 ### `cid pipeline report --help`
+```sh
+$ cid pipeline report --help
+Usage: cid pipeline report [OPTIONS]
+
+  Report pipeline provides user to retrieve the pipeline history.
+
+Options:
+  -r, --repo TEXT    url of the repository (https://)
+  --local            retrieve local pipeline history
+  --pipeline TEXT    pipeline name to get the history
+  -b, --branch TEXT  branch name of the repository; default is 'main'
+  -s, --stage TEXT   stage name to view report; default stages options:
+                     [build, test, doc, deploy]
+  --job TEXT         job name to view report
+  -r, --run TEXT     run number to get the report
+  --help             Show this message and exit.
+```
 - **Description**: Returns help for commands to run for cid pipeline.
 - **Input**: None
 - **Output**: Help commands.
@@ -286,8 +423,8 @@ pipeline_name: cicd-javascript, docker: {'registry': 'dockerhub', 'image': 'node
   ```
 
 
-### `cid pipeline report --repo <REPO_URL>`
-- **Description**: display report for all pipelines for the REPO_URL specified
+### `cid pipeline report [--repo REPO_URL]`
+- **Description**: display report for all pipelines for the REPO_URL specified. If not specified, repo default to the current repo stored in MongoDB.
 - **Input**: repository URL to get the history 
 - **Output**: 
   - provides the overview of the history, such as pipeline name, run #, status, and other details.
@@ -313,7 +450,7 @@ Run Number: 2
 ...
 ```
 
-### `cid pipeline report --repo <REPO_URL> --pipeline PIPELINE_NAME`
+### `cid pipeline report --repo REPO_URL --pipeline PIPELINE_NAME`
 - **Description**: display report for the given PIPELINE_NAME for the REPO_URL specified
 - **Input**: 
   - repository URL to get the history 
@@ -333,7 +470,7 @@ Run Number: 2
 Git Commit Hash: 16adc46
 ...
 ```
-### `cid pipeline report --repo <REPO_URL> --pipeline PIPELINE_NAME --run RUN_NUMBER`
+### `cid pipeline report --repo REPO_URL --pipeline PIPELINE_NAME --run RUN_NUMBER`
 - **Description**: display report for all pipelines for the REPO_URL specified
 - **Input**: 
   - repository URL to get the history 
@@ -361,7 +498,7 @@ Stages:
   Start Time: Sun Nov 10 17:33:33 2024
   Completion Time: Sun Nov 10 17:33:48 2024
 ```
-### `cid pipeline report --repo <REPO_URL> --pipeline PIPELINE_NAME --stage STAGE`
+### `cid pipeline report --repo REPO_URL --pipeline PIPELINE_NAME --stage STAGE`
 - **Description**: display the report for the specific stage (build, test) for all pipelines
 - **Input**: 
   - repository URL to get the history 
@@ -416,7 +553,7 @@ Pipeline Name: cicd_pipeline
 ...
 ```
 
-### `cid pipeline report --repo <REPO_URL> --pipeline PIPELINE_NAME --stage STAGE_NAME --job JOB_NAME`
+### `cid pipeline report --repo REPO_URL --pipeline PIPELINE_NAME --stage STAGE_NAME --job JOB_NAME`
 - **Description**: display the report for the specific job (pylint, pytest, etc) for all pipelines
 - **Input**: 
   - repository URL to get the history 
