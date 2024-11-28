@@ -1,6 +1,6 @@
 # CID Command Line Prompts Documentation
 
-Last updated - 2024-11-21
+Last updated - 2024-11-28
 
 This documentation outlines all available CID CLI commands that t4-cicd implement.
 
@@ -110,14 +110,16 @@ Printing processed_config
 ```
 
 - **Considerations**:
-  - Only files in the `.cicd-pipelines` folder are allowed. Running `cid config --check --config-file ./cicd-pipelines/valid_config.yml` results in an error.
-  - files with duplicate names are not allowed by any File System. Files with duplicate pipeline names are only check against what is in the datastore.
+  - Files with duplicate names are not allowed by any File System.
+  - Files with duplicate pipeline names will be checked and detected when
+    - performing cid config --check-all on the entire directory
+    - attempt to run the pipeline based on target pipeline name.
 
 ### `cid config --check --config-file <FILENAME>.yml --no-set`
 
 - **Description**: The --no-set flag allows to check the config file only without further interaction with the cicd system. Ie. it will not set the repo, and will not save the config file to datastore.
 - **Input**: `<FILENAME>` is a file with a `.yml` file extension, and it must reside in `.cicd-pipelines/`.
-- **Output**: 
+- **Output**:
   - prints out the configuration file that is in dict form
   - prints error if input filename is not found or error in keys of the configuration file.
 
@@ -190,8 +192,9 @@ printing top 10 lines of processed config:
   - return error if directory given is an invalid with error message `Invalid directory:<dir>`
 
 ### `cid config set-repo REPO_URL`
+
 ```sh
-% cid config set-repo --help                                 
+% cid config set-repo --help
 Usage: cid config set-repo [OPTIONS] REPO_URL
 
   Configure a new repository for pipeline checks in the current directory.
@@ -207,21 +210,22 @@ Options:
                  commit is used.
   --help         Show this message and exit.
 ```
+
 - **Description**: Configures the cid service to work on the given repository.
 - **Input**: valid public repository url (such as https://www.github.com, git@github.com, https://www.gitlab.com)
-- **Output**: 
+- **Output**:
   - On success: Displays the repository details (URL, branch, and commit hash).
   - On failure: Displays an error message indicating the reason for failure.
 - **Considerations**:
-  - The repository is cloned into the PWD.     
+  - The repository is cloned into the PWD.
   - If `--branch` is provided, the specified branch is checked out (default: 'main').
   - If `--commit` is provided, the specified commit is checked out. If not provided,
-  the latest commit on the branch is used.
+    the latest commit on the branch is used.
   - If the current directory is not empty, the operation will fail with an error message.
 
 ```sh
 #On success
-empty-repo $ cid config set-repo https://github.com/sjchin88/cicd-python                   
+empty-repo $ cid config set-repo https://github.com/sjchin88/cicd-python
 Repository set successfully.
 
 Current working directory configured:
@@ -237,8 +241,9 @@ Currently in a Git repository: 't4-cicd'. Please navigate to an empty directory.
 ```
 
 ### `cid config get-repo`
+
 ```sh
-cid config get-repo --help                  
+cid config get-repo --help
 Usage: cid config get-repo [OPTIONS]
 
   Display information about the currently configured repository.
@@ -251,17 +256,18 @@ Usage: cid config get-repo [OPTIONS]
 Options:
   --help  Show this message and exit.
 ```
+
 - **Description**: Returns the repository for the cid service to work on.
 - **Input**: None
 - **Output**: Repository information of the saved repository
 - **Considerations**:
-    - If the current directory is a Git repository, it displays the URL, branch, and latest commit hash.     
-    - If the current directory is not a Git repository but a previous repository configuration 
-    exists, it retrieves and displays details of the last configured repository.    
-    - If no repository is configured, it provides guidance for setting a repository.
+  - If the current directory is a Git repository, it displays the URL, branch, and latest commit hash.
+  - If the current directory is not a Git repository but a previous repository configuration
+    exists, it retrieves and displays details of the last configured repository.
+  - If no repository is configured, it provides guidance for setting a repository.
 
 ```sh
-$ cid config get-repo       
+$ cid config get-repo
 Repository is configured in current directory
 
 Repository configured in current working directory:
@@ -293,6 +299,7 @@ Commands:
 ```
 
 ### `cid pipeline [--help]`
+
 - **Description**: Returns help for commands to run for `cid pipeline`.
 - **Input**: None
 - **Output**: Help commands.
@@ -342,12 +349,12 @@ Installing dependencies from lock file
   - Same as the considerations for running a pipeline, but no actual artifacts will be generated since nothing will be run.
 
 ```sh
-% cid pipeline run --dry-run       
+% cid pipeline run --dry-run
 Repository is configured in current directory
 Validating file in pipelines.yml
 
 ===== [INFO] Global =====
-pipeline_name: cicd_pipeline, docker: {'registry': 'dockerhub', 'image': 'sjchin88/python-git-poetry:latest'}, artifact_upload_path: temp, 
+pipeline_name: cicd_pipeline, docker: {'registry': 'dockerhub', 'image': 'sjchin88/python-git-poetry:latest'}, artifact_upload_path: temp,
 
 ===== [INFO] Stages: 'build' =====
 Running job: "checkout", ..., docker: {'registry': 'dockerhub', 'image': 'sjchin88/python-git-poetry:latest'}
@@ -357,25 +364,29 @@ Running job: "pylint", ..., docker: {'registry': 'dockerhub', 'image': 'sjchin88
 ```
 
 ### `cid pipeline run --dry-run --yaml`
+
 - **Description**: print
 
 ### `cid pipeline run --dry-run --pipeline PIPELINE_NAME`
+
 - **Description**: In dry-run, user is able to specify the Pipeline Name that they define in `global.pipeline_name` in the yaml file.
 - **Input**: `PIPELINE_NAME` to be executed in dry_run
-- **Output**: print the dry run jobs in the order that is specified in the file. 
+- **Output**: print the dry run jobs in the order that is specified in the file.
+
 ```sh
-% cid pipeline run --dry-run --pipeline cicd-javascript        
+% cid pipeline run --dry-run --pipeline cicd-javascript
 Repository is configured in current directory
 Validating file in javascript-template.yml
 
 ===== [INFO] Global =====
-pipeline_name: cicd-javascript, docker: {'registry': 'dockerhub', 'image': 'node:latest'}, artifact_upload_path: temp, 
+pipeline_name: cicd-javascript, docker: {'registry': 'dockerhub', 'image': 'node:latest'}, artifact_upload_path: temp,
 
 ===== [INFO] Stages: 'build' =====
 ...
 ```
 
 ### `cid pipeline run --override <OVERRIDE> --dry-run [--yaml]`
+
 - **Description**: perform override of default configuration file `pipelines.yml` and print in yaml format
 - **Input**: `OVERRIDE` key.value to change from the configuration file.
 - **Output**: print the configuration file in plain text or yaml (if `--yaml` flag is specified)
@@ -393,7 +404,9 @@ global:
 jobs:
     ...
 ```
+
 ### `cid pipeline report --help`
+
 ```sh
 $ cid pipeline report --help
 Usage: cid pipeline report [OPTIONS]
@@ -411,22 +424,25 @@ Options:
   -r, --run TEXT     run number to get the report
   --help             Show this message and exit.
 ```
+
 - **Description**: Returns help for commands to run for cid pipeline.
 - **Input**: None
 - **Output**: Help commands.
 - **Reason**:
+
   - unlike `cid config` or `cid pipeline run`, `report` requires user to specify `--repo` on which repo to view. if not specified it will output error
-  ```sh 
-  % cid pipeline report                                                 
-  
+
+  ```sh
+  % cid pipeline report
+
   "missing ['repo_url'] input. please run cid pipeline report--repo. For further help, run cid pipeline report --help for valid usage"
   ```
 
-
 ### `cid pipeline report [--repo REPO_URL]`
+
 - **Description**: display report for all pipelines for the REPO_URL specified. If not specified, repo default to the current repo stored in MongoDB.
-- **Input**: repository URL to get the history 
-- **Output**: 
+- **Input**: repository URL to get the history
+- **Output**:
   - provides the overview of the history, such as pipeline name, run #, status, and other details.
 
 ```sh
@@ -451,12 +467,14 @@ Run Number: 2
 ```
 
 ### `cid pipeline report --repo REPO_URL --pipeline PIPELINE_NAME`
+
 - **Description**: display report for the given PIPELINE_NAME for the REPO_URL specified
-- **Input**: 
-  - repository URL to get the history 
+- **Input**:
+  - repository URL to get the history
   - pipeline_name to filter
 - **Output**:
   - provides the overview of the history, such as pipeline name, run #, status, and other details.
+
 ```
 cid pipeline report --repo https://github.com/sjchin88/cicd-python --pipeline cicd_pipeline
 Pipeline Name: cicd_pipeline
@@ -470,17 +488,20 @@ Run Number: 2
 Git Commit Hash: 16adc46
 ...
 ```
+
 ### `cid pipeline report --repo REPO_URL --pipeline PIPELINE_NAME --run RUN_NUMBER`
+
 - **Description**: display report for all pipelines for the REPO_URL specified
-- **Input**: 
-  - repository URL to get the history 
+- **Input**:
+  - repository URL to get the history
   - specific pipeline_name for the report
   - the run number
-- **Output**: 
+- **Output**:
   - provides the overview of the history, such as pipeline name, run #, status, and other details.
   - in addition, more details on the `Stages` that includes list of stage name, status, and start / completion time
+
 ```
-cid pipeline report --repo https://github.com/sjchin88/cicd-python --pipeline cicd_pipeline --run 1                              
+cid pipeline report --repo https://github.com/sjchin88/cicd-python --pipeline cicd_pipeline --run 1
 Pipeline Name: cicd_pipeline
 Run Number: 1
 Git Commit Hash: 16adc46
@@ -498,21 +519,23 @@ Stages:
   Start Time: Sun Nov 10 17:33:33 2024
   Completion Time: Sun Nov 10 17:33:48 2024
 ```
+
 ### `cid pipeline report --repo REPO_URL --pipeline PIPELINE_NAME --stage STAGE`
+
 - **Description**: display the report for the specific stage (build, test) for all pipelines
-- **Input**: 
-  - repository URL to get the history 
+- **Input**:
+  - repository URL to get the history
   - specific pipeline_name for the report
   - stage name
-- **Output**: 
+- **Output**:
   - provides the overview of the history, such as pipeline name, run #, status, and other details.
   - Details on the `Stages` that includes list of stage name, status, and start / completion time
   - In addition, provide `Jobs` information that is part of the Stage.
 
-Note: user can specify the run number (ex. `--run 1`) to  only limit the report to just a single run. The report will yield to the same output.
+Note: user can specify the run number (ex. `--run 1`) to only limit the report to just a single run. The report will yield to the same output.
 
 ```
-% cid pipeline report --repo https://github.com/sjchin88/cicd-python --pipeline cicd_pipeline --stage test 
+% cid pipeline report --repo https://github.com/sjchin88/cicd-python --pipeline cicd_pipeline --stage test
 Pipeline Name: cicd_pipeline
 Run Number: 1
 Git Commit Hash: 16adc46
@@ -554,12 +577,13 @@ Pipeline Name: cicd_pipeline
 ```
 
 ### `cid pipeline report --repo REPO_URL --pipeline PIPELINE_NAME --stage STAGE_NAME --job JOB_NAME`
+
 - **Description**: display the report for the specific job (pylint, pytest, etc) for all pipelines
-- **Input**: 
-  - repository URL to get the history 
+- **Input**:
+  - repository URL to get the history
   - specific pipeline_name for the report
   - stage name
-- **Output**: 
+- **Output**:
   - provides the overview of the history, such as pipeline name, run #, status, and other details.
   - Details on the `Stages` that includes list of stage name, status, and start / completion time
   - In addition, provide `Jobs` information that is part of the Stage.
@@ -577,10 +601,13 @@ Start Time: Sun Nov 10 17:33:41 2024
 Completion Time: Sun Nov 10 17:33:45 2024
 
 ```
+
 - **Input Validation**:
+
   - `--stage` must be given if user want to specify the `--job`.
+
   ```sh
-  % cid pipeline report --repo https://github.com/sjchin88/cicd-python --pipeline cicd_pipeline --job pylint            
-  
+  % cid pipeline report --repo https://github.com/sjchin88/cicd-python --pipeline cicd_pipeline --job pylint
+
   "missing flag. --stage flag must be given along with --job"
   ```

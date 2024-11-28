@@ -12,7 +12,6 @@ t4-cicd cli application requires the following external services:
 
 ## Setting up the Docker Engine Service
 
-
 Install Docker Desktop from the [Official Website](https://www.docker.com/products/docker-desktop/). Docker Engine is included in the Docker Desktop installation. t4-cicd cli application will automatically use the Docker Engine running in your computer background.
 
 ## Setting up the MongoDB Service
@@ -103,6 +102,14 @@ cid pipeline run
 # Retrieve pipeline report
 cid pipeline report
 ```
+
+## Errors and Debug Information
+
+- When errors occur, the program stdout and stderr will give a brief summary of what went wrong.
+
+- For error details to help in debugging, you can look for the debug.log file created.
+  - By default a debug.log file will be created at a parent directory where your run the command
+  - ie, if you run the command under directory `/temp/t4-cicd`, a debug.log will be at `/temp`
 
 # Developer Set Up Instruction
 
