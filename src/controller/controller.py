@@ -11,7 +11,6 @@ import copy
 import os
 import time
 from pathlib import Path
-
 import click
 from docker.errors import DockerException
 from pydantic import ValidationError
@@ -24,9 +23,6 @@ from util.repo_manager import (RepoManager)
 from util.db_mongo import (MongoAdapter)
 from util.yaml_parser import YamlParser
 from util.config_tools import (ConfigChecker)
-
-# pylint: disable=logging-fstring-interpolation
-# pylint: disable=logging-not-lazy
 
 class Controller:
     """Controller class that integrates the CLI with the other class components

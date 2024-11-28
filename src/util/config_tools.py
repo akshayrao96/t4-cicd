@@ -1,6 +1,7 @@
 """
 Provides all classes and methods to validate and process pipeline configurations.
 """
+
 import collections
 import util.constant as c
 from util.model import (ValidationResult)
@@ -8,9 +9,6 @@ from util.common_utils import (get_logger, UnionFind, TopoSort)
 
 logger = get_logger("util.config_tools")
 """Logger instance for logging messages"""
-
-# pylint: disable=logging-fstring-interpolation
-# pylint: disable=too-few-public-methods
 
 class ConfigChecker:
     """ ConfigChecker class performing validation and processing for 

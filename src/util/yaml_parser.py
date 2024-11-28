@@ -2,6 +2,7 @@
 This module provides classes and methods to parse YAML files from a file path or directory, 
 preserving line and column information for downstream processing.
 """
+
 from typing import Text
 import os
 import ruamel.yaml
@@ -12,7 +13,6 @@ from util.model import (RawPipelineInfo)
 logger = get_logger(logger_name='util.yaml_parser')
 """Logger instance for logging messages"""
 
-# pylint: disable=logging-fstring-interpolation
 class Str(ruamel.yaml.scalarstring.ScalarString):
     """ Subclass the parent class add the __slots__ property
 

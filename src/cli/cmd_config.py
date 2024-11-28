@@ -1,7 +1,7 @@
 """
 Module providing CLI commands for managing and validating pipeline configurations.
 """
-# pylint: disable=logging-fstring-interpolation
+
 import os
 import pprint
 import sys

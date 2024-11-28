@@ -1,5 +1,6 @@
 """ Module to manage file uploads to AWS S3.
 """
+
 import os
 import boto3
 from botocore.exceptions import ClientError
@@ -11,8 +12,6 @@ env = get_env()
 logger = get_logger("util.db_artifact")
 """Logger instance for logging messages"""
 
-# pylint: disable=logging-fstring-interpolation
-# pylint: disable=too-few-public-methods
 class S3Client:
     """ Class to handle operations related to artifacts upload to s3
     """

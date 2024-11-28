@@ -1,6 +1,7 @@
 """
 Module for managing MongoDB connections and performing CRUD operations.
 """
+
 import copy
 import time
 import bson
@@ -14,8 +15,6 @@ env = get_env()
 """Environment variables"""
 logger = get_logger("util.db_mongo")
 """Logger instance for logging messages"""
-# pylint: disable=logging-fstring-interpolation
-# pylint: disable=fixme
 
 class MongoAdapter:
     """Adapter class to provide standardized queries to MongoDB.

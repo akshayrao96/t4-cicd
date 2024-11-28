@@ -1,7 +1,7 @@
 """
 Module providing CLI commands for pipeline actions.
 """
-# pylint: disable=logging-fstring-interpolation
+
 import sys
 import json
 import click
@@ -10,6 +10,7 @@ from util.common_utils import (get_logger, ConfigOverride)
 from util.model import (PipelineHist)
 from controller.controller import (Controller)
 import util.constant as c
+
 logger = get_logger('cli.cmd_pipeline')
 """Logger instance for logging messages"""
 
