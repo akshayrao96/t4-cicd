@@ -4,16 +4,16 @@ Project to build a CI/CD System.
 
 # User Set Up Instruction for Using the Application
 
-This cli application requires the following external services:
+t4-cicd cli application requires the following external services:
 
 - a MongoDB service,
 - a Docker Engine service, and
-- an AWS S3 Service.
+- an AWS S3 Service (user must use their own AWS account)
 
 ## Setting up the Docker Engine Service
 
-The cli application will automatically use any Docker Engine running in your computer background.
-You can install one following instructions from the [Official](https://www.docker.com/products/docker-desktop/)
+
+Install Docker Desktop from the [Official Website](https://www.docker.com/products/docker-desktop/). Docker Engine is included in the Docker Desktop installation. t4-cicd cli application will automatically use the Docker Engine running in your computer background.
 
 ## Setting up the MongoDB Service
 
@@ -23,10 +23,10 @@ MONGO_DB_URL set up for local and remote MongoDB service.
 
 ```shell
 # Local
-MONGO_DB_URL="mongodb://localhost:27017/"
+export MONGO_DB_URL="mongodb://localhost:27017/"
 
 # Remote, replace the <db_username>, <db_password> and <cluster_address>
-MONGO_DB_URL="mongodb+srv://<db_username>:<db_password>@<cluster_address>/"
+export MONGO_DB_URL="mongodb+srv://<db_username>:<db_password>@<cluster_address>/"
 ```
 
 Instructions for setting up local MongoDB service.
@@ -97,7 +97,7 @@ cid pipeline report
 
 # Developer Set Up Instruction
 
-First, follow the User Set Up Instruction to set the Docker Engine service, MongoDB service and AWS S3 service.
+First, follow the [User Set Up Instruction](#user-set-up-instruction-for-using-the-application) to set the Docker Engine service, MongoDB service and AWS S3 service.
 
 ## Installation Instruction from Project GitHub Folder
 

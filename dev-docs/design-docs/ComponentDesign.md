@@ -61,14 +61,16 @@ These methods manage the execution flow of pipelines based on the provided conte
 - The next step is check if there is any overrides, and apply the overrides using the `apply_overrides()` method from common_utils module.
 - Then it will validate and save the updated pipeline configuration using `validate_n_save_config()` method
 - If dry-run flag is provided, it will call the `dry_run()` function to print out the example dry_run sequence.
-- For actual run, the private method `\_actual_pipeline_run()` will be called.
+- For actual run, the private method `_actual_pipeline_run()` will be called.
 - A MongoAdapter class object (mongo_ds) will be used to interact with the MongoDB service.
 
 #### `dry_run()`
 
-AR: Jason to add
+- `dry_run()` method is simply reading the configuration file that is converted into `dict` type (in our case, `OrderedDict`) to preserve the steps order of execution and then print it to the console
+- this uses the `common_utils.DryRun` class that returns a string when called. This functions are `get_plaintext_format` and `get_yaml_format()`
+- controller return the `dry_run_msg` to the cli and display it to user.
 
-#### `\_actual_pipeline_run()`
+#### `_actual_pipeline_run()`
 
 - This method performs actual run of the pipeline when called. Refer to the sequence diagram for illustration of flow.
 - It requires 3 arguments,
@@ -103,9 +105,12 @@ These methods handle pipeline configuration files, either individually or for an
   - An optional saving flag can be used to save all pipeline configuration into the datastore.
   - The validation process will not stop when validation fail for a single pipeline configuration, it will continue until all pipelines are validated.
 
-#### `pipeline_history()`
-
-AR: Jason to add
+#### pipeline_history()
+- `pipeline_history()` receives user query to retrieve pipeline report they have previously done using `cid pipeline run`. This function receives one argument:
+  - `PipelineHist` is a Pydantic Model that contains repo_name, pipeline_name, run number, etc.
+- Given the flags given by the user, it will go to the conditional statement (L4.1 Show all Summary, L4.2 pipeline Run Summary, L4.3 Show Stage Summary, L4.4 Show Job Summary)
+  - based on the number of arguments given (ex `pipeline_name, repo, job_name, stage_name`) retrieve the data in Mongo using `mongo.get_pipeline_run_summary()`
+- return the string of the output message by calling a helper function called `PipelineReport.print_job_summary()`
 
 ## Util Package
 
