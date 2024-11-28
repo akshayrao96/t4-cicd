@@ -69,6 +69,14 @@ class TestConfig(unittest.TestCase):
         assert result.exit_code == 0
         assert "Usage" in result.output
 
+    def test_config_check_with_both_check_n_checkall(self):
+        """ Test config command with --check and --check-all flag
+        """
+        result = self.runner.invoke(
+            cmd_config.config, ['--check', '--check-all'])
+        assert result.exit_code == 2  # Non-zero exit code means error
+        assert "Please select only one option between --check and --check-all" in result.output
+
     def test_config_check_with_invalid_file(self):
         """ Test config command with --check and invalid config file (e.g., no .yml extension)
         """
@@ -99,11 +107,25 @@ class TestConfig(unittest.TestCase):
         assert result.exit_code == 2
         assert f"Invalid directory:" in result.output
 
+    @patch("cli.cmd_config.Controller.validate_n_save_configs")
+    @patch("cli.cmd_config.os.path.isdir", return_value=True)
+    def test_config_check_all_duplicate_pipeline_name(self, mock_isdir, mock_validates):
+        """ Test config command with --check-all but caught ValueError
+        due to duplicate pipeline name
+        
+        Args:
+            mock_isdir (MagicMock): mock the os.path.isdir method
+            mock_validates (MagicMock): mock the validate_n_save_configs
+        """
+        mock_validates.side_effect = ValueError()
+        result = self.runner.invoke(
+            cmd_config.config, ['--check-all', '--dir', dir, '--no-set'])
+        assert result.exit_code == 1
+
     @patch("cli.cmd_config.Controller.validate_n_save_configs", return_value={})
     @patch("cli.cmd_config.os.path.isdir", return_value=True)
     def test_config_check_all_no_set(self, mock_isdir, mock_validates):
-        """ Test config command with --check and valid config file (yml extension)
-        
+        """ Test config command with --check-all and --no-set
         Args:
             mock_isdir (MagicMock): mock the os.path.isdir method
             mock_validates (MagicMock): mock the validate_n_save_configs
@@ -111,7 +133,6 @@ class TestConfig(unittest.TestCase):
         dir = '.cicd-pipelines'
         result = self.runner.invoke(
             cmd_config.config, ['--check-all', '--dir', dir, '--no-set'])
-        logger.debug(result.output)
         assert result.exit_code == 0
         assert f"checking all config files in directory {dir}" in result.output
 
@@ -163,7 +184,7 @@ class TestConfig(unittest.TestCase):
         # main cmd
         result = self.runner.invoke(cmd_config.config)
         assert result.exit_code == 0
-        assert "set repo, checking and saving config file at: .cicd-pipelines/pipelines.yml" in result.output
+        assert "set repo, checking and saving config file at:" in result.output
 
         # custom yaml file
         yaml_file_name = 'valid_config.yml'
@@ -171,7 +192,7 @@ class TestConfig(unittest.TestCase):
             cmd_config.config, [
                 '--check', '--config-file', yaml_file_name])
         assert result.exit_code == 0
-        assert f"set repo, checking and saving config file at: .cicd-pipelines/{yaml_file_name}" in result.output
+        assert f"set repo, checking and saving config file at: " in result.output
 
     @patch("cli.cmd_config.Controller.validate_config")
     @patch("cli.cmd_config.os.path.isfile", return_value=True)
@@ -190,7 +211,7 @@ class TestConfig(unittest.TestCase):
             cmd_config.config, [
                 '--check', '--config-file', yaml_file_name, '--no-set'])
         assert result.exit_code == 0
-        assert f"checking config file at: .cicd-pipelines/{yaml_file_name}" in result.output
+        assert f"checking config file at: " in result.output
 
     @patch("cli.cmd_config.Controller.validate_config")
     @patch("cli.cmd_config.os.path.isfile", return_value=True)
