@@ -1,4 +1,4 @@
-""" Module to manage upload files to aws s3
+""" Module to manage file uploads to AWS S3.
 """
 import os
 import boto3
@@ -7,7 +7,10 @@ from util.common_utils import (get_env, get_logger)
 import util.constant as c
 
 env = get_env()
+"""Environment variables"""
 logger = get_logger("util.db_artifact")
+"""Logger instance for logging messages"""
+
 # pylint: disable=logging-fstring-interpolation
 # pylint: disable=too-few-public-methods
 class S3Client:

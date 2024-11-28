@@ -1,4 +1,6 @@
-""" All related commands for pipeline actions """
+"""
+Module providing CLI commands for pipeline actions.
+"""
 # pylint: disable=logging-fstring-interpolation
 import sys
 import json
@@ -9,10 +11,11 @@ from util.model import (PipelineHist)
 from controller.controller import (Controller)
 import util.constant as c
 logger = get_logger('cli.cmd_pipeline')
+"""Logger instance for logging messages"""
 
 @click.group()
 def pipeline():
-    """All commands related to pipeline"""
+    """CLI command group for pipeline-related actions."""
 
 @pipeline.command()
 @click.pass_context
@@ -31,24 +34,25 @@ process', is_flag=True)
               help="Override configuration in 'key=value' format")
 def run(ctx, file_path:str, pipeline_name:str, repo:str, branch:str, commit:str, local:bool,
         dry_run:bool, yaml_output:bool, overrides):
-    """ Run pipeline given the configuration file. Base command is cid pipeline run, this will
-    run the pipeline specified in .cicd-pipelines/pipelines.yml for current repository or 
+    """ Run pipeline given the configuration file. The base command cid pipeline run
+    runs the pipeline defined in .cicd-pipelines/pipelines.yml for the current repository or a
     previously set repository. 
     
     To change the target repository, branch, commit, target pipeline by name / file path, 
     use the corresponding options. \f
     
     Args: 
-        file_path (str, optional): configuration file name. 
+        file_path (str, optional): configuration file name. \
         Default to .cicd-pipelines/pipelines.yml.
         pipeline_name (str, optional): target pipeline name. Default to None.
-        repo (str, optional): repository url or local directory path. 
+        repo (str, optional): repository url or local directory path. \
         Default to current working directory ('./').
         branch (str, optional): branch name of the repository. Default to main.
         commit (str, optional): specific commit hash. Default to the latest (HEAD).
         local (bool, optional): If True, execute pipeline locally. Default False.
         dry_run (bool, optional): If True, plan the pipeline without creating. Default False.
-        yaml (bool, optional): If True, print output in yaml format. Default False.
+        yaml_output (bool, optional): If True, print output in yaml format. Default False.
+        overrides (tuple, optional): Override configuration in 'key=value' format. Default None.
     """
     source_pipeline = ctx.get_parameter_source("pipeline_name")
     filepath_pipeline = ctx.get_parameter_source("file_path")
@@ -112,7 +116,7 @@ default stages options: [build, test, doc, deploy]')
 @click.option('-r', '--run', 'run_number', default=None, help='run number to get the report')
 def report(repo_url:str, local:bool, pipeline_name:str, stage:str,
            job:str, run_number:int):
-    """Report pipeline provides user to retrieve the pipeline history.
+    """Retrieve the pipeline history and generate detailed reports.
     if --repo is not specified, it will default to the current repo\f
     Example of basic usage:
       cid pipeline report [--repo REPO_URL] | list all report for a repository

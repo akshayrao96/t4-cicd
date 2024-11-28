@@ -1,4 +1,5 @@
-""" Manage connection to MongoDB, and provides functions for relevent CRUD operation
+"""
+Module for managing MongoDB connections and performing CRUD operations.
 """
 import copy
 import time
@@ -10,19 +11,25 @@ from util.model import (PipelineInfo, RepoConfig)
 import util.constant as c
 
 env = get_env()
+"""Environment variables"""
 logger = get_logger("util.db_mongo")
+"""Logger instance for logging messages"""
 # pylint: disable=logging-fstring-interpolation
 # pylint: disable=fixme
 
 class MongoAdapter:
-    """ Adapter class to provide standardize queries to mongo db
+    """Adapter class to provide standardized queries to MongoDB.
+
+    Attributes:
+        mongo_uri (str): The URI of the MongoDB instance. Fetched from the 
+            environment variable MONGO_DB_URL. Defaults to an empty string 
+            if the variable is not set.
     """
 
     def __init__(self):
         """ Default Constructor
         """
         # store the mongoDB url in bash rc file. Using atlas for this.
-        # self.mongo_uri = os.getenv('MONGO_DB_URL')
         self.mongo_uri = env['MONGO_DB_URL'] if 'MONGO_DB_URL' in env else ""
 
     def _insert(self, data: dict, db_name: str, collection_name: str) -> str:
@@ -123,8 +130,7 @@ class MongoAdapter:
         """ Retrieve the first found record based on given query dictionary
 
         Args:
-            query (dict): query filter parameters (key=value pair). Empty dict
-            will retrieve all documents
+            query (dict): query filter parameters (key=value pair). Empty dict will retrieve all documents
             db_name (str): database to be searched into
             collection_name (str): collection(table) to be searched into
 
@@ -164,11 +170,12 @@ class MongoAdapter:
             collection_name: str = c.MONGO_PIPELINES_TABLE) -> bool:
         """ Insert a new repository record with corresponding pipelines configuration info. 
         into the repo_configs table. 
-        If the repository with the primary keys (repo_name, url, branch) already exists, 
-        will update instead
+        If a repository with the same primary keys (repo_name, url, branch) already exists, 
+        the method updates the record instead.
 
         Args:
-            pipeline_history (dict): dictionary of the history record in key=value pairs
+            repo_config (RepoConfig): An object containing repository and pipeline\
+            configuration details to be saved.
             db_name (str, optional): database to be inserted into. Defaults to MONGO_DB_NAME.
             collection_name (str, optional): collection(table) to be inserted into.
                 Defaults to MONGO_PIPELINES_TABLE.
