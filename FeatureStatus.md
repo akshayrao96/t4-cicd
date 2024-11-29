@@ -37,7 +37,6 @@ The tool is packaged into a single binary, with a CLI offering documentation.
 | L4.2   | Pipeline Run Summary             | Retrieve detailed summaries of individual pipeline runs.                                              | Fully implemented. |
 | L4.3   | Stage Summary                    | Retrieve stage summaries for a specific pipeline run.                                                 | Fully implemented. |
 | L4.4   | Job Summary                      | Retrieve job summaries for a specific stage and pipeline run.                                         | Fully implemented. |
-
 | L6 | Run Pipeline | CLI supports running pipelines with options for repo, branch, commit, and overrides. | Fully implemented. |
 | L6.1 | Config File Key Overrides | CLI allows overrides for specific keys in the configuration file. | Fully implemented. |
 
