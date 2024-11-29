@@ -1,7 +1,6 @@
 """
 Common model class based on pydantic for easier validation and formating. 
 """
-
 import time
 from collections import OrderedDict
 from typing import (Dict, Optional, Union)
