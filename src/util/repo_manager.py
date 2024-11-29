@@ -451,10 +451,12 @@ class RepoManager:
                 # repo.commit()
                 try:
                     repo.commit(commit_hash)
-                commit_hashes = [
-                    commit.hexsha for commit in repo.iter_commits(branch)]
-                if commit_hash not in commit_hashes:
+                except GitCommandError as e:
                     return False, f"Commit '{commit_hash}' does not exist on local branch '{branch}'."
+                # commit_hashes = [
+                #     commit.hexsha for commit in repo.iter_commits(branch)]
+                # if commit_hash not in commit_hashes:
+                #     return False, f"Commit '{commit_hash}' does not exist on local branch '{branch}'."
                 # Checkout the specified commit in detached stage
                 repo.git.checkout(commit_hash)
             return True, f"Checked out to commit '{commit_hash}' on branch '{branch}'."
