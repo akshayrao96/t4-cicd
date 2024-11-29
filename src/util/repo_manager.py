@@ -13,7 +13,7 @@ from util.common_utils import get_logger
 import util.constant as c
 
 logger = get_logger(logger_name='util.repo_manager')
-
+"""Logger instance for logging messages"""
 
 class RepoManager:
     """
@@ -311,7 +311,7 @@ class RepoManager:
         Retrieves details of the current or specified Git repository.
 
         Args:
-            repo_path (Path, optional): Path to the repository.
+            repo_path (Path, optional): Path to the repository.\
             Defaults to the current working directory.
 
         Returns:
@@ -429,7 +429,7 @@ class RepoManager:
             self, repo: Repo, branch: str, commit_hash: str) -> tuple[bool, str]:
         """
         Validates and checks out the specified commit on the given branch.
-        Defaults to the latest commit if `commit_hash` is None.
+        Defaults to the latest commit if commit_hash is None.
 
         Args:
             repo (Repo): The Git repository object.

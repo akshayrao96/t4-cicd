@@ -1,6 +1,7 @@
-""" All related commands for config actions
 """
-# pylint: disable=logging-fstring-interpolation
+Module providing CLI commands for managing and validating pipeline configurations.
+"""
+
 import os
 import pprint
 import sys
@@ -10,7 +11,7 @@ from controller.controller import Controller
 import util.constant as c
 
 logger = get_logger('cli.cmd_config')
-
+"""Logger instance for logging messages"""
 
 @click.group(invoke_without_command=True)
 @click.pass_context
@@ -33,7 +34,7 @@ logger = get_logger('cli.cmd_config')
 @click.option('--json', is_flag=True, help="output in json format")
 def config(ctx, check: bool, check_all: bool, no_set: bool, config_file: str, dir: str, json:bool):
     """
-    Command working with pipeline and repo configurations
+    CLI command group for managing pipeline and repository configurations.
 
     This command allows you to manage and validate configuration files used in 
     pipeline executions. You can run this to check the configuration files in 
@@ -188,39 +189,39 @@ def set_repo(repo_url: str, branch: str, commit: str) -> None:
        and optionally checks out the specified branch and commit. The current directory
        must be empty for this operation to succeed.
 
-       Behavior:
-           - The repository is cloned into the PWD.
-           - If `--branch` is provided, the specified branch is checked out (default: 'main').
-           - If `--commit` is provided, the specified commit is checked out. If not provided,
-             the latest commit on the branch is used.
-           - If the current directory is not empty, the operation will fail with an error message.
+        Args:
+            repo_url (str): The URL or path of the repository to be cloned.
+            branch (str, optional): The branch to retrieve. Defaults to 'main'.
+            commit (str, optional): The commit hash to retrieve. Defaults to the latest commit.
+            
+        Behavior:
+            - The repository is cloned into the PWD.
+            - If --branch is provided, the specified branch is checked out (default: 'main').
+            - If --commit is provided, the specified commit is checked out. If not provided,
+            the latest commit on the branch is used.
+            - If the current directory is not empty, the operation will fail with an error message.
 
-       Output:
-           - On success:
-               * Displays the repository details (URL, branch, and commit hash).
-           - On failure:
-               * Displays an error message indicating the reason for failure.
+        Output:
+            - On success:
+                * Displays the repository details (URL, branch, and commit hash).
+            - On failure:
+                * Displays an error message indicating the reason for failure.
 
-       Args:
-           repo_url (str): The URL or path of the repository to be cloned.
-           branch (str): The branch to retrieve (optional; defaults to 'main').
-           commit (str): The commit hash to retrieve (optional; defaults to the latest commit).
+        Example Usage:
+            - Clone a repository with the default branch (main) and latest commit:
+                $ cid config set-repo https://github.com/example/repo.git
 
-       Example Usage:
-           - Clone a repository with the default branch (`main`) and latest commit:
-               $ cid config set-repo https://github.com/example/repo.git
+            - Clone a repository and checkout a specific branch:
+                $ cid config set-repo https://github.com/example/repo.git --branch feature-branch
 
-           - Clone a repository and checkout a specific branch:
-               $ cid config set-repo https://github.com/example/repo.git --branch feature-branch
+            - Clone a repository and checkout a specific branch and commit:
+                $ cid config set-repo https://github.com/example/repo.git
+                --branch feature-branch --commit abc123
 
-           - Clone a repository and checkout a specific branch and commit:
-               $ cid config set-repo https://github.com/example/repo.git
-               --branch feature-branch --commit abc123
-
-       Notes:
-           - Ensure the current directory is empty before running this command.
-           - The `repo_url` argument is mandatory.
-       """
+        Notes:
+            - Ensure the current directory is empty before running this command.
+            - The repo_url argument is mandatory.
+        """
 
     # Checks if user has not given a repo. Return to user error, terminate
     if not repo_url:
@@ -257,18 +258,18 @@ def set_repo(repo_url: str, branch: str, commit: str) -> None:
 @config.command()
 def get_repo():
     """
-    Display information about the currently configured repository.
+    CLI command to display details of the currently configured repository.
 
     This command retrieves and displays details of the currently configured Git repository,
     either from the current working directory if it is a Git repository, or from the last
     set repository stored in the system.
 
     Behavior:
-        - If the current directory is a Git repository, it displays the URL, branch, 
-        and latest commit hash.
-        - If the current directory is not a Git repository but a previous repository configuration 
-        exists, it retrieves and displays details of the last configured repository.
-        - If no repository is configured, it provides guidance for setting a repository.
+        - If the current directory is a Git repository, it displays the URL,
+        branch, and latest commit hash
+        - If the current directory is not a Git repository but a previous repository configuration
+        exists, it retrieves and displays details of the last configured repository
+        - If no repository is configured, it provides guidance for setting a repository
 
     Output:
         Information about the repository is displayed in the console, including:
@@ -308,9 +309,11 @@ def get_repo():
 @click.option('--json', is_flag=True, help="output in json format")
 def override(pipeline, overrides, save, json):
     """
-    Apply configuration overrides to a pipeline configuration stored in the database, 
-    check the validation result. 
-    Override configurations in 'key=value' format. Multiple overrides can be provided.
+    CLI command to apply overrides to a pipeline configuration.
+    
+    This command validates and applies configuration overrides to an existing pipeline
+    stored in the datastore. Overrides are specified in 'key=value' format and can be saved
+    back to the datastore if needed.
 
     Example usage:
         cid config override --pipeline pipeline_name --override "global.docker.image=gradle:jdk8"

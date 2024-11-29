@@ -1,6 +1,9 @@
-"""This is Controller class that integrates the CLI with the other class components
-    such as DataStore, Docker, Config file validation (ConfigChecker), and
-    other related class.
+"""
+The Controller class integrates the CLI with backend components such as 
+DataStore (MongoDB), Docker operations, configuration validation, and 
+other utility classes. It manages repository setup, pipeline execution, 
+and configuration validation, serving as the core coordination layer 
+for the CI/CD workflow.
 """
 
 from datetime import datetime
@@ -8,7 +11,6 @@ import copy
 import os
 import time
 from pathlib import Path
-
 import click
 from docker.errors import DockerException
 from pydantic import ValidationError
@@ -24,12 +26,15 @@ from util.db_mongo import (MongoAdapter)
 from util.yaml_parser import YamlParser
 from util.config_tools import (ConfigChecker)
 
-# pylint: disable=logging-fstring-interpolation
-# pylint: disable=logging-not-lazy
-
-
 class Controller:
-    """Controller class that integrates the CLI with the other class components"""
+    """Controller class that integrates the CLI with the other class components
+    
+        Attributes:
+            repo_manager (RepoManager): Manages Git repository operations.
+            mongo_ds (MongoAdapter): Provides methods for MongoDB CRUD operations.
+            config_checker (ConfigChecker): Validates pipeline configuration files.
+            logger: Logs messages for debugging and monitoring.
+    """
 
     def __init__(self):
         """Initialize the controller class
@@ -80,7 +85,7 @@ class Controller:
         Args:
             repo_url (str): URL of the Git repository to configure.
             branch (str, optional): The branch to use, defaults to 'main'.
-            commit_hash (str, optional): Specific commit hash to check out,
+            commit_hash (str, optional): Specific commit hash to check out,\
             defaults to the latest commit.
 
         Returns:
@@ -296,8 +301,7 @@ class Controller:
 
         Args:
             directory (str): valid directory containing pipeline configuration
-            saving (optional, bool): whether to save the result to db.
-            Default to True
+            saving (optional, bool): whether to save the result to db. Default to True
 
         Raises:
             FileNotFoundError: if the directory does not exist
@@ -343,9 +347,15 @@ class Controller:
         override_configs: dict = None,
         session_data: SessionDetail = None,
     ) -> tuple[bool, str, PipelineInfo]:
-        """ apply overrides if any, validate config, and save the config into datastore.
-        The pipeline configuration can come from three sources: (1) file_name,
-        (2) pipeline_name
+        """
+        Validate a pipeline configuration, optionally apply overrides, and save it to the datastore.
+
+        This method validates a pipeline configuration from one of the following sources:
+        1. A YAML file specified by file_name.
+        2. A pipeline name (pipeline_name) stored in the default directory.
+
+        Optionally, overrides can be applied to the configuration before validation. 
+        If validation succeeds, the validated configuration is saved to the datastore.
 
         Args:
             file_name (str, optional): target file_name. Defaults to None.
@@ -401,10 +411,17 @@ class Controller:
                         pipeline_name: str = None,
                         override_configs: dict = None
                         ) -> tuple[bool, str, PipelineInfo]:
-        """ Apply override if any and Validate a single configuration file.
-        The pipeline configuration can come from three sources: (1) file_name,
-        (2) pipeline_name and (3) any pipeline_configuration
+        """
+        Validate a single pipeline configuration file and apply overrides if provided.
+        
+        This method validates a pipeline configuration retrieved from one of the following sources:
+        1. A YAML file specified by file_name
+        2. A pipeline name (pipeline_name)
+        3. Any pipeline_configuration
 
+        Unlike `validate_n_save_config`, this method focuses solely on validation and 
+        does not save the configuration to the datastore.
+        
         Args:
             file_name (str, optional): target file_name. Defaults to None.
             pipeline_name (str, optional): target pipeline_name. Defaults to None.
@@ -784,13 +801,13 @@ class Controller:
         run_msg = f"run_number:{run_number}" if pipeline_pass else ""
         return pipeline_pass, run_msg
 
-    def dry_run(self, config_dict: dict, is_yaml_output: bool) -> tuple[bool, str]:
-        """dry run methods responsible for the `--dry-run` method for pipelines.
+    def dry_run(self, config_dict: dict, is_yaml_output:bool) -> tuple[bool, str]:
+        """dry run methods responsible for the --dry-run method for pipelines.
+
         The function will retrieve any pipeline history from database, then validate
         the configuration file (check hash_commit), and then perform the dry_run
 
         Args:
-            status (bool): _description_
             config_dict (dict): _description_
             is_yaml_output (bool): _description_
 

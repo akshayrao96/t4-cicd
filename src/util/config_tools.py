@@ -1,15 +1,14 @@
-""" config_tools module provide all class and method required to further 
-validate and process the content of pipeline_configuration 
 """
+Provides all classes and methods to validate and process pipeline configurations.
+"""
+
 import collections
 import util.constant as c
 from util.model import (ValidationResult)
 from util.common_utils import (get_logger, UnionFind, TopoSort)
 
 logger = get_logger("util.config_tools")
-
-# pylint: disable=logging-fstring-interpolation
-# pylint: disable=too-few-public-methods
+"""Logger instance for logging messages"""
 
 class ConfigChecker:
     """ ConfigChecker class performing validation and processing for 
