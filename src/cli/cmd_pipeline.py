@@ -1,5 +1,7 @@
-""" All related commands for pipeline actions """
-# pylint: disable=logging-fstring-interpolation
+"""
+Module providing CLI commands for pipeline actions.
+"""
+
 import os
 import sys
 import json
@@ -114,7 +116,7 @@ def run(ctx, file_path: str, pipeline_name: str, repo: str, branch: str, commit:
         yaml_output=yaml_output,
         override_configs=overrides)
 
-    logger.debug(f"pipeline run status: {status}, ")
+    logger.debug("pipeline run status: %s, ", status)
     if status:
         click.secho(f"{message}", fg='green')
     else:
@@ -201,4 +203,4 @@ def report(repo_url: str, local: bool, pipeline_name: str, stage: str,
         click.secho(resp_message, fg='red')
         sys.exit(1)
 
-    click.secho(resp_message, fg='green')
+    click.secho(resp_message)

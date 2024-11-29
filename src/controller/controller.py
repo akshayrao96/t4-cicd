@@ -287,7 +287,7 @@ class Controller:
 
             except ValidationError as e:
                 self.logger.warning(
-                    f"Failed to convert last_repo to SessionDetail: {e}")
+                    "Failed to convert last_repo to SessionDetail: %s", e)
                 return False, "Failed to convert last repository to SessionDetail.", None
 
         # No repository information available
@@ -436,7 +436,7 @@ class Controller:
             except (ValueError, FileNotFoundError) as fe:
                 # if 'pipeline' name could not be located, return False and error message
                 self.logger.error(
-                    f"error in extracting from pipeline_name, {fe}")
+                    "error in extracting from pipeline_name, %s", fe)
                 return False, str(fe), None
         else:
             try:
@@ -447,7 +447,7 @@ class Controller:
                 pipeline_file_name = os.path.basename(file_name)
             except (FileNotFoundError, YAMLError) as e:
                 # if cannot extract content, return False and error message
-                self.logger.error(f"error in extracting from file_name, {e}")
+                self.logger.error("error in extracting from file_name, %s", e)
                 return False, str(e), None
 
         # Process Override if have.
@@ -574,7 +574,7 @@ class Controller:
         # Step 5: check if pipeline is running dry-run or not
         if dry_run:
             status, dry_run_msg = self.dry_run(config_dict, yaml_output)
-            self.logger.debug(f"dry run status:{status}, {dry_run_msg}")
+            self.logger.debug("dry run status: %s, %s", status, dry_run_msg)
             return status, dry_run_msg
 
         # Step 6: Actual Pipeline Run
@@ -638,8 +638,11 @@ class Controller:
         try:
             his_obj = PipelineInfo.model_validate(pipeline_history)
         except ValidationError as ve:
-            self.logger.warning(f"validation error for pipeline_history:{pipeline_history}" +
-                                f"error is {ve}")
+            self.logger.warning(
+                "Validation error for pipeline_history: %s error is %s",
+                pipeline_history,
+                ve
+            )
             return False, "Fail to retrieve pipeline history"
 
         # Early return if pipeline already running
@@ -786,7 +789,7 @@ class Controller:
             )
             if not update_success:
                 click.secho(
-                    f"Failed to update pipeline status, please do manual update\n", fg="red")
+                    "Failed to update pipeline status, please do manual update\n", fg="red")
             docker_manager.remove_vol()
         pipeline_pass = pipeline_status == c.STATUS_SUCCESS
         run_msg = f"run_number:{run_number}" if pipeline_pass else ""
@@ -840,7 +843,8 @@ class Controller:
             # L4.2 Show pipeline run summary
             if not stage and not job:
                 history = self.mongo_ds.get_pipeline_run_summary(repo_url,
-                                                                 pipeline_name, run_number=run_number)
+                                                                pipeline_name,
+                                                                run_number=run_number)
                 report = PipelineReport(history)
                 output_msg = report.print_pipeline_summary()
             else:
@@ -852,21 +856,24 @@ class Controller:
                 if not job:
                     # run_number by default is None. if not defined, it will query all runs
                     history = self.mongo_ds.get_pipeline_run_summary(repo_url, pipeline_name,
-                                                                     stage_name=stage, run_number=run_number)
+                                                                     stage_name=stage,
+                                                                     run_number=run_number)
                     report = PipelineReport(history)
                     output_msg = report.print_stage_summary()
 
                 # L4.4 Show Job Summary
                 else:
                     history = self.mongo_ds.get_pipeline_run_summary(repo_url,
-                                                                     pipeline_name, stage_name=stage, job_name=job,
+                                                                     pipeline_name,
+                                                                     stage_name=stage,
+                                                                     job_name=job,
                                                                      run_number=run_number)
                     report = PipelineReport(history)
                     output_msg = report.print_job_summary()
         except IndexError as ie:
-            self.logger.warning(f"job_number is out of bound. error: {ie}")
+            self.logger.warning("job_number is out of bound. error: %s", ie)
             is_success = False
-            err_msg = f"No Report found on database for {
+            err_msg = f"No Report found on database for {\
                 repo_url}\nPlease ensure you have valid"
             err_msg += " flags (--pipeline, --run, and/or --repo) and execute cid pipeline run"
             err_msg += " to generate pipeline report."
