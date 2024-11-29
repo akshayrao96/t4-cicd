@@ -216,6 +216,7 @@ class Controller:
         except ValidationError as e:
             return False, f"Data validation error: {e}", None
         except Exception as e:
+            self.logger.warning(e)
             return False, f"Unexpected error: {e}", None
 
     def get_repo(self) -> tuple[bool, str, SessionDetail | None]:

@@ -449,8 +449,8 @@ class RepoManager:
                 # Only checkout specific commit if it is not equal to head.
                 # Ensure the commit exists on the branch
                 # repo.commit()
-                # try:
-                repo.commit(commit_hash)
+                try:
+                    repo.commit(commit_hash)
                 commit_hashes = [
                     commit.hexsha for commit in repo.iter_commits(branch)]
                 if commit_hash not in commit_hashes:
