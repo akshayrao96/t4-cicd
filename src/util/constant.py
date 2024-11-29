@@ -1,4 +1,4 @@
-""" Constants that will be used within this program.
+""" Constants that will be used within this program
 """
 
 # MongoDB Database and Collections
