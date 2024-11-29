@@ -627,13 +627,15 @@ class PipelineReport:
         """
         output_msg = ""
         for pipeline in self.pipeline_data:
+            output_msg += "\n"
             output_msg += f"Pipeline Name: {pipeline[c.FIELD_PIPELINE_NAME]}\n"
+            output_msg += f"Branch Name: {pipeline[c.FIELD_BRANCH]}\n"
             output_msg += f"Run Number: {pipeline[c.FIELD_RUN_NUMBER]}\n"
-            output_msg += f"Git Commit Hash: {
+            output_msg += f"Git Commit Hash: {\
                 pipeline[c.FIELD_GIT_COMMIT_HASH]}\n"
             output_msg += f"Status: {pipeline[c.FIELD_STATUS]}\n"
             output_msg += f"Start Time: {pipeline[c.FIELD_START_TIME]}\n"
-            output_msg += f"Completion Time: {
+            output_msg += f"Completion Time: {\
                 pipeline[c.FIELD_COMPLETION_TIME]}\n"
 
             logs = pipeline.get(c.FIELD_LOGS, [])
@@ -643,7 +645,7 @@ class PipelineReport:
                 output_msg += f"  Stage Name: {log[c.FIELD_STAGE_NAME]}\n"
                 output_msg += f"  Status: {log[c.FIELD_STAGE_STATUS]}\n"
                 output_msg += f"  Start Time: {pipeline[c.FIELD_START_TIME]}\n"
-                output_msg += f"  Completion Time: {
+                output_msg += f"  Completion Time: {\
                     pipeline[c.FIELD_COMPLETION_TIME]}\n\n"
         return output_msg
 
@@ -657,10 +659,10 @@ class PipelineReport:
         output_msg = ""
         for pipeline in self.pipeline_data:
             for log in pipeline.get(c.FIELD_LOGS, []):
-                output_msg += f"Pipeline Name: {
+                output_msg += f"Pipeline Name: {\
                     pipeline[c.FIELD_PIPELINE_NAME]}\n"
                 output_msg += f"Run Number: {pipeline[c.FIELD_RUN_NUMBER]}\n"
-                output_msg += f"Git Commit Hash: {
+                output_msg += f"Git Commit Hash: {\
                     pipeline[c.FIELD_GIT_COMMIT_HASH]}\n"
                 output_msg += f"Stage Name: {log[c.FIELD_STAGE_NAME]}\n"
                 output_msg += f"Stage Status: {log[c.FIELD_STAGE_STATUS]}\n"
@@ -670,13 +672,13 @@ class PipelineReport:
                     output_msg += "Jobs:\n"
                 for job in jobs:
                     output_msg += f"  Job Name: {job[c.FIELD_JOB_NAME]}\n"
-                    output_msg += f"    Job Status: {
+                    output_msg += f"    Job Status: {\
                         job[c.FIELD_JOB_STATUS]}\n"
-                    output_msg += f"    Allows Failure: {
+                    output_msg += f"    Allows Failure: {\
                         job[c.FIELD_JOB_ALLOW_FAILURE]}\n"
-                    output_msg += f"    Start Time: {
+                    output_msg += f"    Start Time: {\
                         job[c.FIELD_START_TIME]}\n"
-                    output_msg += f"    Completion Time: {
+                    output_msg += f"    Completion Time: {\
                         job[c.FIELD_COMPLETION_TIME]}\n\n"
         return output_msg
 
@@ -690,19 +692,19 @@ class PipelineReport:
         for pipeline in self.pipeline_data:
             for log in pipeline.get(c.FIELD_LOGS, []):
                 for job in log.get(c.FIELD_JOBS, []):
-                    output_msg += f"Pipeline Name: {
+                    output_msg += f"Pipeline Name: {\
                         pipeline[c.FIELD_PIPELINE_NAME]}\n"
-                    output_msg += f"Run Number: {
+                    output_msg += f"Run Number: {\
                         pipeline[c.FIELD_RUN_NUMBER]}\n"
-                    output_msg += f"Git Commit Hash: {
+                    output_msg += f"Git Commit Hash: {\
                         pipeline[c.FIELD_GIT_COMMIT_HASH]}\n"
                     output_msg += f"Stage Name: {log[c.FIELD_STAGE_NAME]}\n"
                     output_msg += f"Job Name: {job[c.FIELD_JOB_NAME]}\n"
                     output_msg += f"Job Status: {job[c.FIELD_JOB_STATUS]}\n"
-                    output_msg += f"Allows Failure: {
+                    output_msg += f"Allows Failure: {\
                         job[c.FIELD_JOB_ALLOW_FAILURE]}\n"
                     output_msg += f"Start Time: {job[c.FIELD_START_TIME]}\n"
-                    output_msg += f"Completion Time: {
+                    output_msg += f"Completion Time: {\
                         job[c.FIELD_COMPLETION_TIME]}\n\n"
 
         return output_msg

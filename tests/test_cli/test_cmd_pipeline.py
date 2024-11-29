@@ -350,17 +350,17 @@ class TestPipelineHistory(TestCase):
 
         mock_pipeline_summary.return_value = [
             {c.FIELD_ID: ObjectId('673139d61c77e7e99afd88ce'), c.FIELD_PIPELINE_NAME: 'cicd_pipeline',
-             c.FIELD_RUN_NUMBER: 1, c.FIELD_GIT_COMMIT_HASH: '16adc46',
+             c.FIELD_BRANCH: 'main', c.FIELD_RUN_NUMBER: 1, c.FIELD_GIT_COMMIT_HASH: '16adc46',
              c.FIELD_STATUS: c.STATUS_SUCCESS,
              c.FIELD_START_TIME: 'Sun Nov 10 17:33:33 2024', c.FIELD_COMPLETION_TIME:
              'Sun Nov 10 17:33:48 2024'},
             {c.FIELD_ID: ObjectId('673139d61c77e7e99afd88ce'), c.FIELD_PIPELINE_NAME: 'cicd_pipeline2',
-                c.FIELD_RUN_NUMBER: 1, c.FIELD_GIT_COMMIT_HASH: '16adc46',
+                c.FIELD_BRANCH: 'main', c.FIELD_RUN_NUMBER: 1, c.FIELD_GIT_COMMIT_HASH: '16adc46',
                 c.FIELD_STATUS: c.STATUS_SUCCESS,
                 c.FIELD_START_TIME: 'Tue Nov 12 15:25:11 2024',
                 c.FIELD_COMPLETION_TIME: 'Tue Nov 12 15:25:26 2024'},
             {c.FIELD_ID: ObjectId('673139d61c77e7e99afd88ce'),
-                c.FIELD_PIPELINE_NAME: 'cicd_pipeline2',
+                c.FIELD_PIPELINE_NAME: 'cicd_pipeline2', c.FIELD_BRANCH: 'main', 
                 c.FIELD_RUN_NUMBER: 2, c.FIELD_GIT_COMMIT_HASH: '16adc46',
                 c.FIELD_STATUS: c.STATUS_SUCCESS, c.FIELD_START_TIME:
                 'Tue Nov 12 18:26:15 2024', c.FIELD_COMPLETION_TIME: 'Tue Nov 12 18:26:30 2024'}]
