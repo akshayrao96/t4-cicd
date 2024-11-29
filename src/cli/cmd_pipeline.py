@@ -44,7 +44,8 @@ def run(ctx, file_path: str, pipeline_name: str, repo: str, branch: str, commit:
     To change the target repository, branch, commit, target pipeline by name / file path, 
     use the corresponding options. \f
 
-    Args: 
+    Args:
+        ctx (Context): click context
         file_path (str, optional): configuration file name. 
         Default to .cicd-pipelines/pipelines.yml.
         pipeline_name (str, optional): target pipeline name. Default to None.
@@ -54,7 +55,8 @@ def run(ctx, file_path: str, pipeline_name: str, repo: str, branch: str, commit:
         commit (str, optional): specific commit hash. Default to the latest (HEAD).
         local (bool, optional): If True, execute pipeline locally. Default False.
         dry_run (bool, optional): If True, plan the pipeline without creating. Default False.
-        yaml (bool, optional): If True, print output in yaml format. Default False.
+        yaml_output (bool, optional): If True, print output in yaml format. Default False.
+        overrides (any, optional): override key/value of the config file for this run only.
     """
     source_pipeline = ctx.get_parameter_source("pipeline_name")
     filepath_pipeline = ctx.get_parameter_source("file_path")
