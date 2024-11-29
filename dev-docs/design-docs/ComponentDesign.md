@@ -25,6 +25,7 @@ The controller has the following main methods as shown in the UML diagram, they 
 These methods manage repository operations based on the context and input provided through the CLI.
 
 `handle_repo()`: Determines which operation to execute:
+
 - If --repo is provided, calls `set_repo()` to clone the repository.
 - If branch/commit is provided, calls `checkout_repo()` to update the current repository in $PWD.
 - If neither is provided, calls `get_repo()` to use the repository in `$PWD` or suggests the last session repository.
@@ -32,7 +33,7 @@ These methods manage repository operations based on the context and input provid
 #### `set_repo()`
 
 - The `$PWD` must be empty before cloning.
-- Clones a repository into the current working directory and optionally checks out a branch and/or commit. 
+- Clones a repository into the current working directory and optionally checks out a branch and/or commit.
 - Defaults to the main branch and the latest commit if branch, commit not given
 - If inputs are invalid, the method exits without changes
 
@@ -47,7 +48,7 @@ These methods manage repository operations based on the context and input provid
 
 #### `get_repo()`
 
-- Uses the current working directory as the repository if it is valid. 
+- Uses the current working directory as the repository if it is valid.
 - If `$PWD` is not a repository, retrieves the last successfully used repository from the session state and prompts the user with options to continue using it or specify a different repository.
 
 #### Pipeline Runs:
@@ -80,7 +81,7 @@ These methods manage the execution flow of pipelines based on the provided conte
 - remote pipeline run is currently not implemented, hence local=False will still run using local service by default.
 - This method will first retrieve the pipeline history from the MongoDB, break and return early if the same pipeline is already and still running.
 - If the pipeline can be run, a new pipeline run record will be initialized and inserted into the MongoDB, and current pipeline status will be updated to active.
-- it will then create a DockerManager object, using the default docker engine from the user's IDE environment, and creating a shared volume with name of the following syntax `<repo_name>-<pipeline_name>-<run_number>`. This will ensure the shared volume is unique within the user's IDE environment.
+- it will then create a DockerManager object, using the default docker engine from the user's IDE environment, and creating a shared volume with name of the following syntax `<repo_name>-<branch>-<pipeline_name>-<run_number>`. This will ensure the shared volume is unique within the user's IDE environment.
 - The stages for a single pipeline run will be iterated according to order.
   - for each stage, the jobs will be iterated according to order specified. Parallel run of job is not implemented.
   - for each job, the DockerManager `run_job()` method will be called to execute the pipeline run. If artifact section is present for the job, the `run_job()` method will handle upload of the artifact to the AWS S3.
@@ -106,6 +107,7 @@ These methods handle pipeline configuration files, either individually or for an
   - The validation process will not stop when validation fail for a single pipeline configuration, it will continue until all pipelines are validated.
 
 #### pipeline_history()
+
 - `pipeline_history()` receives user query to retrieve pipeline report they have previously done using `cid pipeline run`. This function receives one argument:
   - `PipelineHist` is a Pydantic Model that contains repo_name, pipeline_name, run number, etc.
 - Given the flags given by the user, it will go to the conditional statement (L4.1 Show all Summary, L4.2 pipeline Run Summary, L4.3 Show Stage Summary, L4.4 Show Job Summary)
@@ -127,7 +129,7 @@ This package contains all the utility modules required to support the controller
 ### List of external libraries used
 
 | Library       | Usage                                                                                                    | Scope       |
-|---------------|----------------------------------------------------------------------------------------------------------|-------------|
+| ------------- | -------------------------------------------------------------------------------------------------------- | ----------- |
 | gitpython     | Programmatic interaction with Git for all git operations                                                 | Production  |
 | pymongo       | Programmatic interaction with MongoDB for all datastore operation                                        | Production  |
 | python-dotenv | Reads key-value pairs from a .env file and can set them as environment variables                         | Production  |

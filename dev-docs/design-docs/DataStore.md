@@ -2,12 +2,18 @@
 
 Schema design for the datastore used in the CI/CD system.
 
-
 ---
 
-## Schema Design
+## Schema Design for AWS S3
+
+- You can specify the AWS S3 bucket name to use under the global.artifact_upload_path section in the pipeline configuration file.
+- You must have the ownership permission for the target S3 bucket name. The program will attempt to create the bucket if not exist.
+- The naming convention for the artifacts are `<repo_name>-<branch>-<pipeline_name>-<run_number>-<job_name>`. This will guarantee the artifact name is unique within the S3 bucket used.
+
+## Schema Design for MongoDB
 
 ### **Tables Required**
+
 1. **sessions**  
    Records `UserID` and details about the repository that the developer is working on.
 
@@ -26,6 +32,7 @@ Schema design for the datastore used in the CI/CD system.
 ### **1. Sessions**
 
 **Fields Required**:
+
 - `user_id` (Primary Key): Unique identifier for the user.
 - `repo_name`: Name of the repository.
 - `repo_url`: URL of the repository.
@@ -41,6 +48,7 @@ Schema design for the datastore used in the CI/CD system.
 **Primary Keys**: `repo_name`, `repo_url`, `branch`
 
 **Fields Required**:
+
 - `repo_name`: Name of the repository.
 - `repo_url`: URL of the repository.
 - `branch`: Current branch being worked on.
@@ -58,6 +66,7 @@ Schema design for the datastore used in the CI/CD system.
 ### **3. Jobs_History**
 
 **Fields Required**:
+
 - `pipeline_name`: Name of the associated pipeline.
 - `run_number`: Sequential run number for the pipeline.
 - `git_commit_hash`: Commit hash used during the job execution.

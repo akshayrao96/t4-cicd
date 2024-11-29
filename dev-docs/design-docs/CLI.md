@@ -248,7 +248,6 @@ Options:
 
 - **Description**: Configures the cid service to work on the given repository.
 - **Input**: valid public repository url (such as https://www.github.com, git@github.com, https://www.gitlab.com), or local repository directory.
-- note if local repository url is provided, and if the local repository has remote origin, the url stored will be the remote url.
 - **Output**:
   - On success: Displays the repository details (URL, branch, and commit hash).
   - On failure: Displays an error message indicating the reason for failure.
@@ -456,10 +455,11 @@ pipeline_name: cicd-javascript, docker: {'registry': 'dockerhub', 'image': 'node
 
 ### `cid pipeline run --repo REPO_URL --branch BRANCH --commit COMMIT`
 
-**Description**: User can run the pipeline for specific Repository, branch and commit. The details behaviour are as follow
+**Description**: User can run the pipeline for specific repository, branch and commit. The details behaviour are as follow
 
 - If REPO_URL is given, the command must be run in an empty directory. The specific REPO_URL, branch and commit will be checked out.
 - If REPO_URL is not given, but target Branch and Commit are given. The command must be running in the root level of a Git Repository. The program will attempt to switch to target branch and commit.
+- If Commit is given and is not the latest commit of the target branch, the repository will be checkout with the HEAD in DETACHED state, this allow the users to switch back to the latest commit via `git switch -` without loosing any of the development works between the latest commit and target commit.
 - BRANCH if not given will be defaulted to current active branch.
 - COMMIT if not given will be defaulted to the latest commit of target branch.
 

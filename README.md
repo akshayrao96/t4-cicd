@@ -77,7 +77,7 @@ pip install t4-cicd
 
 You can run the program in a git repository you want to perform CICD action, or run the program in an empty directory and supply the repository information.
 
-Note you will need a valid pipelines.yml file created in the .cicd-pipelines directory of your repository.
+Note you will need a valid pipelines.yml file created in the .cicd-pipelines directory of your repository. Check [here](https://drive.google.com/file/d/1Mj3mnk20G5_Zj8X6bcFSnPRqY0stA-zu/view?usp=sharing) for the syntax required to write the yml file, check [here](https://drive.google.com/file/d/17vtjnLadMs-ItmI6e787_bvmH_j2YPVa/view?usp=sharing) for sample pipeline configuration.
 
 List of the main commands you can run are as follow, use the --help flag to check for the details.
 
@@ -213,3 +213,13 @@ poetry remove <dependency/lib/package> --group dev
 - Provide arguments to change the logging level and/or directory
 - By default a debug.log file will be created at a parent directory where your run the command, you can change its location.
   ie, if you run the command under directory `/temp/t4-cicd`, a debug.log will be at `/temp`
+
+## Development - Other
+
+Check out the list of documents under dev-docs/design-docs folder for
+
+- High level System Design
+- ComponentDesign
+- DataStore Design
+- CLI documentation
+- TestingReadMe
