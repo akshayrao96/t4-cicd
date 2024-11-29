@@ -1,6 +1,6 @@
 # CID Command Line Prompts Documentation
 
-Last updated - 2024-11-21
+Last updated - 2024-11-28
 
 This documentation outlines all available CID CLI commands that t4-cicd implement.
 
@@ -17,8 +17,8 @@ Codebase: `./src/cli/__main__.py`
 - **Equivalent**: `cid --help`
 - **Output**: Displays all options and commands associated with the `cid` input.
 
-```
-% cid
+```sh
+$ cid
 
 Usage: cid [OPTIONS] COMMAND [ARGS]...
 
@@ -40,8 +40,8 @@ Commands:
 - **Input**: None
 - **Output**: Displays current version
 
-```
-% cid --version
+```sh
+$ cid --version
 
 cid version 0.1.0
 ```
@@ -51,6 +51,39 @@ cid version 0.1.0
 All configurations for the cid service (eg. checking pipelines, checking the repo)
 Codebase: `./src/cli/cmd_config.py`
 
+```sh
+$ cid config --help
+Usage: cid config [OPTIONS] COMMAND [ARGS]...
+
+  Command working with pipeline and repo configurations
+
+  This command allows you to manage and validate configuration files used in
+  pipeline executions. You can run this to check the configuration files in
+  default location or pass a custom file/directory to check.
+
+Options:
+  --check             checks the validity of the YAML configuration file.
+                      Default behaviour. If this option is selected, the --dir
+                      argument will be ignored.
+  --check-all         checks validity of all YAML configuration files.
+                      If this option is selected, the --config-file argument
+                      will be ignored.
+  --no-set            validate the config/configs without setting the repo and
+                      saving the validated info to datastore
+  --config-file TEXT  specifies the YAML configuration file to check.
+                      used with --check flag. If not specified, default to
+                      .cicd-pipelines/pipelines.yml  [default: pipelines.yml]
+  --dir TEXT          specify the directory to check all configuration files.
+                      used with --check-all flag  [default: .cicd-pipelines/]
+  --json              output in json format
+  --help              Show this message and exit.
+
+Commands:
+  get-repo  Display information about the currently configured repository.
+  override  Apply configuration overrides to a pipeline configuration...
+  set-repo  Configure a new repository for pipeline checks in the current...
+```
+
 ### `cid config`
 
 - **Description**: Checks configuration file for the set repository inside `.cicd-pipelines`. Default file is `pipelines.yml`.
@@ -59,9 +92,10 @@ Codebase: `./src/cli/cmd_config.py`
 - **Output**:
   - Displays key-value pairing of the `pipelines.yml` file if successful.
   - Prints error if the file does not exist, is not formatted properly, or has cyclic dependencies.
+  - a json flag `--json` can be used to print all validation output in json format when available.
 
-```
-% cid config
+```sh
+$ cid config
 
 Using config file: pipelines.yml
 Checking config file at: pipelines.yml
@@ -82,7 +116,7 @@ Printing processed_config
 ### `cid config --check --config-file <FILENAME>.yml`
 
 - **Description**: Checks configuration file for the set repository in the `.cicd-pipelines` directory. Will also save valid configuration to the datastore.
-- **Input**: `<FILENAME>` is a file with a `.yml` file extension, and it must reside in `.cicd-pipelines/`.
+- **Input**: `<FILENAME>` is a file with a `.yml` file extension, if no directory information is given the program will assume it resides in `.cicd-pipelines/`. You can also specify an absolute file path, eg `.cicd-pipelines/pipelines.yml`
 - **Equivalent**: `cid config` if `pipelines.yml` file is given.
 - **Output**:
   - Displays key-value pairing of the `.yml` file provided.
@@ -90,8 +124,8 @@ Printing processed_config
     - FileNotFound or general yaml parsing error - will only print the first error encountered
     - further config validation errors - will print all validation errors found so the user can try to fix it in one go
 
-```
- % cid config --check --config-file valid_config.yml
+```sh
+ $ cid config --check --config-file valid_config.yml
 
 Using config file: valid_config.yml
 Checking config file at: valid_config.yml
@@ -110,19 +144,21 @@ Printing processed_config
 ```
 
 - **Considerations**:
-  - Only files in the `.cicd-pipelines` folder are allowed. Running `cid config --check --config-file ./cicd-pipelines/valid_config.yml` results in an error.
-  - files with duplicate names are not allowed by any File System. Files with duplicate pipeline names are only check against what is in the datastore.
+  - Files with duplicate names are not allowed by any File System.
+  - Files with duplicate pipeline names will be checked and detected when
+    - performing cid config --check-all on the entire directory
+    - attempt to run the pipeline based on target pipeline name.
 
 ### `cid config --check --config-file <FILENAME>.yml --no-set`
 
 - **Description**: The --no-set flag allows to check the config file only without further interaction with the cicd system. Ie. it will not set the repo, and will not save the config file to datastore.
-- **Input**: `<FILENAME>` is a file with a `.yml` file extension, and it must reside in `.cicd-pipelines/`.
-- **Output**: 
+- **Input**: `<FILENAME>` is a file with a `.yml` file extension, if no directory information is given the program will assume it resides in `.cicd-pipelines/`. You can also specify an absolute file path, eg `.cicd-pipelines/pipelines.yml`
+- **Output**:
   - prints out the configuration file that is in dict form
   - prints error if input filename is not found or error in keys of the configuration file.
 
-```
-% cid config --check --config-file pipelines.yml --no-set
+```sh
+$ cid config --check --config-file pipelines.yml --no-set
 checking config file at: .cicd-pipelines/pipelines.yml
 Validating file in pipelines.yml
 Check passed = True
@@ -141,6 +177,7 @@ Printing processed_config
 
 - **Description**: Checks all configuration file for the set repository in the `.cicd-pipelines` directory. Will also save all valid configurations to the datastore.
 - **Input**: None
+- **Equivalent**: `cid config --check-all --dir .cicd-pipelines`
 - **Output**:
   - Displays key-value pairing of the `.yml` file provided.
   - Prints errors if the file is not found or improperly formatted.
@@ -150,7 +187,8 @@ Printing processed_config
   - Only files in the `.cicd-pipelines` folder will be checked.
   - files with duplicate names are not allowed by any File System. Files with duplicate pipeline names will be checked when loading.
 
-```txt
+```sh
+$ cid config --check-all
 Repository is configured in current directory
 .cicd-pipelines
 set repo, checking and saving all config files in directory .cicd-pipelines
@@ -182,16 +220,16 @@ printing top 10 lines of processed config:
 
 ### `cid config --check-all --dir <directory> --no-set`
 
-- **Description**: The --no-set flag allows to check all config files within the directory only without further interaction with the cicd system. Ie. it will not set the repo, and will not save the config file to datastore.
-  The directory argument must be supplied.
-- **Input**: folder path location of the `.cicd-pipelines` to validate the configuration files.
-- **Output**: will out the same as running `cid config --check-all`
+- **Description**: The --dir option allows user to supply a custom directory to check all the configuration file inside. The --no-set flag allows to check all config files within the directory only without further interaction with the cicd system. Ie. it will not set the repo, and will not save the config file to datastore.
+- **Input**: an absolute folder path location to validate the configuration files.
+- **Output**: will out the same as running `cid config --check-all` when directory is set to .cicd-pipelines/
 - **Consideration**:
   - return error if directory given is an invalid with error message `Invalid directory:<dir>`
 
 ### `cid config set-repo REPO_URL`
+
 ```sh
-% cid config set-repo --help                                 
+$ cid config set-repo --help
 Usage: cid config set-repo [OPTIONS] REPO_URL
 
   Configure a new repository for pipeline checks in the current directory.
@@ -207,21 +245,22 @@ Options:
                  commit is used.
   --help         Show this message and exit.
 ```
+
 - **Description**: Configures the cid service to work on the given repository.
-- **Input**: valid public repository url (such as https://www.github.com, git@github.com, https://www.gitlab.com)
-- **Output**: 
+- **Input**: valid public repository url (such as https://www.github.com, git@github.com, https://www.gitlab.com), or local repository directory.
+- **Output**:
   - On success: Displays the repository details (URL, branch, and commit hash).
   - On failure: Displays an error message indicating the reason for failure.
 - **Considerations**:
-  - The repository is cloned into the PWD.     
+  - The repository is cloned into the PWD.
   - If `--branch` is provided, the specified branch is checked out (default: 'main').
   - If `--commit` is provided, the specified commit is checked out. If not provided,
-  the latest commit on the branch is used.
+    the latest commit on the branch is used.
   - If the current directory is not empty, the operation will fail with an error message.
 
 ```sh
 #On success
-empty-repo $ cid config set-repo https://github.com/sjchin88/cicd-python                   
+empty-repo $ cid config set-repo https://github.com/sjchin88/cicd-python
 Repository set successfully.
 
 Current working directory configured:
@@ -237,8 +276,9 @@ Currently in a Git repository: 't4-cicd'. Please navigate to an empty directory.
 ```
 
 ### `cid config get-repo`
+
 ```sh
-cid config get-repo --help                  
+$ cid config get-repo --help
 Usage: cid config get-repo [OPTIONS]
 
   Display information about the currently configured repository.
@@ -251,17 +291,18 @@ Usage: cid config get-repo [OPTIONS]
 Options:
   --help  Show this message and exit.
 ```
+
 - **Description**: Returns the repository for the cid service to work on.
 - **Input**: None
 - **Output**: Repository information of the saved repository
 - **Considerations**:
-    - If the current directory is a Git repository, it displays the URL, branch, and latest commit hash.     
-    - If the current directory is not a Git repository but a previous repository configuration 
-    exists, it retrieves and displays details of the last configured repository.    
-    - If no repository is configured, it provides guidance for setting a repository.
+  - If the current directory is a Git repository, it displays the URL, branch, and latest commit hash.
+  - If the current directory is not a Git repository but a previous repository configuration
+    exists, it retrieves and displays details of the last configured repository.
+  - If no repository is configured, it provides guidance for setting a repository.
 
 ```sh
-$ cid config get-repo       
+$ cid config get-repo
 Repository is configured in current directory
 
 Repository configured in current working directory:
@@ -272,13 +313,41 @@ Branch: 124-project-documentation
 Commit Hash: 8ea04ac58b62ef65e8d2328f7b29d28943fbd13a
 ```
 
+### `cid config override`
+
+```sh
+$ cid config override --help
+Usage: cid config override [OPTIONS]
+
+  Apply configuration overrides to a pipeline configuration stored in the
+  database,  check the validation result.  Override configurations in
+  'key=value' format. Multiple overrides can be provided.
+
+  Example usage:     cid config override --pipeline pipeline_name --override
+  "global.docker.image=gradle:jdk8"
+
+Options:
+  --pipeline TEXT  pipeline name to update  [required]
+  --override TEXT  Override configuration in 'key=value' format
+  --save           flag to save the overrides config into database
+  --json           output in json format
+  --help           Show this message and exit.
+```
+
+**Additional notes**:
+
+- Main usage scenario - check the overrides on configuration without saving.
+- The initial pipeline configuration for target pipeline name need to be saved into the datastore (MongoDB) first using the cid config command or previous cid pipeline run commands.
+- The `--save` option allow user to save the override configuration, default is not saving.
+- The `--json` flag allow display of the validated configuration in json format.
+
 ## `cid pipeline`
 
 All pipeline related commands. Pipeline in this case is anything to do with executions of a yaml file
 Codebase: `./src/cli/cmd_pipeline.py`
 
-```
-% cid pipeline
+```sh
+$ cid pipeline
 
 Usage: cid pipeline [OPTIONS] COMMAND [ARGS]...
 
@@ -293,6 +362,7 @@ Commands:
 ```
 
 ### `cid pipeline [--help]`
+
 - **Description**: Returns help for commands to run for `cid pipeline`.
 - **Input**: None
 - **Output**: Help commands.
@@ -302,10 +372,34 @@ Commands:
 - **Description**: Runs the default pipeline file `.cicd-pipelines/pipelines.yml`
 - **Input**: None
 - **Output**: Real-time output log of the pipeline running.
-- **Equivalent Command**: `cid pipeline run --file pipelines.yml
+- **Equivalent Command**: `cid pipeline run --file .cicd-pipelines/pipelines.yml`
 
-```
-% cid pipeline run
+```sh
+$ cid pipeline run --help
+Usage: cid pipeline run [OPTIONS]
+
+  Run pipeline given the configuration file. Base command is cid pipeline run,
+  this will run the pipeline specified in .cicd-pipelines/pipelines.yml for
+  current repository or  previously set repository.
+
+  To change the target repository, branch, commit, target pipeline by name /
+  file path,  use the corresponding options.
+
+Options:
+  --file TEXT        configuration file path. if --file not specified, default
+                     to .cicd-pipelines/pipelines.yml
+  --pipeline TEXT    pipeline name to run
+  -r, --repo TEXT    repository url or local directory path
+  -b, --branch TEXT  repository branch name
+  -c, --commit TEXT  commit hash
+  --local            run pipeline locally
+  --dry-run          dry-run options to simulate the pipeline process
+  --yaml             print validated config in yaml format for dry run
+  --override TEXT    Override configuration in 'key=value' format
+  --help             Show this message and exit.
+
+
+$ cid pipeline run
 Repository is configured in current directory
 Validating file in pipelines.yml
 Remote run feature is not implemented, still running pipeline on local
@@ -334,20 +428,57 @@ Installing dependencies from lock file
   - Fifth step, determine if this is going to be a dry-run
   - For non dry-run, actual run will be perform.
 
+### `cid pipeline run --file FILE_NAME`
+
+- **Description**: User is able to specify the file name they want to run. Default to .cicd-pipelines/pipelines.yml If directory information is absent, will look for file within the .cicd-pipelines/ folder. Applicable to --dry-run command option as well. Not compatible with --pipeline option, if both arguments are given will raise error.
+- **Input**: `PIPELINE_NAME` to be executed
+- **Output**: perform actual run / dry run based on pipeline name
+
+### `cid pipeline run --pipeline PIPELINE_NAME`
+
+- **Description**: User is able to specify the Pipeline Name that they define in `global.pipeline_name` in the yaml file. The yaml file need to reside on the .cicd-pipelines/ directory.
+  Applicable to --dry-run command option as well. Not compatible with --file option.
+- **Input**: `PIPELINE_NAME` to be executed
+- **Output**: perform actual run / dry run based on pipeline name
+
+```sh
+% cid pipeline run --dry-run --pipeline cicd-javascript
+Repository is configured in current directory
+Validating file in javascript-template.yml
+
+===== [INFO] Global =====
+pipeline_name: cicd-javascript, docker: {'registry': 'dockerhub', 'image': 'node:latest'}, artifact_upload_path: temp,
+
+===== [INFO] Stages: 'build' =====
+...
+```
+
+### `cid pipeline run --repo REPO_URL --branch BRANCH --commit COMMIT`
+
+**Description**: User can run the pipeline for specific repository, branch and commit. The details behaviour are as follow
+
+- If REPO_URL is given, the command must be run in an empty directory. The specific REPO_URL, branch and commit will be checked out.
+- If REPO_URL is not given, but target Branch and Commit are given. The command must be running in the root level of a Git Repository. The program will attempt to switch to target branch and commit.
+- If Commit is given and is not the latest commit of the target branch, the repository will be checkout with the HEAD in DETACHED state, this allow the users to switch back to the latest commit via `git switch -` without loosing any of the development works between the latest commit and target commit.
+- BRANCH if not given will be defaulted to current active branch.
+- COMMIT if not given will be defaulted to the latest commit of target branch.
+
 ### `cid pipeline run --dry-run`
 
 - **Description**: Informs the user what would happen if the pipeline was run (dry-run mode).
 - **Equivalent Command**: `cid pipeline run --dry-run --file .cicd-pipelines/pipelines.yml`
 - **Considerations**:
   - Same as the considerations for running a pipeline, but no actual artifacts will be generated since nothing will be run.
+  - The pipeline configuration used for the dry-run will be saved into the datastore (MongoDB), if you just want to check the configuration without saving,
+    look at the cid config and cid config override commands.
 
 ```sh
-% cid pipeline run --dry-run       
+$ cid pipeline run --dry-run
 Repository is configured in current directory
 Validating file in pipelines.yml
 
 ===== [INFO] Global =====
-pipeline_name: cicd_pipeline, docker: {'registry': 'dockerhub', 'image': 'sjchin88/python-git-poetry:latest'}, artifact_upload_path: temp, 
+pipeline_name: cicd_pipeline, docker: {'registry': 'dockerhub', 'image': 'sjchin88/python-git-poetry:latest'}, artifact_upload_path: temp,
 
 ===== [INFO] Stages: 'build' =====
 Running job: "checkout", ..., docker: {'registry': 'dockerhub', 'image': 'sjchin88/python-git-poetry:latest'}
@@ -357,28 +488,14 @@ Running job: "pylint", ..., docker: {'registry': 'dockerhub', 'image': 'sjchin88
 ```
 
 ### `cid pipeline run --dry-run --yaml`
-- **Description**: print
 
-### `cid pipeline run --dry-run --pipeline PIPELINE_NAME`
-- **Description**: In dry-run, user is able to specify the Pipeline Name that they define in `global.pipeline_name` in the yaml file.
-- **Input**: `PIPELINE_NAME` to be executed in dry_run
-- **Output**: print the dry run jobs in the order that is specified in the file. 
-```sh
-% cid pipeline run --dry-run --pipeline cicd-javascript        
-Repository is configured in current directory
-Validating file in javascript-template.yml
+- **Description**: print validated config in yaml format for dry run, in addition of dry run result.
 
-===== [INFO] Global =====
-pipeline_name: cicd-javascript, docker: {'registry': 'dockerhub', 'image': 'node:latest'}, artifact_upload_path: temp, 
+### `cid pipeline run --override <OVERRIDE> [OPTIONS]`
 
-===== [INFO] Stages: 'build' =====
-...
-```
-
-### `cid pipeline run --override <OVERRIDE> --dry-run [--yaml]`
-- **Description**: perform override of default configuration file `pipelines.yml` and print in yaml format
+- **Description**: perform override of target pipeline configuration
 - **Input**: `OVERRIDE` key.value to change from the configuration file.
-- **Output**: print the configuration file in plain text or yaml (if `--yaml` flag is specified)
+- **Output**: For dry run only: print the configuration file in plain text or yaml (if `--yaml` flag is specified)
 
 ```sh
 % cid pipeline run --override global.docker.image=gradle:jdk8 --dry-run --yaml
@@ -393,7 +510,9 @@ global:
 jobs:
     ...
 ```
+
 ### `cid pipeline report --help`
+
 ```sh
 $ cid pipeline report --help
 Usage: cid pipeline report [OPTIONS]
@@ -411,22 +530,25 @@ Options:
   -r, --run TEXT     run number to get the report
   --help             Show this message and exit.
 ```
+
 - **Description**: Returns help for commands to run for cid pipeline.
 - **Input**: None
 - **Output**: Help commands.
 - **Reason**:
+
   - unlike `cid config` or `cid pipeline run`, `report` requires user to specify `--repo` on which repo to view. if not specified it will output error
-  ```sh 
-  % cid pipeline report                                                 
-  
+
+  ```sh
+  % cid pipeline report
+
   "missing ['repo_url'] input. please run cid pipeline report--repo. For further help, run cid pipeline report --help for valid usage"
   ```
 
-
 ### `cid pipeline report [--repo REPO_URL]`
+
 - **Description**: display report for all pipelines for the REPO_URL specified. If not specified, repo default to the current repo stored in MongoDB.
-- **Input**: repository URL to get the history 
-- **Output**: 
+- **Input**: repository URL to get the history
+- **Output**:
   - provides the overview of the history, such as pipeline name, run #, status, and other details.
 
 ```sh
@@ -451,12 +573,14 @@ Run Number: 2
 ```
 
 ### `cid pipeline report --repo REPO_URL --pipeline PIPELINE_NAME`
+
 - **Description**: display report for the given PIPELINE_NAME for the REPO_URL specified
-- **Input**: 
-  - repository URL to get the history 
+- **Input**:
+  - repository URL to get the history
   - pipeline_name to filter
 - **Output**:
   - provides the overview of the history, such as pipeline name, run #, status, and other details.
+
 ```
 cid pipeline report --repo https://github.com/sjchin88/cicd-python --pipeline cicd_pipeline
 Pipeline Name: cicd_pipeline
@@ -470,17 +594,20 @@ Run Number: 2
 Git Commit Hash: 16adc46
 ...
 ```
+
 ### `cid pipeline report --repo REPO_URL --pipeline PIPELINE_NAME --run RUN_NUMBER`
+
 - **Description**: display report for all pipelines for the REPO_URL specified
-- **Input**: 
-  - repository URL to get the history 
+- **Input**:
+  - repository URL to get the history
   - specific pipeline_name for the report
   - the run number
-- **Output**: 
+- **Output**:
   - provides the overview of the history, such as pipeline name, run #, status, and other details.
   - in addition, more details on the `Stages` that includes list of stage name, status, and start / completion time
+
 ```
-cid pipeline report --repo https://github.com/sjchin88/cicd-python --pipeline cicd_pipeline --run 1                              
+cid pipeline report --repo https://github.com/sjchin88/cicd-python --pipeline cicd_pipeline --run 1
 Pipeline Name: cicd_pipeline
 Run Number: 1
 Git Commit Hash: 16adc46
@@ -498,21 +625,23 @@ Stages:
   Start Time: Sun Nov 10 17:33:33 2024
   Completion Time: Sun Nov 10 17:33:48 2024
 ```
+
 ### `cid pipeline report --repo REPO_URL --pipeline PIPELINE_NAME --stage STAGE`
+
 - **Description**: display the report for the specific stage (build, test) for all pipelines
-- **Input**: 
-  - repository URL to get the history 
+- **Input**:
+  - repository URL to get the history
   - specific pipeline_name for the report
   - stage name
-- **Output**: 
+- **Output**:
   - provides the overview of the history, such as pipeline name, run #, status, and other details.
   - Details on the `Stages` that includes list of stage name, status, and start / completion time
   - In addition, provide `Jobs` information that is part of the Stage.
 
-Note: user can specify the run number (ex. `--run 1`) to  only limit the report to just a single run. The report will yield to the same output.
+Note: user can specify the run number (ex. `--run 1`) to only limit the report to just a single run. The report will yield to the same output.
 
 ```
-% cid pipeline report --repo https://github.com/sjchin88/cicd-python --pipeline cicd_pipeline --stage test 
+% cid pipeline report --repo https://github.com/sjchin88/cicd-python --pipeline cicd_pipeline --stage test
 Pipeline Name: cicd_pipeline
 Run Number: 1
 Git Commit Hash: 16adc46
@@ -554,12 +683,13 @@ Pipeline Name: cicd_pipeline
 ```
 
 ### `cid pipeline report --repo REPO_URL --pipeline PIPELINE_NAME --stage STAGE_NAME --job JOB_NAME`
+
 - **Description**: display the report for the specific job (pylint, pytest, etc) for all pipelines
-- **Input**: 
-  - repository URL to get the history 
+- **Input**:
+  - repository URL to get the history
   - specific pipeline_name for the report
   - stage name
-- **Output**: 
+- **Output**:
   - provides the overview of the history, such as pipeline name, run #, status, and other details.
   - Details on the `Stages` that includes list of stage name, status, and start / completion time
   - In addition, provide `Jobs` information that is part of the Stage.
@@ -577,10 +707,13 @@ Start Time: Sun Nov 10 17:33:41 2024
 Completion Time: Sun Nov 10 17:33:45 2024
 
 ```
+
 - **Input Validation**:
+
   - `--stage` must be given if user want to specify the `--job`.
+
   ```sh
-  % cid pipeline report --repo https://github.com/sjchin88/cicd-python --pipeline cicd_pipeline --job pylint            
-  
+  % cid pipeline report --repo https://github.com/sjchin88/cicd-python --pipeline cicd_pipeline --job pylint
+
   "missing flag. --stage flag must be given along with --job"
   ```

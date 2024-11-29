@@ -37,9 +37,9 @@ The tool is packaged into a single binary, with a CLI offering documentation.
 | L4.2   | Pipeline Run Summary             | Retrieve detailed summaries of individual pipeline runs.                                              | Fully implemented. |
 | L4.3   | Stage Summary                    | Retrieve stage summaries for a specific pipeline run.                                                 | Fully implemented. |
 | L4.4   | Job Summary                      | Retrieve job summaries for a specific stage and pipeline run.                                         | Fully implemented. |
-| L5     | Local Mode                       | CLI provides a `--local` flag to run pipelines and store results locally.                             | Fully implemented. |
-| L6     | Run Pipeline                     | CLI supports running pipelines with options for repo, branch, commit, and overrides.                  | Fully implemented. |
-| L6.1   | Config File Key Overrides        | CLI allows overrides for specific keys in the configuration file.                                     | Fully implemented. |
+
+| L6 | Run Pipeline | CLI supports running pipelines with options for repo, branch, commit, and overrides. | Fully implemented. |
+| L6.1 | Config File Key Overrides | CLI allows overrides for specific keys in the configuration file. | Fully implemented. |
 
 ---
 
@@ -50,5 +50,13 @@ The tool is packaged into a single binary, with a CLI offering documentation.
 | Initial set of Requirements | Job Parallel Run       | The validated pipeline configuration will store jobs for a stage in groups that can be run in parallel | Update pipeline run method to execute the job groups in parallel |
 | C5.5                        | Job Allow Failure      | Allows marking jobs as "failed" but continues to the next job or stage.                                | Ensure remaining commands in failed jobs are executed.           |
 | C5.7.1                      | Artifact Specification | Supports specifying files and folders for upload.                                                      | Specifying artifacts via regex patterns.                         |
+| L5                          | Local Mode             | The users can supply the --local flag.                                                                 | Remote pipeline run is currently not fully support               |
 
 ---
+
+## Extra Features Implemented
+
+| Feature                                      | Description                                                                                                                  |
+| -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Validating yaml files in an entire directory | Users can validate all pipeline files in a directory by using `cid config --check-all` option                                |
+| Check overrides without running              | Users can test the overrides applied to the pipeline configuration stored in the database using `cid config override` option |
