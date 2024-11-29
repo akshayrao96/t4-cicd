@@ -453,7 +453,6 @@ class RepoManager:
 
             # Reset the branch to the specified commit
             repo.git.checkout(commit_hash)
-            # repo.git.execute(["git", "reset", "--hard", commit_hash])
             return True, f"Checked out to commit '{commit_hash}' on branch '{branch}'."
         except GitCommandError as e:
             return False, f"Error during checkout: {e}"
