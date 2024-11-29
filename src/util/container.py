@@ -1,8 +1,6 @@
+""" docker module provide all class and method required to interact with docker engine
+for execution of pipeline job
 """
-Provides all class and method required to interact with the 
-Docker Engine for the execution of pipeline jobs.
-"""
-
 from pathlib import Path
 import copy
 import os
@@ -21,7 +19,7 @@ from util.db_artifact import S3Client
 from util.model import (JobConfig, JobLog)
 
 logger = get_logger("util.docker")
-"""Logger instance for logging messages"""
+
 
 class ContainerManager(ABC):
     """ Abstract base class for Container Management

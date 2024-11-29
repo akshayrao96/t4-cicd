@@ -1,5 +1,5 @@
 """ 
-Provides the common utility functions used by all other modules.
+Provide the common utility functions used by all other modules
 """
 import os
 import re
@@ -18,8 +18,8 @@ def get_logger(logger_name='', log_level=logging.DEBUG, log_file='../debug.log')
     Args:
         logger_name (str, optional): name of the logger. Defaults to ''.
         log_level (int, optional): logging level . Defaults to logging.DEBUG.
-        log_file (str, optional): name of output log file. Defaults to '../debug.log'.\
-        This will generate a log file with name debug.log at the parent directory\
+        log_file (str, optional): name of output log file. Defaults to '../debug.log'.
+        This will generate a log file with name debug.log at the parent directory
         when running the commands
 
     Returns:

@@ -21,11 +21,34 @@ parser = YamlParser()
 def load_pipeline() -> ValidationResult:
     pipeline_file_path = os.path.join(os.path.dirname(__file__), 'test_data/test_run/pipelines.yml')
     extracted = parser.parse_yaml_file(pipeline_file_path)
+    
     checker = ConfigChecker()
     result = checker.validate_config("cicd_pipeline", extracted, "pipelines.yml", error_lc=True)
     result_dict = result.model_dump(by_alias=True)
     return result
 
+# def insert_pipeline_config():
+#     mongo_adapter = MongoAdapter()
+#     sample_repo_path = os.path.join(os.path.dirname(__file__), 'test_data/test_run/sample_repo.json')
+#     with open(sample_repo_path, 'r') as openfile:
+#        sample_repo_data = json.load(openfile)
+#     mongo_adapter.insert_repo_pipelines(sample_repo_data)
+
+# def actual_pipeline_run():
+#     controller = Controller()
+#     sample_session = {
+#             c.FIELD_USER_ID:"random",
+#             c.FIELD_REPO_NAME: "cicd-python",
+#             c.FIELD_REPO_URL: "https://github.com/sjchin88/cicd-python",
+#             c.FIELD_BRANCH: c.DEFAULT_BRANCH,
+#             c.FIELD_COMMIT_HASH: "random",
+#             c.FIELD_IS_REMOTE: True, 
+#         }
+#     repo_data = SessionDetail.model_validate(sample_session)
+#     pipeline_config = PipelineConfig.model_validate(load_pipeline()[c.KEY_PIPE_CONFIG])
+#     controller._actual_pipeline_run(repo_data, pipeline_config)
+
+# Preparing data for mock return
 pipeline_config = load_pipeline().pipeline_config
 TEST_LOG = "success"
 TEST_LOG_ERROR = "error"

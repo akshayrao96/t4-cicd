@@ -9,7 +9,7 @@ from util.common_utils import get_logger
 logger = get_logger("tests.test_util.test_config_tools")
 
 class TestConfigChecker(unittest.TestCase):
-    """ Test the ConfigChecker class """
+    
     def setUp(self):
         self.checker = config.ConfigChecker()
         self.expected_dict = {
@@ -24,7 +24,7 @@ class TestConfigChecker(unittest.TestCase):
         }
         self.expected_error_msg = ""
         self.actual_dict = {}
-
+    
     def test_check_global_section(self):
         """ test the _check_global_section() method
         """
@@ -112,6 +112,7 @@ def test_check_stages_section():
             },
             'pylint':{
                 c.JOB_SUBKEY_STAGE:'test',
+                
             },
             'pydoc':{
                 c.JOB_SUBKEY_STAGE:'doc'
@@ -123,7 +124,7 @@ def test_check_stages_section():
     }
     expected_dict = {
         c.KEY_STAGES:OrderedDict({
-                # Note since Python 3.7,
+                # Note since Python 3.7 , 
                 # dict is ordered which guarantee the insertion order
                 'build':{
                     c.KEY_JOB_GRAPH:{'compile':[]},
@@ -140,6 +141,7 @@ def test_check_stages_section():
                     c.KEY_JOB_GRAPH:{'pydoc':[]},
                     c.KEY_JOB_ORDER:[['pydoc']]
                 },
+            
                 'deploy':{
                     c.KEY_JOB_GRAPH:{'pydeploy':[]},
                     c.KEY_JOB_ORDER:[['pydeploy']]
@@ -252,7 +254,7 @@ def test_check_jobs_dependencies():
             'compile', 'pytest'
         ]]
     }
-    passed, actual_error_msg, actual_result = checker._check_jobs_dependencies(stage_name,
+    passed, actual_error_msg, actual_result = checker._check_jobs_dependencies(stage_name, 
                                                                                job_list, jobs_dict)
     assert passed
     assert actual_error_msg == expected_error_msg
@@ -279,7 +281,7 @@ def test_check_jobs_section():
     """ test the check_jobs_section function 
     """
     checker = config.ConfigChecker()
-
+    
     # Normal check
     input_dict = {
         c.KEY_GLOBAL: {
