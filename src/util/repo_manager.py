@@ -324,6 +324,8 @@ class RepoManager:
             repo = Repo(
                 repo_path or os.getcwd(),
                 search_parent_directories=True)
+            logger.debug(repo.remotes)
+            logger.debug(repo.remote().urls)
             origin_url = next(
                 iter(
                     repo.remote().urls),
