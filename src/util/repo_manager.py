@@ -307,7 +307,7 @@ class RepoManager:
             except Exception as e:
                 logger.error("Failed to remove %s: %s", item, e)
 
-    def get_current_repo_details(self, repo_path: Path = None, commit:str = None) -> dict:
+    def get_current_repo_details(self, repo_path: Path = None) -> dict:
         """
         Retrieves details of the current or specified Git repository.
 
@@ -329,10 +329,7 @@ class RepoManager:
                     repo.remote().urls),
                 None) if repo.remotes else None
             branch = repo.active_branch.name
-            if commit is None:
-                commit_hash = repo.head.commit.hexsha
-            else:
-                commit_hash = commit
+            commit_hash = repo.head.commit.hexsha
             repo_name = self._extract_repo_name_from_url(origin_url) if (
                 origin_url) else Path(os.getcwd()).name
 
@@ -458,6 +455,7 @@ class RepoManager:
                     repo.commit(commit_hash)
                 except (BadObject, IndexError, ValueError):
                     return False, f"Commit '{commit_hash}' does not exist on local branch '{branch}'."
+                logger.debug("checking out ")
                 repo.git.checkout(commit_hash)
             return True, f"Checked out to commit '{commit_hash}' on branch '{branch}'."
         except GitCommandError as e:

@@ -181,17 +181,21 @@ class Controller:
 
         # Perform the checkout operation
         try:
+            # Retrieve the current repo details before switching, as the head
+            # might be in DETACHED stage if switching commit. 
+            repo_details = self.repo_manager.get_current_repo_details()
             success, message = self.repo_manager.checkout_branch_and_commit(
                 branch, commit_hash)
             if not success:
                 return False, message, None
 
-            repo_details = self.repo_manager.get_current_repo_details(
-                commit=commit_hash)
-
             if not repo_details or not repo_details.get(c.FIELD_REPO_URL):
                 return False, "Failed to retrieve repository details.", None
-
+            # Update branch and commit info
+            if branch is not None:
+                repo_details[c.FIELD_BRANCH] = branch
+            if commit_hash is not None:
+                repo_details[c.FIELD_COMMIT_HASH] = commit_hash
             time_log = datetime.now().strftime(c.DATETIME_FORMAT)
 
             # Retrieve existing session
