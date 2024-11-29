@@ -203,4 +203,4 @@ def report(repo_url: str, local: bool, pipeline_name: str, stage: str,
         click.secho(resp_message, fg='red')
         sys.exit(1)
 
-    click.secho(resp_message, fg='green')
+    click.secho(resp_message)

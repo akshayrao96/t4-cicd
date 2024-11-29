@@ -865,7 +865,7 @@ class Controller:
         except IndexError as ie:
             self.logger.warning("job_number is out of bound. error: %s", ie)
             is_success = False
-            err_msg = f"No Report found on database for {
+            err_msg = f"No Report found on database for {\
                 repo_url}\nPlease ensure you have valid"
             err_msg += " flags (--pipeline, --run, and/or --repo) and execute cid pipeline run"
             err_msg += " to generate pipeline report."
