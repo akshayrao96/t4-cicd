@@ -14,6 +14,7 @@ import util.constant as c
 logger = get_logger('cli.cmd_pipeline')
 """Logger instance for logging messages"""
 
+
 @click.group()
 def pipeline():
     """CLI command group for pipeline-related actions."""
@@ -22,7 +23,7 @@ def pipeline():
 @click.pass_context
 @click.option('--file', 'file_path', default=c.DEFAULT_CONFIG_FILE_PATH, help='configuration \
 file path. if --file not specified, default to .cicd-pipelines/pipelines.yml')
-@click.option('--pipeline', 'pipeline_name', help='pipeline name to run' )
+@click.option('--pipeline', 'pipeline_name', help='pipeline name to run')
 @click.option('-r', '--repo', 'repo', default=None, help='repository url or \
 local directory path')
 @click.option('-b', '--branch', 'branch', default=None, help='repository branch name')
@@ -30,18 +31,19 @@ local directory path')
 @click.option('--local', 'local', help='run pipeline locally', is_flag=True)
 @click.option('--dry-run', 'dry_run', help='dry-run options to simulate the pipeline \
 process', is_flag=True)
-@click.option('--yaml', 'yaml_output', help='print output in yaml format', is_flag=True)
+@click.option('--yaml', 'yaml_output',
+              help='print validated config in yaml format for dry run', is_flag=True)
 @click.option('--override', 'overrides', multiple=True,
               help="Override configuration in 'key=value' format")
-def run(ctx, file_path:str, pipeline_name:str, repo:str, branch:str, commit:str, local:bool,
-        dry_run:bool, yaml_output:bool, overrides):
-    """ Run pipeline given the configuration file. The base command cid pipeline run
-    runs the pipeline defined in .cicd-pipelines/pipelines.yml for the current repository or a
+def run(ctx, file_path: str, pipeline_name: str, repo: str, branch: str, commit: str, local: bool,
+        dry_run: bool, yaml_output: bool, overrides):
+    """ Run pipeline given the configuration file. Base command is cid pipeline run, this will
+    run the pipeline specified in .cicd-pipelines/pipelines.yml for current repository or 
     previously set repository. 
-    
+
     To change the target repository, branch, commit, target pipeline by name / file path, 
     use the corresponding options. \f
-    
+
     Args: 
         file_path (str, optional): configuration file name. \
         Default to .cicd-pipelines/pipelines.yml.
@@ -64,6 +66,24 @@ def run(ctx, file_path:str, pipeline_name:str, repo:str, branch:str, commit:str,
             message = "cid: invalid flag. you can only pass --file "
             message += "or --pipeline and can't be both."
             click.secho(message, fg='red')
+            sys.exit(2)
+
+    # Check and ensure the custom file_path is valid
+    if filepath_pipeline != click.core.ParameterSource.DEFAULT:
+        # Ensure valid yaml file
+        if not file_path.endswith(('.yml', '.yaml')):
+            err = f"Invalid file format: '{
+                file_path}' must have a .yml or .yaml extension."
+            click.secho(err, fg='red')
+            sys.exit(2)
+
+        ori_file_path = file_path
+        if not os.path.isfile(file_path):
+            # assume it will be in .cicd-pipelines folder
+            file_path = os.path.join(
+                os.getcwd(), c.DEFAULT_CONFIG_DIR, file_path)
+        if not os.path.isfile(file_path):
+            click.echo(f"Invalid config_file_path: {ori_file_path}")
             sys.exit(2)
 
     if overrides:
@@ -115,9 +135,10 @@ git@ if clone using ssh or https://')
 default stages options: [build, test, doc, deploy]')
 @click.option('--job', 'job', default=None, help="job name to view report")
 @click.option('-r', '--run', 'run_number', default=None, help='run number to get the report')
-def report(repo_url:str, local:bool, pipeline_name:str, stage:str,
-           job:str, run_number:int):
-    """Retrieve the pipeline history and generate detailed reports.
+def report(repo_url: str, local: bool, pipeline_name: str, stage: str,
+           job: str, run_number: int):
+    """Report pipeline provides user to retrieve the pipeline history.
+
     if --repo is not specified, it will default to the current repo\f
     Example of basic usage:
       cid pipeline report [--repo REPO_URL] | list all report for a repository
@@ -169,7 +190,8 @@ def report(repo_url:str, local:bool, pipeline_name:str, stage:str,
                 err_msg += f"Flag: {error['loc']}, Message: {error['msg']}"
             elif err_type == "missing":
                 if c.FIELD_REPO_URL in error['loc']:
-                    err_msg = f"missing {error['loc']} input. please run cid pipeline report"
+                    err_msg = f"missing {
+                        error['loc']} input. please run cid pipeline report"
                     err_msg += "--repo.\nFor further help, run cid pipeline report --help "
                     err_msg += "for valid usage"
 

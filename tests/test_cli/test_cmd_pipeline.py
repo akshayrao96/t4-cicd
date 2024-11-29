@@ -13,6 +13,7 @@ from util.model import (PipelineConfig, SessionDetail, ValidationResult)
 from util.common_utils import get_logger
 import util.constant as c
 
+
 def test_cid():
     """ Test the main cid command just by calling it with --help option
     """
@@ -30,6 +31,7 @@ def test_pipeline_help():
     # 0 exit code mean successful
     assert result.exit_code == 0
 
+
 class TestPipelineRun(TestCase):
     """ Test class to perform integration test between the cli cmd 
     cid pipeline run and corresponding controller method of 
@@ -39,6 +41,7 @@ class TestPipelineRun(TestCase):
     Args:
         TestCase (class): base class
     """
+
     def setUp(self):
         self.runner = CliRunner()
         self.logger = get_logger(
@@ -79,6 +82,21 @@ class TestPipelineRun(TestCase):
         assert result.exit_code == 2
         assert result.output.rstrip(
         ) == "cid: invalid flag. you can only pass --file or --pipeline and can't be both."
+
+    def test_file_path_invalid(self):
+        """ Test if invalid file path is handled early
+        """
+        result = self.runner.invoke(cmd_pipeline.pipeline,
+                                    ['run', '--file', 'invalid'])
+        # Common exit code for invalid argument is 2
+        assert result.exit_code == 2
+        assert "Invalid file format:" in result.output
+
+        result = self.runner.invoke(cmd_pipeline.pipeline,
+                                    ['run', '--file', 'invalid.yml'])
+        # Common exit code for invalid argument is 2
+        assert result.exit_code == 2
+        assert "Invalid config_file_path:" in result.output
 
     def test_invalid_override(self):
         """ test if error correctly caught when invalid override value is passed on
