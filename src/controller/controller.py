@@ -832,7 +832,7 @@ class Controller:
             # L4.2 Show pipeline run summary
             if not stage and not job:
                 history = self.mongo_ds.get_pipeline_run_summary(repo_url,
-                                                                 pipeline_name, run_number=run_number)
+                                                pipeline_name, run_number=run_number)
                 report = PipelineReport(history)
                 output_msg = report.print_pipeline_summary()
             else:
@@ -844,21 +844,20 @@ class Controller:
                 if not job:
                     # run_number by default is None. if not defined, it will query all runs
                     history = self.mongo_ds.get_pipeline_run_summary(repo_url, pipeline_name,
-                                                                     stage_name=stage, run_number=run_number)
+                                                        stage_name=stage, run_number=run_number)
                     report = PipelineReport(history)
                     output_msg = report.print_stage_summary()
 
                 # L4.4 Show Job Summary
                 else:
-                    history = self.mongo_ds.get_pipeline_run_summary(repo_url,
-                                                                     pipeline_name, stage_name=stage, job_name=job,
-                                                                     run_number=run_number)
+                    history = self.mongo_ds.get_pipeline_run_summary(repo_url, pipeline_name,
+                                            stage_name=stage, job_name=job, run_number=run_number)
                     report = PipelineReport(history)
                     output_msg = report.print_job_summary()
         except IndexError as ie:
             self.logger.warning(f"job_number is out of bound. error: {ie}")
             is_success = False
-            err_msg = f"No Report found on database for {
+            err_msg = f"No Report found on database for {\
                 repo_url}\nPlease ensure you have valid"
             err_msg += " flags (--pipeline, --run, and/or --repo) and execute cid pipeline run"
             err_msg += " to generate pipeline report."
