@@ -39,7 +39,7 @@ class S3Client:
             error_code = ce.response['Error']['Code']
             # raise if the error_code not related to 'BucketAlreadyOwnedByYou'
             if error_code != 'BucketAlreadyOwnedByYou':
-                logger.warning(f"Error in initializing s3client, error is {ce.response}")
+                logger.warning("Error in initializing s3client, error is %s", ce.response)
                 raise ce
 
     def upload_file(self, file_name:str) -> bool:
