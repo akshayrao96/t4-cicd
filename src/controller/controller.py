@@ -678,6 +678,7 @@ class Controller:
             # Initialize Docker Manager
             docker_manager = DockerManager(
                 repo=repo_data.repo_name,
+                branch=repo_data.branch,
                 pipeline=pipeline_config.global_.pipeline_name,
                 run=str(len(his_obj.job_run_history))
             )
