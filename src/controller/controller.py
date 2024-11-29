@@ -245,7 +245,9 @@ class Controller:
                                "Please navigate to the root of the repo and try again."), None
 
             repo_details = self.repo_manager.get_current_repo_details()
-
+            # Early return if repo_details if empty
+            if not repo_details:
+                return False, "Fail to retrieve repository info", None
             time_log = datetime.now().strftime(c.DATETIME_FORMAT)
 
             try:
