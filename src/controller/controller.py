@@ -182,7 +182,7 @@ class Controller:
         # Perform the checkout operation
         try:
             # Retrieve the current repo details before switching, as the head
-            # might be in DETACHED stage if switching commit. 
+            # might be in DETACHED stage if switching commit.
             repo_details = self.repo_manager.get_current_repo_details()
             success, message = self.repo_manager.checkout_branch_and_commit(
                 branch, commit_hash)

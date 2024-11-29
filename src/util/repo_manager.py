@@ -454,7 +454,8 @@ class RepoManager:
                 try:
                     repo.commit(commit_hash)
                 except (BadObject, IndexError, ValueError):
-                    return False, f"Commit '{commit_hash}' does not exist on local branch '{branch}'."
+                    err = f"Commit '{commit_hash}' does not exist on local branch '{branch}'."
+                    return False, err
                 logger.debug("checking out ")
                 repo.git.checkout(commit_hash)
             return True, f"Checked out to commit '{commit_hash}' on branch '{branch}'."
