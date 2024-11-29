@@ -695,12 +695,12 @@ class Controller:
                         for job_name in job_group:
                             job_config = pipeline_config.jobs[job_name]
                             try:
-                                job_log = docker_manager.run_job(
-                                    job_name, job_config)
                                 click.secho(
                                     f"Stage:{stage_name} Job:{
                                         job_name} - Streaming Job Logs",
                                     fg='green')
+                                job_log = docker_manager.run_job(
+                                    job_name, job_config)
                                 click.echo(job_log.job_logs)
                                 job_logs[job_name] = job_log.model_dump()
                                 # single fail job will switch the stage status to fail
