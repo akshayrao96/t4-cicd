@@ -186,7 +186,8 @@ class Controller:
             if not success:
                 return False, message, None
 
-            repo_details = self.repo_manager.get_current_repo_details()
+            repo_details = self.repo_manager.get_current_repo_details(
+                commit=commit_hash)
 
             if not repo_details or not repo_details.get(c.FIELD_REPO_URL):
                 return False, "Failed to retrieve repository details.", None

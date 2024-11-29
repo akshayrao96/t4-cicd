@@ -445,7 +445,7 @@ class RepoManager:
             # previous operation should guarantee branch will exist.
             if not commit_hash:
                 commit_hash = repo.head.commit.hexsha
-                logger.debug(commit_hash)
+                # logger.debug(commit_hash)
             elif not repo.head.commit.hexsha.startswith(commit_hash):
                 # Only checkout specific commit if it is not equal to head.
                 # Ensure the commit exists on the branch

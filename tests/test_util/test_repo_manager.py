@@ -306,6 +306,8 @@ class TestRepoManager(unittest.TestCase):
         # Mock clean repository with a local branch and no matching commit
         mock_instance.is_dirty.return_value = False
         mock_instance.branches = [c.DEFAULT_BRANCH]
+        mock_instance.head.commit.hexsha = "Head"
+        mock_instance.commit.side_effect = ValueError()
         mock_instance.iter_commits.return_value = [MagicMock(hexsha="456def")]
 
         # Call the method with an invalid commit hash
