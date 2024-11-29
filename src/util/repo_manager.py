@@ -307,13 +307,15 @@ class RepoManager:
             except Exception as e:
                 logger.error("Failed to remove %s: %s", item, e)
 
-    def get_current_repo_details(self, repo_path: Path = None) -> dict:
+    def get_current_repo_details(self, repo_path: Path = None, commit:str = None) -> dict:
         """
         Retrieves details of the current or specified Git repository.
 
         Args:
             repo_path (Path, optional): Path to the repository.
             Defaults to the current working directory.
+            commit (Str, optional) : commit hash, if given will use
+            the given one. 
 
         Returns:
             dict: Repository details, or an empty dictionary if not a Git repository.
@@ -327,7 +329,10 @@ class RepoManager:
                     repo.remote().urls),
                 None) if repo.remotes else None
             branch = repo.active_branch.name
-            commit_hash = repo.head.commit.hexsha
+            if commit is None:
+                commit_hash = repo.head.commit.hexsha
+            else: 
+                commit_hash = commit
             repo_name = self._extract_repo_name_from_url(origin_url) if (
                 origin_url) else Path(os.getcwd()).name
 
@@ -449,16 +454,10 @@ class RepoManager:
             elif not repo.head.commit.hexsha.startswith(commit_hash):
                 # Only checkout specific commit if it is not equal to head.
                 # Ensure the commit exists on the branch
-                # repo.commit()
                 try:
                     repo.commit(commit_hash)
                 except (BadObject, IndexError, ValueError):
                     return False, f"Commit '{commit_hash}' does not exist on local branch '{branch}'."
-                # commit_hashes = [
-                #     commit.hexsha for commit in repo.iter_commits(branch)]
-                # if commit_hash not in commit_hashes:
-                #     return False, f"Commit '{commit_hash}' does not exist on local branch '{branch}'."
-                # Checkout the specified commit in detached stage
                 repo.git.checkout(commit_hash)
             return True, f"Checked out to commit '{commit_hash}' on branch '{branch}'."
         except GitCommandError as e:
