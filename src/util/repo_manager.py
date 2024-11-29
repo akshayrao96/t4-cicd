@@ -324,18 +324,14 @@ class RepoManager:
             repo = Repo(
                 repo_path or os.getcwd(),
                 search_parent_directories=True)
-            logger.debug(repo.remotes)
-            for url in iter(repo.remote().urls):
-                logger.debug(url)
             origin_url = next(
                 iter(
                     repo.remote().urls),
                 None) if repo.remotes else None
-            logger.debug(origin_url)
             branch = repo.active_branch.name
             if commit is None:
                 commit_hash = repo.head.commit.hexsha
-            else: 
+            else:
                 commit_hash = commit
             repo_name = self._extract_repo_name_from_url(origin_url) if (
                 origin_url) else Path(os.getcwd()).name

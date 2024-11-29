@@ -198,11 +198,9 @@ class Controller:
             existing_session = self.mongo_ds.get_session(user_id)
             existing_is_remote = existing_session.get(c.FIELD_IS_REMOTE) \
                 if existing_session and c.FIELD_IS_REMOTE in existing_session else False
-            self.logger.debug(repo_details.get(c.FIELD_REPO_URL))
-            self.logger.debug(str(Path(repo_details[c.FIELD_REPO_URL]).resolve()))
             repo_data = SessionDetail.model_validate({
                 c.FIELD_USER_ID: user_id,
-                c.FIELD_REPO_URL: str(Path(repo_details[c.FIELD_REPO_URL]).resolve()),
+                c.FIELD_REPO_URL: repo_details[c.FIELD_REPO_URL],
                 c.FIELD_REPO_NAME: repo_details[c.FIELD_REPO_NAME],
                 c.FIELD_BRANCH: repo_details[c.FIELD_BRANCH],
                 c.FIELD_COMMIT_HASH: repo_details[c.FIELD_COMMIT_HASH],

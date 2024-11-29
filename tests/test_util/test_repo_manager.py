@@ -144,6 +144,7 @@ class TestRepoManager(unittest.TestCase):
         """Test get_current_repo_details when in a Git repository."""
         repo_manager = RepoManager()
         mock_instance = mock_repo.return_value
+        mock_instance.remotes.return_value = "origin"
         mock_instance.remote.return_value.urls = iter(
             ["https://github.com/sample/repo.git"])  # Make `urls` an iterator
         mock_instance.active_branch.name = c.DEFAULT_BRANCH
