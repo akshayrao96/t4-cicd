@@ -181,26 +181,30 @@ class Controller:
 
         # Perform the checkout operation
         try:
+            # Retrieve the current repo details before switching, as the head
+            # might be in DETACHED stage if switching commit.
+            repo_details = self.repo_manager.get_current_repo_details()
             success, message = self.repo_manager.checkout_branch_and_commit(
                 branch, commit_hash)
             if not success:
                 return False, message, None
 
-            repo_details = self.repo_manager.get_current_repo_details()
-
             if not repo_details or not repo_details.get(c.FIELD_REPO_URL):
                 return False, "Failed to retrieve repository details.", None
-
+            # Update branch and commit info
+            if branch is not None:
+                repo_details[c.FIELD_BRANCH] = branch
+            if commit_hash is not None:
+                repo_details[c.FIELD_COMMIT_HASH] = commit_hash
             time_log = datetime.now().strftime(c.DATETIME_FORMAT)
 
             # Retrieve existing session
             existing_session = self.mongo_ds.get_session(user_id)
             existing_is_remote = existing_session.get(c.FIELD_IS_REMOTE) \
                 if existing_session and c.FIELD_IS_REMOTE in existing_session else False
-
             repo_data = SessionDetail.model_validate({
                 c.FIELD_USER_ID: user_id,
-                c.FIELD_REPO_URL: str(Path(repo_details[c.FIELD_REPO_URL]).resolve()),
+                c.FIELD_REPO_URL: repo_details[c.FIELD_REPO_URL],
                 c.FIELD_REPO_NAME: repo_details[c.FIELD_REPO_NAME],
                 c.FIELD_BRANCH: repo_details[c.FIELD_BRANCH],
                 c.FIELD_COMMIT_HASH: repo_details[c.FIELD_COMMIT_HASH],
@@ -216,6 +220,7 @@ class Controller:
         except ValidationError as e:
             return False, f"Data validation error: {e}", None
         except Exception as e:
+            self.logger.warning(e)
             return False, f"Unexpected error: {e}", None
 
     def get_repo(self) -> tuple[bool, str, SessionDetail | None]:
@@ -245,7 +250,9 @@ class Controller:
                                "Please navigate to the root of the repo and try again."), None
 
             repo_details = self.repo_manager.get_current_repo_details()
-
+            # Early return if repo_details if empty
+            if not repo_details:
+                return False, "Fail to retrieve repository info", None
             time_log = datetime.now().strftime(c.DATETIME_FORMAT)
 
             try:
@@ -674,6 +681,7 @@ class Controller:
             # Initialize Docker Manager
             docker_manager = DockerManager(
                 repo=repo_data.repo_name,
+                branch=repo_data.branch,
                 pipeline=pipeline_config.global_.pipeline_name,
                 run=str(len(his_obj.job_run_history))
             )
@@ -690,12 +698,12 @@ class Controller:
                         for job_name in job_group:
                             job_config = pipeline_config.jobs[job_name]
                             try:
-                                job_log = docker_manager.run_job(
-                                    job_name, job_config)
                                 click.secho(
                                     f"Stage:{stage_name} Job:{
                                         job_name} - Streaming Job Logs",
                                     fg='green')
+                                job_log = docker_manager.run_job(
+                                    job_name, job_config)
                                 click.echo(job_log.job_logs)
                                 job_logs[job_name] = job_log.model_dump()
                                 # single fail job will switch the stage status to fail
