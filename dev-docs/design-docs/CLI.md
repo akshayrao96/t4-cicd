@@ -534,25 +534,17 @@ Options:
 - **Description**: Returns help for commands to run for cid pipeline.
 - **Input**: None
 - **Output**: Help commands.
-- **Reason**:
-
-  - unlike `cid config` or `cid pipeline run`, `report` requires user to specify `--repo` on which repo to view. if not specified it will output error
-
-  ```sh
-  % cid pipeline report
-
-  "missing ['repo_url'] input. please run cid pipeline report--repo. For further help, run cid pipeline report --help for valid usage"
-  ```
 
 ### `cid pipeline report [--repo REPO_URL]`
 
 - **Description**: display report for all pipelines for the REPO_URL specified. If not specified, repo default to the current repo stored in MongoDB.
 - **Input**: repository URL to get the history
 - **Output**:
-  - provides the overview of the history, such as pipeline name, run #, status, and other details.
+  - provides the overview of the history, such as pipeline name, branch name, run #, status, and other details.
 
 ```sh
 Pipeline Name: cicd_pipeline
+Branch Name: main
 Run Number: 1
 Git Commit Hash: 16adc46
 Status: success
@@ -562,6 +554,7 @@ Pipeline Name: cicd_pipeline
 Run Number: 2
 ...
 Pipeline Name: cicd_pipeline2
+Branch Name: development
 Run Number: 1
 Git Commit Hash: 16adc46
 Status: success
@@ -584,12 +577,15 @@ Run Number: 2
 ```
 cid pipeline report --repo https://github.com/sjchin88/cicd-python --pipeline cicd_pipeline
 Pipeline Name: cicd_pipeline
+Branch Name: main
 Run Number: 1
 Git Commit Hash: 16adc46
 Status: success
 Start Time: Sun Nov 10 17:33:33 2024
 Completion Time: Sun Nov 10 17:33:48 2024
+
 Pipeline Name: cicd_pipeline
+Branch Name: main
 Run Number: 2
 Git Commit Hash: 16adc46
 ...
@@ -609,6 +605,7 @@ Git Commit Hash: 16adc46
 ```
 cid pipeline report --repo https://github.com/sjchin88/cicd-python --pipeline cicd_pipeline --run 1
 Pipeline Name: cicd_pipeline
+Branch Name: main
 Run Number: 1
 Git Commit Hash: 16adc46
 Status: success
@@ -643,6 +640,7 @@ Note: user can specify the run number (ex. `--run 1`) to only limit the report t
 ```
 % cid pipeline report --repo https://github.com/sjchin88/cicd-python --pipeline cicd_pipeline --stage test
 Pipeline Name: cicd_pipeline
+Branch Name: main
 Run Number: 1
 Git Commit Hash: 16adc46
 Stage Name: test
@@ -661,6 +659,7 @@ Jobs:
     Completion Time: Sun Nov 10 17:33:48 2024
 
 Pipeline Name: cicd_pipeline
+Branch Name: main
 Run Number: 2
 Git Commit Hash: 16adc46
 Stage Name: test
@@ -697,6 +696,7 @@ Pipeline Name: cicd_pipeline
 ```sh
 cid pipeline report --repo https://github.com/sjchin88/cicd-python --pipeline cicd_pipeline --stage test --job pylint --run 1
 Pipeline Name: cicd_pipeline
+Branch Name: main
 Run Number: 1
 Git Commit Hash: 16adc46
 Stage Name: test
