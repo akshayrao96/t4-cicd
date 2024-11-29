@@ -445,9 +445,12 @@ class RepoManager:
             if not commit_hash:
                 commit_hash = repo.head.commit.hexsha
                 logger.debug(commit_hash)
-            elif commit_hash not in repo.head.commit.hexsha:
+            elif not repo.head.commit.hexsha.startswith(commit_hash):
                 # Only checkout specific commit if it is not equal to head.
                 # Ensure the commit exists on the branch
+                # repo.commit()
+                # try:
+                repo.commit(commit_hash)
                 commit_hashes = [
                     commit.hexsha for commit in repo.iter_commits(branch)]
                 if commit_hash not in commit_hashes:
