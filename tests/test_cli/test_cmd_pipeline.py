@@ -2,13 +2,13 @@
 """
 import json
 import os
-from click.testing import CliRunner
-from cli import (__main__, cmd_pipeline)
-from docker.errors import DockerException
-from pydantic import ValidationError
 from unittest import TestCase
 from unittest.mock import patch
+from docker.errors import DockerException
+from pydantic import ValidationError
 from bson import ObjectId
+from click.testing import CliRunner
+from cli import (__main__, cmd_pipeline)
 from util.model import (PipelineConfig, SessionDetail, ValidationResult)
 from util.common_utils import get_logger
 import util.constant as c

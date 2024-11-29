@@ -12,7 +12,7 @@ import util.constant as c
 logger = get_logger("tests.test_controller.test_controller")
 
 class TestControllerRepoFunctions(unittest.TestCase):
-
+    """Test cases for the Controller class repository functions."""
     @patch("controller.controller.RepoManager")
     def test_set_repo_in_git_repo(self, mock_repo_manager):
         """Test set_repo when already in a Git repository."""
