@@ -176,8 +176,9 @@ poetry run pylint ./src --fail-under=9.5
 # Run pytest with coverage, note current passing coverage score is set at 50%
 poetry run pytest
 
-# Run pydoctor to generate the API documentation. This required Administrative right
-# To link the file
+# Run pydoctor to generate the API documentation. This will generate a folder name 'apidocs/'
+# in the repository.
+# This required Administrative right. To link the file
 poetry run pydoctor
 
 # to test if you can run the command
@@ -216,10 +217,10 @@ poetry remove <dependency/lib/package> --group dev
 
 ## Development - Other
 
-Check out the list of documents under dev-docs/design-docs folder for
-
-- High level System Design
-- ComponentDesign
-- DataStore Design
+Check out the list of documents under [dev-docs/design-docs](dev-docs/design-docs) folder for the following:
 - CLI documentation
-- TestingReadMe
+- Component Design
+- Configuration File Docs
+- Data Store Design
+- High Level System Design
+- Readme for Program Test
