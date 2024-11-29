@@ -129,7 +129,8 @@ class MongoAdapter:
         """ Retrieve the first found record based on given query dictionary
 
         Args:
-            query (dict): query filter parameters (key=value pair). Empty dict will retrieve all documents
+            query (dict): query filter parameters (key=value pair).\
+                Empty dict will retrieve all documents
             db_name (str): database to be searched into
             collection_name (str): collection(table) to be searched into
 
@@ -195,7 +196,7 @@ class MongoAdapter:
             return acknowledge
         except errors.PyMongoError as e:
             logger.warning(
-                f"Error inserting new pipeline, exception is {e}")
+                "Error inserting new pipeline, exception is %s", e)
             return False
 
     def insert_job(self,
@@ -228,7 +229,7 @@ class MongoAdapter:
                     }
                     stage_logs.append(stage_log)
             pending_stages = [stage[c.FIELD_STAGE_NAME] for stage in stage_logs]
-            logger.info(f"Initialized stages: {', '.join(pending_stages)}")
+            logger.info("Initialized stages: %s", ", ".join(pending_stages))
 
             job_data = {
                 c.FIELD_PIPELINE_NAME: pipeline_info.pipeline_name,
@@ -242,7 +243,7 @@ class MongoAdapter:
             }
             return self._insert(job_data, c.MONGO_DB_NAME, c.MONGO_JOBS_TABLE)
         except errors.PyMongoError as e:
-            logger.warning(f"Error inserting new job: {e}")
+            logger.warning("Error inserting new job: %s", e)
             return None
 
     def update_job(self, jobs_id: str, updates: dict) -> bool:
@@ -259,12 +260,12 @@ class MongoAdapter:
         try:
             job = self._retrieve(jobs_id, c.MONGO_DB_NAME, c.MONGO_JOBS_TABLE)
             if not job:
-                logger.warning(f"Job with ID {jobs_id} not found.")
+                logger.warning("Job with ID %s not found.", jobs_id)
                 return False
             job.update(updates)
             return self._update(job, c.MONGO_DB_NAME, c.MONGO_JOBS_TABLE)
         except errors.PyMongoError as e:
-            logger.warning(f"Error updating job: {e}")
+            logger.warning("Error updating job: %s", e)
             return False
 
     def update_job_logs(self, jobs_id: str, stage_name: str,
@@ -284,12 +285,12 @@ class MongoAdapter:
         try:
             jobs = self._retrieve(jobs_id, c.MONGO_DB_NAME, c.MONGO_JOBS_TABLE)
             if not jobs:
-                logger.warning(f"Jobs with ID {jobs_id} not found.")
+                logger.warning("Jobs with ID %s not found.", jobs_id)
                 return False
             stage_log = next((stage for stage in jobs[c.FIELD_LOGS]
                               if stage[c.FIELD_STAGE_NAME] == stage_name), None)
             if not stage_log:
-                logger.warning(f"Stage '{stage_name}' not initialized. Cannot update job log.")
+                logger.warning("Stage '%s' not initialized. Cannot update job log.", stage_name)
                 return False
             stage_log[c.FIELD_STAGE_STATUS] = stage_status
             stage_log[c.FIELD_JOBS] = jobs_log
@@ -298,7 +299,7 @@ class MongoAdapter:
                 stage_log[c.FIELD_COMPLETION_TIME] = stage_time[c.FIELD_COMPLETION_TIME]
             return self._update(jobs, c.MONGO_DB_NAME, c.MONGO_JOBS_TABLE)
         except errors.PyMongoError as e:
-            logger.warning(f"Error updating job log for jobs_id {jobs_id}: {e}")
+            logger.warning("Error updating job log for jobs_id %s: %s", jobs_id, e)
             return False
 
     def get_job(self, doc_id: str, db_name: str = c.MONGO_DB_NAME,
@@ -316,7 +317,7 @@ class MongoAdapter:
         try:
             return self._retrieve(doc_id, db_name, collection_name)
         except errors.PyMongoError as e:
-            logger.warning(f"Error retrieving the job, exception is {e}")
+            logger.warning("Error retrieving the job, exception is %s", e)
             return {}
 
     def get_session(
@@ -348,7 +349,7 @@ class MongoAdapter:
             return result if result else {}
 
         except errors.PyMongoError as e:
-            logger.warning(f"Error retrieving last set repository for user {user_id}: {e}")
+            logger.warning("Error retrieving last set repository for user %s: %s", user_id, e)
             return {}
 
     def update_session(
@@ -392,7 +393,7 @@ class MongoAdapter:
             return acknowledge
 
         except errors.PyMongoError as e:
-            logger.warning(f"Error in update_session, exception is {e}")
+            logger.warning("Error in update_session, exception is %s", e)
             return False
 
     def get_pipeline_history(self, repo_name: str, repo_url: str,
@@ -428,15 +429,15 @@ class MongoAdapter:
                 pipeline_data[c.FIELD_PIPELINE_NAME] = pipeline_name
                 return pipeline_data
             logger.warning(
-                f"No pipeline config found for '{pipeline_name}' "
-                f"in '{repo_name}' for url {repo_url} on branch '{branch}'."
+                "No pipeline config found for '%s' in '%s' for url %s on branch '%s'.",
+                pipeline_name, repo_name, repo_url, branch
             )
             return {}
         except errors.PyMongoError as e:
-            logger.warning(f"Error retrieving pipeline config: {str(e)}")
+            logger.warning("Error retrieving pipeline config: %s", str(e))
             return {}
         except AttributeError as attr:
-            logger.warning(f"pipelines: {pipeline_document} is empty. Error: {str(attr)}")
+            logger.warning("Pipelines: %s is empty. Error: %s", pipeline_document, str(attr))
             print(f"pipelines: {pipeline_document} is empty.\nError: {str(attr)}")
             return {}
 
@@ -478,7 +479,7 @@ class MongoAdapter:
                 )
             return status
         except (errors.PyMongoError, ValidationError) as e:
-            logger.warning(f"Error updating pipeline config: {str(e)}")
+            logger.warning("Error updating pipeline config: %s", str(e))
             return False
 
     def get_pipeline_run_summary(
@@ -517,6 +518,7 @@ class MongoAdapter:
             return result
 
         except errors.PyMongoError as e:
-            logger.error(f"Error retrieving pipeline runs with job details for \
-                         repo {repo_url}: {e}")
+            logger.error(
+                "Error retrieving pipeline runs with job details for repo %s: %s",
+                repo_url, e)
             return []
