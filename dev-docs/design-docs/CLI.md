@@ -247,7 +247,8 @@ Options:
 ```
 
 - **Description**: Configures the cid service to work on the given repository.
-- **Input**: valid public repository url (such as https://www.github.com, git@github.com, https://www.gitlab.com)
+- **Input**: valid public repository url (such as https://www.github.com, git@github.com, https://www.gitlab.com), or local repository directory.
+- note if local repository url is provided, and if the local repository has remote origin, the url stored will be the remote url.
 - **Output**:
   - On success: Displays the repository details (URL, branch, and commit hash).
   - On failure: Displays an error message indicating the reason for failure.
@@ -312,6 +313,34 @@ Repository Name: t4-cicd
 Branch: 124-project-documentation
 Commit Hash: 8ea04ac58b62ef65e8d2328f7b29d28943fbd13a
 ```
+
+### `cid config override`
+
+```sh
+$ cid config override --help
+Usage: cid config override [OPTIONS]
+
+  Apply configuration overrides to a pipeline configuration stored in the
+  database,  check the validation result.  Override configurations in
+  'key=value' format. Multiple overrides can be provided.
+
+  Example usage:     cid config override --pipeline pipeline_name --override
+  "global.docker.image=gradle:jdk8"
+
+Options:
+  --pipeline TEXT  pipeline name to update  [required]
+  --override TEXT  Override configuration in 'key=value' format
+  --save           flag to save the overrides config into database
+  --json           output in json format
+  --help           Show this message and exit.
+```
+
+**Additional notes**:
+
+- Main usage scenario - check the overrides on configuration without saving.
+- The initial pipeline configuration for target pipeline name need to be saved into the datastore (MongoDB) first using the cid config command or previous cid pipeline run commands.
+- The `--save` option allow user to save the override configuration, default is not saving.
+- The `--json` flag allow display of the validated configuration in json format.
 
 ## `cid pipeline`
 
@@ -424,6 +453,15 @@ pipeline_name: cicd-javascript, docker: {'registry': 'dockerhub', 'image': 'node
 ===== [INFO] Stages: 'build' =====
 ...
 ```
+
+### `cid pipeline run --repo REPO_URL --branch BRANCH --commit COMMIT`
+
+**Description**: User can run the pipeline for specific Repository, branch and commit. The details behaviour are as follow
+
+- If REPO_URL is given, the command must be run in an empty directory. The specific REPO_URL, branch and commit will be checked out.
+- If REPO_URL is not given, but target Branch and Commit are given. The command must be running in the root level of a Git Repository. The program will attempt to switch to target branch and commit.
+- BRANCH if not given will be defaulted to current active branch.
+- COMMIT if not given will be defaulted to the latest commit of target branch.
 
 ### `cid pipeline run --dry-run`
 
