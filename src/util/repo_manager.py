@@ -444,15 +444,15 @@ class RepoManager:
             # previous operation should guarantee branch will exist.
             if not commit_hash:
                 commit_hash = repo.head.commit.hexsha
-
-            # Ensure the commit exists on the branch
-            commit_hashes = [
-                commit.hexsha for commit in repo.iter_commits(branch)]
-            if commit_hash not in commit_hashes:
-                return False, f"Commit '{commit_hash}' does not exist on local branch '{branch}'."
-
-            # Reset the branch to the specified commit
-            repo.git.checkout(commit_hash)
+            else:
+                # Only checkout specific commit if it is not equal to head.
+                # Ensure the commit exists on the branch
+                commit_hashes = [
+                    commit.hexsha for commit in repo.iter_commits(branch)]
+                if commit_hash not in commit_hashes:
+                    return False, f"Commit '{commit_hash}' does not exist on local branch '{branch}'."
+                # Checkout the specified commit in detached stage
+                repo.git.checkout(commit_hash)
             return True, f"Checked out to commit '{commit_hash}' on branch '{branch}'."
         except GitCommandError as e:
             return False, f"Error during checkout: {e}"
