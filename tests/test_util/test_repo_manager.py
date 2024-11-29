@@ -402,6 +402,7 @@ class TestRepoManager(unittest.TestCase):
 
         # Simulate branch and commit existence
         mock_instance.branches = [c.DEFAULT_BRANCH]
+        mock_instance.commit.side_effect = ValueError()
         mock_instance.iter_commits.return_value = [
             MagicMock(hexsha="123abc"), MagicMock(hexsha="456def")
         ]
@@ -470,6 +471,7 @@ class TestRepoManager(unittest.TestCase):
 
         # Simulate branch existence but no matching commits
         mock_instance.branches = [c.DEFAULT_BRANCH]
+        mock_instance.commit.side_effect = ValueError()
         mock_instance.iter_commits.return_value = []
 
         # Call the method

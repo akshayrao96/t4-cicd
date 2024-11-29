@@ -186,10 +186,11 @@ class RepoManager:
                 repo.git.checkout(branch)
 
             # Validate the commit hash exists on the branch
-            commit_hashes = [
-                commit.hexsha for commit in repo.iter_commits(branch)]
-            if commit_hash not in commit_hashes:
-                return False, f"Commit '{commit_hash}' does not exist on branch '{branch}'."
+            try:
+                repo.commit(commit_hash)
+            except (BadObject, IndexError, ValueError):
+                err = f"Commit '{commit_hash}' does not exist on branch '{branch}'."
+                return False, err
 
             # Reset the branch to the specified commit, if branch is not
             # up to date with the remote tracking version of the branch
@@ -456,7 +457,6 @@ class RepoManager:
                 except (BadObject, IndexError, ValueError):
                     err = f"Commit '{commit_hash}' does not exist on local branch '{branch}'."
                     return False, err
-                logger.debug("checking out ")
                 repo.git.checkout(commit_hash)
             return True, f"Checked out to commit '{commit_hash}' on branch '{branch}'."
         except GitCommandError as e:
