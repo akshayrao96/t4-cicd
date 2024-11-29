@@ -9,6 +9,7 @@ from urllib.parse import urlparse
 import subprocess
 import shutil
 from git import Repo, GitCommandError, InvalidGitRepositoryError
+from gitdb.exc import BadObject
 from util.common_utils import get_logger
 import util.constant as c
 
@@ -451,7 +452,7 @@ class RepoManager:
                 # repo.commit()
                 try:
                     repo.commit(commit_hash)
-                except GitCommandError as e:
+                except (BadObject, IndexError, ValueError):
                     return False, f"Commit '{commit_hash}' does not exist on local branch '{branch}'."
                 # commit_hashes = [
                 #     commit.hexsha for commit in repo.iter_commits(branch)]
