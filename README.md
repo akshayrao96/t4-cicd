@@ -128,11 +128,13 @@ cid pipeline run
 cid pipeline report
 ```
 
-## Current Limitation of the program
+## Caveats - Current Limitation of the program
 
-- The program will install three packages with name cli, controller and util. Users have to ensure there is no naming conflict on their python packages installed, as well as naming conflict in the repository that they are working on. Installing in a virtual environment is recommended for testing.
+- The program will install three packages with name **cli**, **controller** and **util**. Users have to ensure there is no naming conflict on their python packages installed, as well as naming conflict in the repository that they are working on. Installing in a virtual environment is recommended for testing.
 
 - When saving data into the Datastore, the current id for user's session will be used to identify the user. The recommendation is to run the program in an user account instead of the root account, so that the user's session detail will be uniquely identified and stored.
+
+- The program need to have access right to write to the parent folder where the command is executed to write the debug log. For example, if command is executed in directory `/temp/t4-cicd`, the program need to write a debug log at `/temp` folder.
 
 ## Errors and Debug Information
 
