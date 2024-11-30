@@ -65,9 +65,11 @@ def get_env() -> dict:
 
     return config
 
+
 class UnionFind:
     """ UnionFind Class to Find Separated Group of Related Nodes(jobs)
     """
+
     def __init__(self):
         """ Constructor, Initialize the required variables
         """
@@ -160,20 +162,22 @@ class UnionFind:
                 root2nodes[parent].append(node)
         return sorted(root2nodes.values())
 
+
 class TopoSort:
     """ class provide topological sort order 
     """
-    def __init__(self, adjacency_list:dict):
+
+    def __init__(self, adjacency_list: dict):
         """ Constructor, Initialize the dependency count 
         map from the adjacency list provided
-        
+
         Args:
             adjacency_list (dict): graph representation of given nodes
         """
         self.adjacency_list = adjacency_list
         self.node2depend_cnt = self.get_cnt_map(adjacency_list)
 
-    def get_cnt_map(self, adjacency_list:dict) -> dict:
+    def get_cnt_map(self, adjacency_list: dict) -> dict:
         """ Construct the dependency count map
 
         Args:
@@ -195,7 +199,7 @@ class TopoSort:
                 node2depend_cnt[req] += 1
         return node2depend_cnt
 
-    def get_topo_order(self, node_list:list)->tuple[bool, str, list]:
+    def get_topo_order(self, node_list: list) -> tuple[bool, str, list]:
         """ performed topological sort based on the nodes in adjacency_list and node_list
 
         Args:
@@ -241,14 +245,16 @@ class TopoSort:
                 cycle_list.append(node)
         if len(cycle_list) != 0:
             result_flag = False
-            result_error_msg = f"Cycle error detected for jobs:{sorted(cycle_list)}\n"
+            result_error_msg = f"Cycle error detected for jobs:{
+                sorted(cycle_list)}\n"
             return (result_flag, result_error_msg, [])
         return (result_flag, result_error_msg, order)
+
 
 class MongoHelper:
     """MongoHelper class to provide helper functions for MongoDB operations"""
 
-    ## PipelineHistory
+    # PipelineHistory
     @staticmethod
     def build_match_filter(repo_url: str, pipeline_name: str = None) -> dict:
         """Builds the match filter for a MongoDB aggregation pipeline."""
@@ -264,17 +270,18 @@ class MongoHelper:
         """Builds the aggregation pipeline based on stage, job, and run number filters."""
         pipeline = [
             {"$match": match_filter},
-            {"$addFields": {"pipelines_array": {"$objectToArray": f"${c.FIELD_PIPELINES}"}}},
+            {"$addFields": {"pipelines_array": {
+                "$objectToArray": f"${c.FIELD_PIPELINES}"}}},
             {"$unwind": "$pipelines_array"}]
         if pipeline_name:
             pipeline += [{"$match": {"pipelines_array.k": pipeline_name}}]
         pipeline.extend([
             {"$addFields": {f"pipelines_array.v.{c.FIELD_JOB_RUN_HISTORY}": {
-                "$map": {"input": f"$pipelines_array.v.{c.FIELD_JOB_RUN_HISTORY}", 
+                "$map": {"input": f"$pipelines_array.v.{c.FIELD_JOB_RUN_HISTORY}",
                         "as": "history_id",
-                        "in": {"$toObjectId": "$$history_id"}}}}},
+                         "in": {"$toObjectId": "$$history_id"}}}}},
             {"$lookup": {
-                "from": "jobs_history", 
+                "from": "jobs_history",
                 "localField": f"pipelines_array.v.{c.FIELD_JOB_RUN_HISTORY}",
                 "foreignField": c.FIELD_ID, "as": "job_details_list"}},
             {"$unwind": "$job_details_list"},
@@ -301,7 +308,7 @@ class MongoHelper:
                             "cond": {"$eq": [f"$$log.{c.FIELD_STAGE_NAME}", stage_name]}}}}})
         if job_name:
             filters.append({"$addFields": {f"job_details_list.{c.FIELD_LOGS}":
-                MongoHelper._transform_logs(job_name)}})
+                                           MongoHelper._transform_logs(job_name)}})
         return filters
 
     @staticmethod
@@ -335,10 +342,11 @@ class MongoHelper:
         }
 
     @staticmethod
-    def build_projection(stage_name: str = None, job_name: str = None, 
+    def build_projection(stage_name: str = None, job_name: str = None,
                          run_number: int = None) -> dict:
         """Builds the projection stage for MongoDB aggregation based on stage and job fields."""
         projection_fields = {
+            c.FIELD_BRANCH: "$branch",
             c.FIELD_PIPELINE_NAME: "$pipelines_array.k",
             c.FIELD_RUN_NUMBER: f"$job_details_list.{c.FIELD_RUN_NUMBER}",
             c.FIELD_GIT_COMMIT_HASH: f"$job_details_list.{c.FIELD_GIT_COMMIT_HASH}",
@@ -384,6 +392,7 @@ class MongoHelper:
             }
         return projection_fields
 
+
 class ConfigOverride:
     """ConfigOverride class to handle configuration overrides"""
 
@@ -423,14 +432,17 @@ class ConfigOverride:
         """
         for key, value in updates.items():
             if isinstance(value, dict):
-                config[key] = ConfigOverride.apply_overrides(config.get(key, {}), value)
+                config[key] = ConfigOverride.apply_overrides(
+                    config.get(key, {}), value)
             else:
                 config[key] = value
         return config
 
+
 class DryRun:
     """DryRun class to handle message output formatting for cid pipeline, to print plain text
     or YAML format."""
+
     def __init__(self, config_dict: dict):
         self.config = config_dict
         self.global_dict = config_dict.get(c.KEY_GLOBAL)
@@ -462,9 +474,10 @@ class DryRun:
         jobs_yaml_output = self._parse_jobs(self.stage_msg)
 
         self.yaml_output_msg = global_yaml_output + jobs_yaml_output
-        return self.yaml_output_msg
+        output = self.yaml_output_msg + "\n" + self.dry_run_msg
+        return output
 
-    def _parse_global(self, text:str) -> str:
+    def _parse_global(self, text: str) -> str:
         """Given the plain text that is build when running the _build_dry_run_msg(),
         this function purpose is to convert the text into valid yaml. This result
         will be return as string to get_yaml_format() method.
@@ -484,7 +497,8 @@ class DryRun:
             global_text = global_match.group(1)
 
             # Parse global attributes
-            attr_pairs = re.findall(r'(\w+): (\'[^\']*\'|\[.*?\]|\{.*?\}|[^\s,]+)', global_text)
+            attr_pairs = re.findall(
+                r'(\w+): (\'[^\']*\'|\[.*?\]|\{.*?\}|[^\s,]+)', global_text)
 
             for key, value in attr_pairs:
                 if value.startswith("{"):
@@ -495,7 +509,7 @@ class DryRun:
         yaml_output = yaml.dump({c.KEY_GLOBAL: global_dict}, sort_keys=False)
         return yaml_output
 
-    def _parse_jobs(self, text:str) -> str:
+    def _parse_jobs(self, text: str) -> str:
         """Given the plain text that is build when running the _build_dry_run_msg(),
         this function purpose is to convert the text into valid yaml. This result
         will be return as string to get_yaml_format() method.
@@ -510,7 +524,8 @@ class DryRun:
         jobs_dict = {}
 
         # Split by stages using regex
-        stage_blocks = re.split(r'===== \[INFO\] Stages: \'(.+?)\' =====', text)
+        stage_blocks = re.split(
+            r'===== \[INFO\] Stages: \'(.+?)\' =====', text)
 
         for i in range(1, len(stage_blocks), 2):
             stage_name = stage_blocks[i]
@@ -524,7 +539,8 @@ class DryRun:
                 job_dict = {'stage': stage_name}
 
                 # Parse attributes
-                attr_pairs = re.findall(r'(\w+): (\'[^\']*\'|\[.*?\]|\{.*?\}|[^\s,]+)', attributes)
+                attr_pairs = re.findall(
+                    r'(\w+): (\'[^\']*\'|\[.*?\]|\{.*?\}|[^\s,]+)', attributes)
 
                 for key, value in attr_pairs:
                     if value.startswith("[") or value.startswith("{"):
@@ -542,7 +558,6 @@ class DryRun:
         yaml_output = yaml.dump({c.KEY_JOBS: jobs_dict}, sort_keys=False)
         return yaml_output
 
-
     def _build_dry_run_msg(self):
         """The purpose of this function is to convert the config_dict to plain text of
         the dry_run message. This adheres to the stages order that the config file may have.
@@ -557,13 +572,14 @@ class DryRun:
         stage_msg = ""
         for stage in self.stages_order:
             stage_msg += f"\n===== [INFO] Stages: '{stage}' =====\n"
-            #build, test doc, deploy, etc..
+            # build, test doc, deploy, etc..
             # to retrieve the job of the stages, need to loop through
             # the dict and run the job given the defined order.
             job_groups = self.stages_order[stage]['job_groups']
             for job_group in job_groups:
                 for job in job_group:
-                    job_msg = self._format_job_info_msg(job, self.jobs_dict[job])
+                    job_msg = self._format_job_info_msg(
+                        job, self.jobs_dict[job])
                     stage_msg += job_msg
 
         self.stage_msg = stage_msg
@@ -571,7 +587,7 @@ class DryRun:
         self.dry_run_msg += global_msg
         self.dry_run_msg += stage_msg
 
-    def _format_job_info_msg(self, name:str, job:dict) -> str:
+    def _format_job_info_msg(self, name: str, job: dict) -> str:
         """Format the output message for user (plain text version). This function is
         used by _build_dry_run_msg().
 
@@ -588,6 +604,7 @@ class DryRun:
         formatted_msg += "\n"
 
         return formatted_msg
+
 
 class PipelineReport:
     """PipelineReport handles dict data type and format printing for output to CLI"""
@@ -610,12 +627,16 @@ class PipelineReport:
         """
         output_msg = ""
         for pipeline in self.pipeline_data:
+            output_msg += "\n"
             output_msg += f"Pipeline Name: {pipeline[c.FIELD_PIPELINE_NAME]}\n"
+            output_msg += f"Branch Name: {pipeline[c.FIELD_BRANCH]}\n"
             output_msg += f"Run Number: {pipeline[c.FIELD_RUN_NUMBER]}\n"
-            output_msg += f"Git Commit Hash: {pipeline[c.FIELD_GIT_COMMIT_HASH]}\n"
+            output_msg += f"Git Commit Hash: {\
+                pipeline[c.FIELD_GIT_COMMIT_HASH]}\n"
             output_msg += f"Status: {pipeline[c.FIELD_STATUS]}\n"
             output_msg += f"Start Time: {pipeline[c.FIELD_START_TIME]}\n"
-            output_msg += f"Completion Time: {pipeline[c.FIELD_COMPLETION_TIME]}\n"
+            output_msg += f"Completion Time: {\
+                pipeline[c.FIELD_COMPLETION_TIME]}\n"
 
             logs = pipeline.get(c.FIELD_LOGS, [])
             if logs:
@@ -624,7 +645,8 @@ class PipelineReport:
                 output_msg += f"  Stage Name: {log[c.FIELD_STAGE_NAME]}\n"
                 output_msg += f"  Status: {log[c.FIELD_STAGE_STATUS]}\n"
                 output_msg += f"  Start Time: {pipeline[c.FIELD_START_TIME]}\n"
-                output_msg += f"  Completion Time: {pipeline[c.FIELD_COMPLETION_TIME]}\n\n"
+                output_msg += f"  Completion Time: {\
+                    pipeline[c.FIELD_COMPLETION_TIME]}\n\n"
         return output_msg
 
     def print_stage_summary(self) -> str:
@@ -637,9 +659,13 @@ class PipelineReport:
         output_msg = ""
         for pipeline in self.pipeline_data:
             for log in pipeline.get(c.FIELD_LOGS, []):
-                output_msg += f"Pipeline Name: {pipeline[c.FIELD_PIPELINE_NAME]}\n"
+                output_msg += "\n"
+                output_msg += f"Pipeline Name: {\
+                    pipeline[c.FIELD_PIPELINE_NAME]}\n"
+                output_msg += f"Branch Name: {pipeline[c.FIELD_BRANCH]}\n"
                 output_msg += f"Run Number: {pipeline[c.FIELD_RUN_NUMBER]}\n"
-                output_msg += f"Git Commit Hash: {pipeline[c.FIELD_GIT_COMMIT_HASH]}\n"
+                output_msg += f"Git Commit Hash: {\
+                    pipeline[c.FIELD_GIT_COMMIT_HASH]}\n"
                 output_msg += f"Stage Name: {log[c.FIELD_STAGE_NAME]}\n"
                 output_msg += f"Stage Status: {log[c.FIELD_STAGE_STATUS]}\n"
 
@@ -648,10 +674,14 @@ class PipelineReport:
                     output_msg += "Jobs:\n"
                 for job in jobs:
                     output_msg += f"  Job Name: {job[c.FIELD_JOB_NAME]}\n"
-                    output_msg += f"    Job Status: {job[c.FIELD_JOB_STATUS]}\n"
-                    output_msg += f"    Allows Failure: {job[c.FIELD_JOB_ALLOW_FAILURE]}\n"
-                    output_msg += f"    Start Time: {job[c.FIELD_START_TIME]}\n"
-                    output_msg += f"    Completion Time: {job[c.FIELD_COMPLETION_TIME]}\n\n"
+                    output_msg += f"  Job Status: {\
+                        job[c.FIELD_JOB_STATUS]}\n"
+                    output_msg += f"  Allows Failure: {\
+                        job[c.FIELD_JOB_ALLOW_FAILURE]}\n"
+                    output_msg += f"  Start Time: {\
+                        job[c.FIELD_START_TIME]}\n"
+                    output_msg += f"  Completion Time: {\
+                        job[c.FIELD_COMPLETION_TIME]}\n\n"
         return output_msg
 
     def print_job_summary(self) -> str:
@@ -664,14 +694,20 @@ class PipelineReport:
         for pipeline in self.pipeline_data:
             for log in pipeline.get(c.FIELD_LOGS, []):
                 for job in log.get(c.FIELD_JOBS, []):
-                    output_msg += f"Pipeline Name: {pipeline[c.FIELD_PIPELINE_NAME]}\n"
-                    output_msg += f"Run Number: {pipeline[c.FIELD_RUN_NUMBER]}\n"
-                    output_msg += f"Git Commit Hash: {pipeline[c.FIELD_GIT_COMMIT_HASH]}\n"
+                    output_msg += f"Pipeline Name: {\
+                        pipeline[c.FIELD_PIPELINE_NAME]}\n"
+                    output_msg += f"Branch Name: {pipeline[c.FIELD_BRANCH]}\n"
+                    output_msg += f"Run Number: {\
+                        pipeline[c.FIELD_RUN_NUMBER]}\n"
+                    output_msg += f"Git Commit Hash: {\
+                        pipeline[c.FIELD_GIT_COMMIT_HASH]}\n"
                     output_msg += f"Stage Name: {log[c.FIELD_STAGE_NAME]}\n"
                     output_msg += f"Job Name: {job[c.FIELD_JOB_NAME]}\n"
                     output_msg += f"Job Status: {job[c.FIELD_JOB_STATUS]}\n"
-                    output_msg += f"Allows Failure: {job[c.FIELD_JOB_ALLOW_FAILURE]}\n"
+                    output_msg += f"Allows Failure: {\
+                        job[c.FIELD_JOB_ALLOW_FAILURE]}\n"
                     output_msg += f"Start Time: {job[c.FIELD_START_TIME]}\n"
-                    output_msg += f"Completion Time: {job[c.FIELD_COMPLETION_TIME]}\n\n"
+                    output_msg += f"Completion Time: {\
+                        job[c.FIELD_COMPLETION_TIME]}\n\n"
 
         return output_msg

@@ -186,7 +186,7 @@ def set_repo(repo_url: str, branch: str, commit: str) -> None:
 
        This command clones the specified repository into the current working directory (PWD)
        and optionally checks out the specified branch and commit. The current directory
-       must be empty for this operation to succeed.
+       must be empty for this operation to succeed.\f
 
        Behavior:
            - The repository is cloned into the PWD.
@@ -261,14 +261,14 @@ def get_repo():
 
     This command retrieves and displays details of the currently configured Git repository,
     either from the current working directory if it is a Git repository, or from the last
-    set repository stored in the system.
+    set repository stored in the system.\f
 
     Behavior:
-        - If the current directory is a Git repository, it displays the URL, branch, 
-        and latest commit hash.
-        - If the current directory is not a Git repository but a previous repository configuration 
-        exists, it retrieves and displays details of the last configured repository.
-        - If no repository is configured, it provides guidance for setting a repository.
+    If the current directory is a Git repository, it displays the URL, branch, 
+    and latest commit hash.\f
+    If the current directory is not a Git repository but a previous repository configuration 
+    exists, it retrieves and displays details of the last configured repository.\f
+    If no repository is configured, it provides guidance for setting a repository.
 
     Output:
         Information about the repository is displayed in the console, including:

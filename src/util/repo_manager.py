@@ -9,6 +9,7 @@ from urllib.parse import urlparse
 import subprocess
 import shutil
 from git import Repo, GitCommandError, InvalidGitRepositoryError
+from gitdb.exc import BadObject
 from util.common_utils import get_logger
 import util.constant as c
 
@@ -185,10 +186,11 @@ class RepoManager:
                 repo.git.checkout(branch)
 
             # Validate the commit hash exists on the branch
-            commit_hashes = [
-                commit.hexsha for commit in repo.iter_commits(branch)]
-            if commit_hash not in commit_hashes:
-                return False, f"Commit '{commit_hash}' does not exist on branch '{branch}'."
+            try:
+                repo.commit(commit_hash)
+            except (BadObject, IndexError, ValueError):
+                err = f"Commit '{commit_hash}' does not exist on branch '{branch}'."
+                return False, err
 
             # Reset the branch to the specified commit, if branch is not
             # up to date with the remote tracking version of the branch
@@ -313,6 +315,8 @@ class RepoManager:
         Args:
             repo_path (Path, optional): Path to the repository.
             Defaults to the current working directory.
+            commit (Str, optional) : commit hash, if given will use
+            the given one. 
 
         Returns:
             dict: Repository details, or an empty dictionary if not a Git repository.
@@ -441,18 +445,19 @@ class RepoManager:
         """
         try:
             # Default to the latest commit if commit_hash is None
+            # previous operation should guarantee branch will exist.
             if not commit_hash:
-                repo.git.pull("origin", branch)
                 commit_hash = repo.head.commit.hexsha
-
-            # Ensure the commit exists on the branch
-            commit_hashes = [
-                commit.hexsha for commit in repo.iter_commits(branch)]
-            if commit_hash not in commit_hashes:
-                return False, f"Commit '{commit_hash}' does not exist on branch '{branch}'."
-
-            # Reset the branch to the specified commit
-            repo.git.execute(["git", "reset", "--hard", commit_hash])
+                # logger.debug(commit_hash)
+            elif not repo.head.commit.hexsha.startswith(commit_hash):
+                # Only checkout specific commit if it is not equal to head.
+                # Ensure the commit exists on the branch
+                try:
+                    repo.commit(commit_hash)
+                except (BadObject, IndexError, ValueError):
+                    err = f"Commit '{commit_hash}' does not exist on local branch '{branch}'."
+                    return False, err
+                repo.git.checkout(commit_hash)
             return True, f"Checked out to commit '{commit_hash}' on branch '{branch}'."
         except GitCommandError as e:
             return False, f"Error during checkout: {e}"
