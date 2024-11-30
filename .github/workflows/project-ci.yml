@@ -83,11 +83,11 @@ jobs:
         run: |
           poetry run pytest
 
-      # - name: Generate API documentation with pydoctor
-      #   run: |
-      #     poetry run pydoctor
-      # - name: Upload API documentations
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: api-documentations
-      #     path: apidocs
+      - name: Generate API documentation with pydoctor
+        run: |
+          poetry run pydoctor
+      - name: Upload API documentations
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-documentations
+          path: apidocs

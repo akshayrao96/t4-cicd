@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "t4-cicd"
-version = "0.1.1"
+version = "0.2.0"
 description = ""
 authors = ["sjchin, jgautama, peihsuan-lin, akshayrao"]
 license = "LICENSE"

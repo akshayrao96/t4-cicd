@@ -264,11 +264,11 @@ def get_repo():
     set repository stored in the system.\f
 
     Behavior:
-        - If the current directory is a Git repository, it displays the URL, branch, 
-        and latest commit hash.
-        - If the current directory is not a Git repository but a previous repository configuration 
-        exists, it retrieves and displays details of the last configured repository.
-        - If no repository is configured, it provides guidance for setting a repository.
+    If the current directory is a Git repository, it displays the URL, branch, 
+    and latest commit hash.\f
+    If the current directory is not a Git repository but a previous repository configuration 
+    exists, it retrieves and displays details of the last configured repository.\f
+    If no repository is configured, it provides guidance for setting a repository.
 
     Output:
         Information about the repository is displayed in the console, including:
