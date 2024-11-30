@@ -15,7 +15,7 @@ The tool is packaged into a single binary, with a CLI offering documentation.
 ## Implemented Features
 
 | Abbr.  | Feature                          | Description                                                                                           | Notes              |
-| ------ | -------------------------------- | ----------------------------------------------------------------------------------------------------- | ------------------ |
+|--------|----------------------------------|-------------------------------------------------------------------------------------------------------|--------------------|
 | U1     | Remote Repo Local CI/CD Run      | Run a CI/CD pipeline locally for a public Git repository using the CLI.                               | Fully implemented. |
 | U2     | Local Repo Local CI/CD Run       | Run a CI/CD pipeline locally for a cloned Git repository on the developer's machine.                  | Fully implemented. |
 | C1     | Configuration File Location      | All configuration files are stored in a `.cicd-pipelines` folder in the target repository.            | Fully implemented. |
@@ -37,15 +37,15 @@ The tool is packaged into a single binary, with a CLI offering documentation.
 | L4.2   | Pipeline Run Summary             | Retrieve detailed summaries of individual pipeline runs.                                              | Fully implemented. |
 | L4.3   | Stage Summary                    | Retrieve stage summaries for a specific pipeline run.                                                 | Fully implemented. |
 | L4.4   | Job Summary                      | Retrieve job summaries for a specific stage and pipeline run.                                         | Fully implemented. |
-| L6 | Run Pipeline | CLI supports running pipelines with options for repo, branch, commit, and overrides. | Fully implemented. |
-| L6.1 | Config File Key Overrides | CLI allows overrides for specific keys in the configuration file. | Fully implemented. |
+| L6     | Run Pipeline                     | CLI supports running pipelines with options for repo, branch, commit, and overrides.                  | Fully implemented. |
+| L6.1   | Config File Key Overrides        | CLI allows overrides for specific keys in the configuration file.                                     | Fully implemented. |
 
 ---
 
 ## Partially Implemented Features
 
 | Abbr.                       | Feature                | Implemented Work                                                                                       | Future Work Needed                                               |
-| --------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------- |
+|-----------------------------|------------------------|--------------------------------------------------------------------------------------------------------|------------------------------------------------------------------|
 | Initial set of Requirements | Job Parallel Run       | The validated pipeline configuration will store jobs for a stage in groups that can be run in parallel | Update pipeline run method to execute the job groups in parallel |
 | C5.5                        | Job Allow Failure      | Allows marking jobs as "failed" but continues to the next job or stage.                                | Ensure remaining commands in failed jobs are executed.           |
 | C5.7.1                      | Artifact Specification | Supports specifying files and folders for upload.                                                      | Specifying artifacts via regex patterns.                         |
@@ -56,6 +56,6 @@ The tool is packaged into a single binary, with a CLI offering documentation.
 ## Extra Features Implemented
 
 | Feature                                      | Description                                                                                                                  |
-| -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+|----------------------------------------------|------------------------------------------------------------------------------------------------------------------------------|
 | Validating yaml files in an entire directory | Users can validate all pipeline files in a directory by using `cid config --check-all` option                                |
 | Check overrides without running              | Users can test the overrides applied to the pipeline configuration stored in the database using `cid config override` option |
