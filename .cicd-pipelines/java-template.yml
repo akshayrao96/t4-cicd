@@ -6,7 +6,7 @@ global:
     docker: 
         registry: 'dockerhub'
         image: "gradle:latest"
-    artifact_upload_path: "test-cicd-cs6510"
+    artifact_upload_path: "t4-cicd-cs6510"
 
 # default stages: [build, test, doc, deploy]
 stages: ['build', 'test', 'doc', 'deploy']

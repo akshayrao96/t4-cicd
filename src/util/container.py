@@ -56,7 +56,9 @@ class DockerManager(ContainerManager):
     """
 
     def __init__(self, client:docker.DockerClient=None,
-                 log_tool=logger, repo:str="Repo", pipeline:str="pipeline", run:str="run"):
+                 log_tool=logger, repo:str="Repo", 
+                 branch:str='main',
+                 pipeline:str="pipeline", run:str="run"):
         """ Initialize the DockerManager
 
         Args:
@@ -65,6 +67,8 @@ class DockerManager(ContainerManager):
             log_tool (_type_, optional): logging tool. Defaults to logger.
             repo (str, optional): repo name, use to uniquely identify the volume used. 
                 Defaults to "Repo".
+            branch (str, optional): branch name, use to uniquely identify the volume used. 
+                Defaults to "main".
             pipeline (str, optional): pipeline name, use to uniquely identify the volume used. 
                 Defaults to "pipeline".
             run (str, optional): run, use to uniquely identify the volume used. Defaults to "run".
@@ -74,7 +78,7 @@ class DockerManager(ContainerManager):
         else:
             self.client = client
         self.logger = log_tool
-        self.vol_name = repo + '-' + pipeline + '-' + run
+        self.vol_name = repo + '-' + branch + '-' + pipeline + '-' + run
         self.docker_vol = None
 
     def run_job(self, job_name:str, job_config: dict) -> JobLog:
