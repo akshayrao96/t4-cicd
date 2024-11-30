@@ -24,7 +24,7 @@ The controller has the following main methods as shown in the UML diagram, they 
 
 These methods manage repository operations based on the context and input provided through the CLI.
 
-`handle_repo()`: Determines which operation to execute:
+#### `handle_repo()`: Determines which operation to execute:
 
 - If --repo is provided, calls `set_repo()` to clone the repository.
 - If branch/commit is provided, calls `checkout_repo()` to update the current repository in $PWD.
@@ -106,7 +106,7 @@ These methods handle pipeline configuration files, either individually or for an
   - An optional saving flag can be used to save all pipeline configuration into the datastore.
   - The validation process will not stop when validation fail for a single pipeline configuration, it will continue until all pipelines are validated.
 
-#### pipeline_history()
+#### `pipeline_history()`
 
 - `pipeline_history()` receives user query to retrieve pipeline report they have previously done using `cid pipeline run`. This function receives one argument:
   - `PipelineHist` is a Pydantic Model that contains repo_name, pipeline_name, run number, etc.
