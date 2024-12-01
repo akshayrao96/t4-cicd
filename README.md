@@ -2,6 +2,7 @@
 
 This project is a CI/CD system designed to work on repository of any programming languages. It has been tested on **Python**, **Java**, and **JavaScript** repository.
 
+Pypi package: [t4-cicd](https://pypi.org/project/t4-cicd/)
 ## About This README
 
 This README is divided into two main sections:
@@ -250,7 +251,7 @@ poetry remove <dependency/lib/package> --group dev
 
 ## Development Documentation:
 
-Check out the list of documents under [dev-docs/design-docs](dev-docs/design-docs) folder for the following:
+Check out the list of documents in this github repository, in `dev-docs/design-docs` folder for the following:
 
 - CLI Documentation
 - Component Design
