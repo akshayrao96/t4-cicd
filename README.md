@@ -1,4 +1,4 @@
-# T4-CICD Project
+# CI Engine
 
 This project is a CI/CD system designed to work on repository of any programming languages. It has been tested on **Python**, **Java**, and **JavaScript** repository.
 
